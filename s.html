@@ -397,8 +397,12 @@
 
 
             //复制文本
-            async function copy() {
+            async function copy(type) {
                 await navigator.clipboard.writeText(editor.value);
+                if (type !== "linkCbz") {
+                    showAutoCloseAlert("复制成功")
+
+                }
             }
 
             //删除最后一行的空行
@@ -418,6 +422,34 @@
 
                 // 重新组合文本，不包括最后一个非空行之后的所有行
                 return lines.slice(0, lastNonEmptyLineIndex + 1).join('\n');
+            }
+
+            // 自定义自动消失的提示框
+            function showAutoCloseAlert(message) {
+                const alert = document.createElement('div');
+                // 磨砂玻璃效果核心样式
+                alert.style.position = 'fixed';
+                // alert.style.top = '50%';
+                alert.style.bottom = '0.1%';
+                alert.style.left = '50%';
+                alert.style.transform = 'translate(-50%, -50%)';
+                alert.style.padding = '20px 30px';
+                alert.style.backgroundColor = 'rgba(255, 255, 255, 0.7)'; // 半透明白色
+                alert.style.backdropFilter = 'blur(10px)'; // 磨砂模糊效果
+                alert.style.border = '1px solid rgba(200, 200, 200, 0.5)'; // 半透明边框
+                alert.style.borderRadius = '8px';
+                alert.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)'; // 柔和阴影
+                alert.style.zIndex = '9999';
+                alert.style.color = 'black'; // 黑色文字
+                alert.style.fontSize = '16px';
+
+                alert.textContent = message;
+                document.body.appendChild(alert);
+
+                // 1秒后自动消失
+                setTimeout(() => {
+                    alert.remove();
+                }, 800);
             }
 
 
