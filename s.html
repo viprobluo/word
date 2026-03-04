@@ -396,12 +396,41 @@
             }
 
 
-            //复制文本
+            // 替换原有的 copy 函数
             async function copy(type) {
-                await navigator.clipboard.writeText(editor.value);
-                if (type !== "linkCbz") {
-                    showAutoCloseAlert("复制成功")
+                try {
+                    // 方案1：优先使用现代剪贴板 API
+                    await navigator.clipboard.writeText(editor.value);
+                    if (type !== "linkCbz") {
+                        showAutoCloseAlert("复制成功");
+                    }
+                } catch (err) {
+                    // 方案2：降级使用传统方法（兼容移动端）
+                    // 1. 创建临时文本框
+                    const tempTextarea = document.createElement('textarea');
+                    tempTextarea.value = editor.value;
+                    // 2. 定位到可视区域外，避免闪烁
+                    tempTextarea.style.position = 'fixed';
+                    tempTextarea.style.top = '-999px';
+                    tempTextarea.style.left = '-999px';
+                    document.body.appendChild(tempTextarea);
+                    // 3. 选中并复制
+                    tempTextarea.focus();
+                    tempTextarea.select();
+                    tempTextarea.setSelectionRange(0, editor.value.length); // 兼容移动端选中全部内容
 
+                    try {
+                        const success = document.execCommand('copy');
+                        if (success && type !== "linkCbz") {
+                            showAutoCloseAlert("复制成功");
+                        } else {
+                            showAutoCloseAlert("复制失败，请手动复制");
+                        }
+                    } catch (err2) {
+                        showAutoCloseAlert("复制失败，请手动复制");
+                    }
+                    // 4. 移除临时文本框
+                    document.body.removeChild(tempTextarea);
                 }
             }
 
