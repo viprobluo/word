@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>墨问写字台</title>
+    <style>
+        body,
+        html {
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #333;
+            color: white;
+            font-family: 'DeDaoJinKai', sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .button-container {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            text-align: center;
+            z-index: 10;
+            padding: 10px 0 20px;
+            /* 增加底部内边距 */
+            background-color: #333;
+            /* 使按钮背景与页面背景一致 */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            /* 添加阴影以区分按钮和编辑区域 */
+        }
+
+        .button-container button {
+            display: inline-block;
+            margin: 5px 1%;
+            padding: 8px 15px;
+            cursor: pointer;
+            background-color: #444;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .button-container button:hover {
+            background-color: #555;
+        }
+
+        #editor-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            /* 水平居中 */
+            align-items: center;
+            /* 垂直居中 */
+            position: relative;
+            box-sizing: border-box;
+            /* padding-top: 30px; */
+            padding-top: 100px;
+            /* 调整顶部内边距 */
+        }
+
+        #editor {
+            width: 80%;
+            /* 设置宽度为容器的80% */
+            /* min-width: 40ch; */
+            min-width: 10ch;
+            max-width: 100%;
+            /* max-width: 60ch; */
+            /* height: 80%; */
+            height: 100%;
+            padding: 10px;
+            border: 1px solid white;
+            background-color: #333;
+            color: white;
+            text-align: justify;
+            text-justify: inter-ideograph;
+            box-sizing: border-box;
+            resize: none;
+            overflow-y: scroll;
+            font-family: 'HarmonyOS Sans SC', sans-serif;
+            font-size: 22px;
+            outline: none;
+            line-height: 1.5em;
+        }
+
+        /* Webkit内核浏览器的滚动条自定义样式 */
+        #editor::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #editor::-webkit-scrollbar-track {
+            background-color: #333;
+        }
+
+        #editor::-webkit-scrollbar-thumb {
+            background-color: #555;
+            border-radius: 10px;
+        }
+
+        .resizer {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 10px;
+            height: 10px;
+            background: transparent;
+            cursor: se-resize;
+        }
+
+        /* 媒体查询，针对手机屏幕 */
+        @media (max-width: 768px) {
+            #editor {
+                font-size: 16px;
+                /* 在小屏幕上减小字体大小 */
+                /* height: 80%; */
+                height: 100%;
+                /* 减小编辑器高度 */
+                width: 90%;
+                /* 在小屏幕上增加宽度 */
+            }
+
+            .button-container button {
+                padding: 6px 12px;
+                /* 减小按钮大小 */
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="button-container">
+        <!-- <button id="saveButton">保存</button> -->
+        <button id="reformatButton">排版</button>
+        <button id="scrollTopButton">置顶</button>
+        <button id="wordCount">字数: 0</button>
+        <!-- <button id="toggleButton">β佥</button> -->
+        <button id="numBigButton">字体</button>
+        <button id="copyButton">复制</button>
+    </div>
+    <div id="editor-container">
+        <textarea id="editor" autofocus></textarea>
+        <div class="resizer"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            const editor = document.getElementById('editor');
+            //const saveButton = document.getElementById('saveButton');
+            const scrollTopButton = document.getElementById('scrollTopButton');
+            const toggleButton = document.getElementById('toggleButton');
+            const numBigButton = document.getElementById('numBigButton');
+            const copyButton = document.getElementById('copyButton');
+
+            var wordCountDisplay = document.getElementById('wordCount');
+
+            // 获取当前URL
+            var currentUrl = window.location.href;
+
+            // 定义一个函数来计算包含中文、英文字母和数字的字数
+            function countWords(text) {
+                // 使用正则表达式匹配中文字符、英文字母和数字
+                var wordRegex = /[\u4e00-\u9fa5a-zA-Z0-9]+/g;
+                var matches = text.match(wordRegex);
+                // 将匹配到的字符数组转换为字符串，并计算长度
+                return matches ? matches.join('').length : 0;
+            }
+
+            // 更新字数显示的函数
+            function updateWordCount() {
+                var text = editor.value; // 获取文本框中的文本
+                var wordCount = countWords(text); // 计算字数
+                wordCountDisplay.textContent = wordCount + " 字"; // 更新字数显示
+            }
+
+
+            //置顶按钮
+            function scrollTop() {
+                editor.scrollTo({
+                    top: 0,
+                    left: 0,
+                    behavior: 'smooth' // 平滑滚动效果
+                });
+            }
+
+            // 从localStorage加载文本
+            function loadText() {
+                const text = localStorage.getItem(currentUrl);
+                if (text) {
+                    editor.value = text;
+                } else {
+                    localStorage.removeItem(currentUrl);
+
+                }
+            }
+            loadText(); // 页面加载时执行
+            // 页面加载完成后立即更新字数
+            updateWordCount();
+            editor.scrollBy = 0;
+
+            // 保存文本到localStorage
+            function saveText() {
+                const text = editor.value;
+                localStorage.setItem(currentUrl, text);
+            }
+            //替换保险的险字
+            // 定义一个函数来切换替换
+            function toggleReplace() {
+                let text = editor.value;
+                const clickCount = localStorage.getItem('clickCount');
+                if (clickCount) {
+                    text = text.replace(/β佥/g, '险');
+                    localStorage.removeItem('clickCount');
+
+                } else {
+                    text = text.replace(/险/g, 'β佥');
+                    localStorage.setItem('clickCount', 1);
+                }
+
+                editor.value = text;
+            }
+            //数字加粗-来回切换
+            function numBig() {
+                let text = editor.value;
+                const numBig = localStorage.getItem('numBig');
+                if (numBig) {
+                    text = text.replace(/𝟬/g, '0')
+                        .replace(/𝟭/g, '1')
+                        .replace(/𝟮/g, '2')
+                        .replace(/𝟯/g, '3')
+                        .replace(/𝟰/g, '4')
+                        .replace(/𝟱/g, '5')
+                        .replace(/𝟲/g, '6')
+                        .replace(/𝟳/g, '7')
+                        .replace(/𝟴/g, '8')
+                        .replace(/𝟵/g, '9');
+
+                    text = text.replace(/𝗔|𝗕|𝗖|𝗗|𝗘|𝗙|𝗚|𝗛|𝗜|𝗝|𝗞|𝗟|𝗠|𝗡|𝗢|𝗣|𝗤|𝗥|𝗦|𝗧|𝗨|𝗩|𝗪|𝗫|𝗬|𝗭/g, function (char) {
+                        switch (char) {
+                            case '𝗔': return 'A';
+                            case '𝗕': return 'B';
+                            case '𝗖': return 'C';
+                            case '𝗗': return 'D';
+                            case '𝗘': return 'E';
+                            case '𝗙': return 'F';
+                            case '𝗚': return 'G';
+                            case '𝗛': return 'H';
+                            case '𝗜': return 'I';
+                            case '𝗝': return 'J';
+                            case '𝗞': return 'K';
+                            case '𝗟': return 'L';
+                            case '𝗠': return 'M';
+                            case '𝗡': return 'N';
+                            case '𝗢': return 'O';
+                            case '𝗣': return 'P';
+                            case '𝗤': return 'Q';
+                            case '𝗥': return 'R';
+                            case '𝗦': return 'S';
+                            case '𝗧': return 'T';
+                            case '𝗨': return 'U';
+                            case '𝗩': return 'V';
+                            case '𝗪': return 'W';
+                            case '𝗫': return 'X';
+                            case '𝗬': return 'Y';
+                            case '𝗭': return 'Z';
+                            default: return char;
+                        }
+                    });
+                    localStorage.removeItem('numBig');
+                } else {
+                    text = text.split('').map(char => {
+                        switch (char) {
+                            case '0': return '𝟬';
+                            case '1': return '𝟭';
+                            case '2': return '𝟮';
+                            case '3': return '𝟯';
+                            case '4': return '𝟰';
+                            case '5': return '𝟱';
+                            case '6': return '𝟲';
+                            case '7': return '𝟳';
+                            case '8': return '𝟴';
+                            case '9': return '𝟵';
+                            case 'a': return '𝗮';
+                            case 'b': return '𝗯';
+                            case 'c': return '𝗰';
+                            case 'd': return '𝗱';
+                            case 'e': return '𝗲';
+                            case 'f': return '𝗳';
+                            case 'g': return '𝗴';
+                            case 'h': return '𝗵';
+                            case 'i': return '𝗶';
+                            case 'j': return '𝗷';
+                            case 'k': return '𝗸';
+                            case 'l': return '𝗹';
+                            case 'm': return '𝗺';
+                            case 'n': return '𝗻';
+                            case 'o': return '𝗼';
+                            case 'p': return '𝗽';
+                            case 'q': return '𝗾';
+                            case 'r': return '𝗿';
+                            case 's': return '𝘀';
+                            case 't': return '𝘁';
+                            case 'u': return '𝘂';
+                            case 'v': return '𝘃';
+                            case 'w': return '𝘄';
+                            case 'x': return '𝘅';
+                            case 'y': return '𝘆';
+                            case 'z': return '𝘇';
+                            case 'A': return '𝗔';
+                            case 'B': return '𝗕';
+                            case 'C': return '𝗖';
+                            case 'D': return '𝗗';
+                            case 'E': return '𝗘';
+                            case 'F': return '𝗙';
+                            case 'G': return '𝗚';
+                            case 'H': return '𝗛';
+                            case 'I': return '𝗜';
+                            case 'J': return '𝗝';
+                            case 'K': return '𝗞';
+                            case 'L': return '𝗟';
+                            case 'M': return '𝗠';
+                            case 'N': return '𝗡';
+                            case 'O': return '𝗢';
+                            case 'P': return '𝗣';
+                            case 'Q': return '𝗤';
+                            case 'R': return '𝗥';
+                            case 'S': return '𝗦';
+                            case 'T': return '𝗧';
+                            case 'U': return '𝗨';
+                            case 'V': return '𝗩';
+                            case 'W': return '𝗪';
+                            case 'X': return '𝗫';
+                            case 'Y': return '𝗬';
+                            case 'Z': return '𝗭';
+                            default: return char;
+                        }
+                    }).join('');
+                    localStorage.setItem('numBig', 1);
+                }
+
+                editor.value = text;
+            }
+
+            // 重新排版文本
+            function reformatText() {
+                let text = editor.value;
+                if (text) {
+                    // 把英文的,:改为正文的，：
+                    text = text.replace(/,/g, '，').replace(/:/g, '：');
+                    // 在中文和英文/数字之间插入空格
+                    text = text.replace(/([\u4e00-\u9fa5])([A-Za-z0-9])/g, '$1 $2');
+                    text = text.replace(/([A-Za-z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
+                    //引号替换「」
+                    text = text.replace(/“/g, '「').replace(/”/g, '」');
+                    // 在数字和中文/英文之间插入空格
+                    text = text.replace(/([\u4e00-\u9fa5])(\d)/g, '$1 $2');
+                    text = text.replace(/(\d)([A-Za-z\u4e00-\u9fa5])/g, '$1 $2');
+                    //百分号后面空格问题
+                    text = text.replace(/%([\u4e00-\u9fa5])/g, '% $1');
+                    text = text.replace(/%\s+(?=[，,])/g, '%');
+                    //去掉语音开始和结束字段
+                    text = text.replace(new RegExp('\\[语音开始\\]', 'g'), '');
+                    text = text.replace(new RegExp('\\[语音结束\\]', 'g'), '');
+                    //去掉文字开头的空行
+                    text = text.replace(/^\s+/, '');
+                    //去掉多余空行
+                    text = text.replace(/(\n\s*){2,}/g, '\n\n');
+                    //去掉最后一行的空行
+                    text = removeTrailingEmptyLines(text)
+
+                    editor.value = text;
+                    saveText();
+                } else {
+                    localStorage.removeItem(currentUrl);
+                }
+
+            }
+            //清理markdown
+
+            function cleanMarkdown(text) {
+                return text
+                    // 去除加粗标识 **
+                    .replace(/\*\*/g, '')
+                    // 去除标题标识 #
+                    .replace(/#/g, '')
+                    // 将有序列表 1. 2. 转换为 1、2、
+                    .replace(/(\d+)\./g, '$1、')
+                    // 将无序列表的多余空格规范为单个 -
+                    .replace(/^[\s\uFEFF\xA0]*-/gm, '- ')
+                    // 清理多余空格（可选）
+                    .replace(/^\s+|\s+$/gm, '');
+            }
+
+
+            //复制文本
+            async function copy() {
+                await navigator.clipboard.writeText(editor.value);
+            }
+
+            //删除最后一行的空行
+            function removeTrailingEmptyLines(text) {
+                // 将文本按行分割
+                var lines = text.split('\n');
+
+                // 找到最后一个非空行
+                var lastNonEmptyLineIndex = lines.reduce((index, line, idx) => {
+                    return line.trim() ? idx : index;
+                }, -1);
+
+                // 如果所有行都是空的，返回空字符串
+                if (lastNonEmptyLineIndex === -1) {
+                    return '';
+                }
+
+                // 重新组合文本，不包括最后一个非空行之后的所有行
+                return lines.slice(0, lastNonEmptyLineIndex + 1).join('\n');
+            }
+
+
+            // 为保存按钮添加点击事件监听器
+            /*     saveButton.addEventListener('click', saveText); */
+            // 为置顶按钮添加点击事件监听器
+            scrollTopButton.addEventListener('click', scrollTop);
+
+            // 为重新排版按钮添加点击事件监听器
+            document.getElementById('reformatButton').addEventListener('click', reformatText);
+
+            // 为替换保险按钮添加点击事件监听器
+            // toggleButton.addEventListener('click', toggleReplace);
+
+            // 为数字加粗添加点击事件监听器
+            numBigButton.addEventListener('click', numBig);
+            //复制
+            copyButton.addEventListener('click', copy);
+
+            // 监听文本框的输入事件，实时更新字数
+            editor.addEventListener('input', updateWordCount);
+
+        });
+
+    </script>
+</body>
+
+</html>
