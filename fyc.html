@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>fyc</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 24px;
+        }
+
+        .input-section,
+        .output-section {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            font-family: Consolas, monospace;
+        }
+
+        #jsonOutput {
+            height: 500px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #409eff;
+            box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+        }
+
+        .btn-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 10px 30px;
+            background-color: #409eff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #337ecc;
+        }
+
+        button:disabled {
+            background-color: #909399;
+            cursor: not-allowed;
+        }
+
+        .output-section textarea {
+            background-color: #f8f9fa;
+        }
+
+        .tip {
+            color: #999;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .alert {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .alert-success {
+            background-color: #f0f9eb;
+            color: #67c23a;
+            border: 1px solid #e1f3d8;
+            display: block;
+        }
+
+        .alert-error {
+            background-color: #fef0f0;
+            color: #f56c6c;
+            border: 1px solid #fde2e2;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>FYC抓取</h1>
+
+        <div id="message" class="alert"></div>
+
+        <div class="input-section">
+            <label for="jsonInput">请输入原始JSON数据：</label>
+            <p>先打开F12输入保单号发起请求，找getReportDetailListFooter请求</p>
+            <textarea id="jsonInput" placeholder="请在此粘贴或输入完整的JSON数据..."></textarea>
+            <div class="tip">提示：请确保输入的是有效的JSON格式数据</div>
+        </div>
+
+        <div class="btn-container">
+            <button id="processBtn" onclick="processInsuranceData()">确认处理</button>
+        </div>
+
+        <div class="output-section">
+            <label for="jsonOutput">提取结果：</label>
+            <textarea id="jsonOutput" readonly placeholder="处理后的结果将显示在这里..."></textarea>
+            <!-- <div class="tip">提示：结果已自动复制到剪贴板</div> -->
+        </div>
+    </div>
+
+    <script>
+        // 显示提示消息
+        function showMessage(text, isSuccess = true) {
+            const messageEl = document.getElementById('message');
+            messageEl.className = isSuccess ? 'alert alert-success' : 'alert alert-error';
+            messageEl.textContent = text;
+
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                messageEl.className = 'alert';
+                messageEl.textContent = '';
+            }, 3000);
+        }
+
+        // 日期格式化函数
+        function formatDate(dateString) {
+            if (!dateString) return "";
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) return dateString;
+
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            } catch (e) {
+                return dateString;
+            }
+        }
+
+        // 复制文本到剪贴板
+        // async function copyToClipboard(text) {
+        //     try {
+        //         if (navigator.clipboard && navigator.clipboard.writeText) {
+        //             await navigator.clipboard.writeText(text);
+        //         } else {
+        //             // 回退方案
+        //             const textArea = document.createElement('textarea');
+        //             textArea.value = text;
+        //             document.body.appendChild(textArea);
+        //             textArea.select();
+        //             document.execCommand('copy');
+        //             document.body.removeChild(textArea);
+        //         }
+        //         return true;
+        //     } catch (error) {
+        //         console.error('复制失败:', error);
+        //         return false;
+        //     }
+        // }
+
+        // 处理保险数据的核心函数
+        async function processInsuranceData() {
+            const inputEl = document.getElementById('jsonInput');
+            const outputEl = document.getElementById('jsonOutput');
+            const btnEl = document.getElementById('processBtn');
+
+            // 禁用按钮防止重复点击
+            btnEl.disabled = true;
+            btnEl.textContent = '处理中...';
+
+            try {
+                // 1. 获取输入的文本
+                const inputText = inputEl.value.trim();
+                if (!inputText) {
+                    throw new Error('输入内容不能为空，请粘贴有效的JSON数据');
+                }
+
+                // 2. 解析JSON
+                let data;
+                try {
+                    data = JSON.parse(inputText);
+                } catch (e) {
+                    throw new Error('❌ JSON格式错误，请检查输入内容：' + e.message);
+                }
+
+                // 3. 检查数据结构
+                if (!data || data.code !== "0" || !data.data || !data.data.rows || data.data.rows.length === 0) {
+                    throw new Error('❌ 数据格式不正确或没有保单数据，请检查：\n- code是否为"0"\n- 是否包含data.rows数组\n- rows数组是否有数据');
+                }
+
+                const row = data.data.rows[0];
+
+                // 4. 提取所有字段
+                const extractedData = {
+                    "保单号": row.policycode || "",
+                    "保单服务费": row.scalefee || "0.0000",
+                    "推广费": row.promotecommis || 0.0000,
+                    "推广奖励": row.rewardcommis || 0.0000,
+                    "业绩": row.personachievesum || "0.0000",
+                    "产品名": row.productname || "",
+                    "所属家庭": row.holdername || "",
+                    "被保人": row.inseredname || "",
+                    "保费": row.scalefee || "0.0000", // 与保单服务费相同字段
+                    "下单时间": formatDate(row.receivedate) || "",
+                    "生效日期": formatDate(row.policystartdate) || ""
+                };
+
+                // 5. 转换为格式化的JSON字符串
+                const resultJson = JSON.stringify(extractedData, null, 2);
+
+                // 6. 显示结果不复制到剪贴板
+                outputEl.value = resultJson;
+                // const copySuccess = await copyToClipboard(resultJson);
+                const copySuccess = true;
+                const successMsg = copySuccess
+                    ? '✅ 数据提取成功！'
+                    : '✅ 数据提取成功！';
+
+                // 7. 显示成功提示
+                // const successMsg = copySuccess 
+                //     ? '✅ 数据提取成功！结果已复制到剪贴板' 
+                //     : '✅ 数据提取成功！请手动复制结果';
+                showMessage(successMsg, true);
+
+                console.log('提取的数据:', extractedData);
+
+            } catch (error) {
+                // 显示错误信息
+                showMessage(error.message, false);
+                outputEl.value = '';
+                console.error('处理错误:', error);
+
+            } finally {
+                // 恢复按钮状态
+                btnEl.disabled = false;
+                btnEl.textContent = '确认处理';
+            }
+        }
+    </script>
+</body>
+
+</html>
