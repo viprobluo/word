@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>即友主页TOP榜生成器</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .input-area,
+        .output-area {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: monospace;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .output-content {
+            width: 100%;
+            min-height: 200px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+
+        .config {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        .config-item {
+            margin: 8px 0;
+        }
+
+        label {
+            display: inline-block;
+            width: 150px;
+        }
+
+        input[type="number"] {
+            width: 80px;
+            padding: 5px;
+        }
+
+        input[type="text"] {
+            padding: 5px;
+        }
+
+        .copy-btn {
+            background-color: #2196F3;
+            margin-left: 10px;
+        }
+
+        .copy-btn:hover {
+            background-color: #0b7dda;
+        }
+
+        /* 动态描述配置项样式 */
+        .config-item.desc-config {
+            display: flex;
+            align-items: center;
+        }
+
+        .config-item.desc-config input[type="text"] {
+            flex: 1;
+            padding: 5px;
+            max-width: 400px;
+        }
+
+        /* 日期配置项样式 */
+        .date-config {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .date-config .config-item {
+            margin: 0;
+        }
+
+        /* 加粗数字样式（和TOP标识字体一致） */
+        .bold-num {
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            font-feature-settings: "ss01";
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>即友主页TOP榜生成器</h1>
+
+        <div class="input-area">
+            <h3>1. 配置参数</h3>
+            <div class="config">
+                <div class="config-item">
+                    <label>排行榜最大显示数：</label>
+                    <input type="number" id="topMax" value="20" min="1">
+                </div>
+                <div class="config-item">
+                    <label>TOP标识显示数：</label>
+                    <input type="number" id="topTop" value="10" min="0">
+                </div>
+                <div class="config-item">
+                    <label>最小点赞权重：</label>
+                    <input type="number" id="likeMin" value="20" min="0">
+                </div>
+                <div class="config-item">
+                    <label>标题最大字数：</label>
+                    <input type="number" id="titleMax" value="40" min="1">
+                </div>
+                <!-- 开始日期 + 截止日期 -->
+                <div class="date-config">
+                    <div class="config-item">
+                        <label>开始日期：</label>
+                        <input type="text" id="startTime" value="2026-01-01" placeholder="格式：YYYY-MM-DD">
+                    </div>
+                    <div class="config-item">
+                        <label>截止日期：</label>
+                        <input type="text" id="endTime" value="2026-03-31" placeholder="格式：YYYY-MM-DD">
+                    </div>
+                </div>
+                <!-- 动态描述文本（替换为topMax占位符） -->
+                <div class="config-item desc-config">
+                    <label>动态描述文本：</label>
+                    <input type="text" id="descText" value="看了 {startYear} 发布的 {total} 条动态。对我最有启发的 {topMax} 条动态如下"
+                        placeholder="占位符：{startYear}=开始年 {total}=总数 {topMax}=最大显示数 {topTop}=TOP标识数">
+                </div>
+            </div>
+
+            <h3>2. 输入JSON数据（按===分割）</h3>
+            <p>network 筛选single请求</p>
+            <textarea id="jsonInput" placeholder="请粘贴按===分割的JSON数据..."></textarea>
+            <button id="runBtn">运行生成</button>
+            <button id="copyBtn" class="copy-btn">复制结果</button>
+        </div>
+
+        <div class="output-area">
+            <h3>3. 输出结果</h3>
+            <div id="outputContent" class="output-content"></div>
+        </div>
+    </div>
+
+    <script>
+        // 常量配置
+        const CONFIG = {
+            LINK: "https://m.okjike.com/originalPosts/",
+            REPOST_LINK: "https://m.okjike.com/reposts/",
+            DESC_TITLE: "【优秀即友推荐】"
+        };
+
+        // TOP标识数组
+        const TOPS = [
+            '𝐓𝐎𝐏𝟬𝟬𝟭 ', '𝐓𝐎𝐏𝟬𝟬𝟮 ', '𝐓𝐎𝐏𝟬𝟬𝟯 ', '𝐓𝐎𝐏𝟬𝟬𝟰 ', '𝐓𝐎𝐏𝟬𝟬𝟱 ',
+            '𝐓𝐎𝐏𝟬𝟬𝟲 ', '𝐓𝐎𝐏𝟬𝟬𝟳 ', '𝐓𝐎𝐏𝟬𝟬𝟴 ', '𝐓𝐎𝐏𝟬𝟬𝟵 ', '𝐓𝐎𝐏𝟬𝟭𝟬 ',
+            '𝐓𝐎𝐏𝟬𝟭𝟭 ', '𝐓𝐎𝐏𝟬𝟭𝟮 ', '𝐓𝐎𝐏𝟬𝟭𝟯 ', '𝐓𝐎𝐏𝟬𝟭𝟰 ', '𝐓𝐎𝐏𝟬𝟭𝟱 '
+        ];
+
+        // 特殊粗体数字映射（和TOP标识数字样式一致）
+        const BOLD_NUM_MAP = {
+            '0': '𝟬', '1': '𝟭', '2': '𝟮', '3': '𝟯', '4': '𝟰',
+            '5': '𝟱', '6': '𝟲', '7': '𝟳', '8': '𝟴', '9': '𝟵'
+        };
+
+        // 主函数
+        function master(inputText) {
+            // 获取配置参数
+            const TOP_MAX = parseInt(document.getElementById('topMax').value);
+            const TOP_TOP = parseInt(document.getElementById('topTop').value);
+            const LIKE_MIN = parseInt(document.getElementById('likeMin').value);
+            const TITLE_MAX = parseInt(document.getElementById('titleMax').value);
+            const START_TIME = document.getElementById('startTime').value;
+            const END_TIME = document.getElementById('endTime').value;
+            const DESC_TEXT = document.getElementById('descText').value ||
+                '看了 {startYear} 发布的 {total} 条动态。对我最有启发的 {topMax} 条动态如下';
+
+            // 提取时间相关字段（仅保留startYear）
+            const startYear = START_TIME ? START_TIME.substring(0, 4) : new Date().getFullYear().toString();
+            const startDate = START_TIME || new Date().toISOString().substring(0, 10);
+            const endDate = END_TIME || new Date().toISOString().substring(0, 10);
+
+            const lines = getFile(inputText);
+            const data = makeData(lines, TOP_MAX, TOP_TOP, LIKE_MIN, TITLE_MAX, START_TIME, END_TIME);
+            return printText(data.overs, data.username, data.count, startYear, startDate, endDate, TOP_MAX, TOP_TOP, DESC_TEXT);
+        }
+
+        // 解析输入文本（按===分割）
+        function getFile(inputText) {
+            return inputText.split("===");
+        }
+
+        // 解析单行JSON数据为数组
+        function getArry(data) {
+            const line = data.trim();
+            if (line) {
+                try {
+                    const array = JSON.parse(line);
+                    return array.data || [];
+                } catch (e) {
+                    console.error('JSON解析错误:', e);
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        // 处理数据主逻辑
+        function makeData(lines, TOP_MAX, TOP_TOP, LIKE_MIN, TITLE_MAX, START_TIME, END_TIME) {
+            let count = 0; // 符合时间范围/权重条件的动态总数
+            const data = {}; // 去重字典
+            let overs = [];
+            let username = '';
+
+            // 验证时间格式并转换为Date对象（包含当天）
+            const startDate = START_TIME ? new Date(START_TIME) : new Date('1970-01-01');
+            const endDate = END_TIME ? new Date(END_TIME) : new Date();
+            // 确保截止日期包含当天（设置为当天23:59:59）
+            endDate.setHours(23, 59, 59, 999);
+
+            lines.forEach(line => {
+                const nodes = getArry(line);
+                if (!nodes) return;
+
+                // 获取用户名（取第一个有效节点的用户名）
+                if (nodes.length > 0 && nodes[0].user && !username) {
+                    username = nodes[0].user.screenName || '未知用户';
+                }
+
+                nodes.forEach(node => {
+                    // 提取动态发布时间并转换为Date对象
+                    const nodeTimeStr = getCreatedAt(node.actionTime);
+                    if (!nodeTimeStr) return;
+                    const nodeDate = new Date(nodeTimeStr);
+                    // 确保动态时间包含当天（设置为当天00:00:00）
+                    nodeDate.setHours(0, 0, 0, 0);
+
+                    // 核心判断：动态时间 ≥ 开始日期 且 ≤ 截止日期（均包含当天）
+                    const isInTimeRange = nodeDate >= startDate && nodeDate <= endDate;
+                    const isHave = data.hasOwnProperty(node.id);
+
+                    // 统计符合条件的动态总数（未去重、时间在范围内）
+                    if (isInTimeRange && !isHave) {
+                        count += 1;
+                    }
+
+                    // 计算动态权重
+                    const topCount = getTopCount(node);
+
+                    // 过滤条件：已去重 或 权重不达标 或 时间不在范围内
+                    if (isHave || topCount < LIKE_MIN || !isInTimeRange) {
+                        return;
+                    }
+
+                    // 组装并添加有效数据
+                    const newData = pushData(node, TITLE_MAX);
+                    data[node.id] = newData;
+                    overs.push(newData);
+                });
+            });
+
+            return { overs, count, username };
+        }
+
+        // 处理动态内容文本（截断、去换行、去末尾标点）
+        function getContent(content, TITLE_MAX) {
+            if (!content) return '';
+
+            // 截取最大长度
+            let result = content.substring(0, TITLE_MAX);
+
+            // 去掉换行符
+            const pos = result.indexOf("\n");
+            if (pos !== -1) {
+                result = result.substring(0, pos);
+            }
+
+            // 移除末尾标点
+            const lastChar = result.charAt(result.length - 1);
+            const punctuation = ['。', '，', '！', '？', '；', '：', '、', '（', '）', '【', '】', '『', '』', '“', '”', '‘', '’', '《', '》'];
+            if (punctuation.includes(lastChar)) {
+                result = result.substring(0, result.length - 1);
+            }
+
+            return result;
+        }
+
+        // 提取动态创建日期（YYYY-MM-DD）
+        function getCreatedAt(time) {
+            return time ? time.substring(0, 10) : '';
+        }
+
+        // 获取动态链接
+        function getLinkId(node) {
+            const type = node.type || '';
+            const id = node.id || '';
+            return type === "ORIGINAL_POST" ? CONFIG.LINK + id : CONFIG.REPOST_LINK + id;
+        }
+
+        // 计算动态权重（点赞+分享*3+评论）
+        function getTopCount(node) {
+            const likeCount = node.likeCount || 0;
+            const shareCount = node.shareCount || 0;
+            const commentCount = node.commentCount || 0;
+            return likeCount + shareCount * 3 + commentCount;
+        }
+
+        // 组装单条动态数据
+        function pushData(node, TITLE_MAX) {
+            return {
+                createdAt: getCreatedAt(node.actionTime),
+                topCount: getTopCount(node),
+                linkId: getLinkId(node),
+                content: getContent(node.content, TITLE_MAX)
+            };
+        }
+
+        // 给数字添加特殊粗体样式（和TOP标识一致）
+        function wrapNumberWithBold(num) {
+            // 将数字转换为特殊粗体字符（如2026 → 𝟮𝟬𝟮𝟲）
+            return num.toString().split('').map(char => BOLD_NUM_MAP[char] || char).join('');
+        }
+
+        // 生成最终输出文本（替换为topMax占位符）
+        function printText(overs, username, count, startYear, startDate, endDate, TOP_MAX, TOP_TOP, DESC_TEXT) {
+            // 按权重降序排序
+            overs.sort((a, b) => b.topCount - a.topCount);
+
+            let str = '';
+            let i = 0;
+
+            // 生成排行榜内容
+            overs.forEach(over => {
+                if (i > TOP_MAX - 1) return;
+
+                if (i > TOP_TOP) {
+                    str += `● ${over.content}☞ ${over.linkId}\n\n`;
+                } else {
+                    str += `${TOPS[i] || `TOP${(i + 1).toString().padStart(3, '0')} `}${over.content}☞ ${over.linkId}\n\n`;
+                }
+                i++;
+            });
+
+            // 替换占位符并给所有数字添加特殊粗体样式
+            const dynamicDesc = DESC_TEXT
+                .replace(/\{startYear\}/g, wrapNumberWithBold(startYear))  // 开始年份（𝟮𝟬𝟮𝟲）
+                .replace(/\{total\}/g, wrapNumberWithBold(count))          // 总数（𝟭𝟬𝟬）
+                .replace(/\{topMax\}/g, wrapNumberWithBold(TOP_MAX))       // 最大显示数（𝟮𝟬）
+                .replace(/\{topTop\}/g, wrapNumberWithBold(TOP_TOP))       // 兼容TOP标识数占位符
+                // 兼容原有时间占位符（若用户手动输入）
+                .replace(/\{endYear\}/g, wrapNumberWithBold(endDate.substring(0, 4)))
+                .replace(/\{startDate\}/g, wrapNumberWithBold(startDate))
+                .replace(/\{endDate\}/g, wrapNumberWithBold(endDate));
+
+            // 组装最终文本
+            const desc = `\n${CONFIG.DESC_TITLE} @${username || '未知用户'}\n`;
+            const desc2 = `${dynamicDesc}\n━━━━━━━━━\n`;
+            const textToSave = desc + desc2 + str;
+
+            return textToSave;
+        }
+
+        // 运行生成按钮点击事件
+        document.getElementById('runBtn').addEventListener('click', function () {
+            const inputText = document.getElementById('jsonInput').value;
+            const outputContent = document.getElementById('outputContent');
+
+            if (!inputText) {
+                outputContent.textContent = '请输入JSON数据！';
+                return;
+            }
+
+            try {
+                const result = master(inputText);
+                outputContent.textContent = result;
+            } catch (e) {
+                outputContent.textContent = `处理出错：${e.message}`;
+                console.error(e);
+            }
+        });
+
+        // 复制结果按钮点击事件（双方案确保复制成功）
+        document.getElementById('copyBtn').addEventListener('click', async function () {
+            const outputContent = document.getElementById('outputContent');
+            const text = outputContent.textContent;
+
+            // 验证是否有有效内容
+            if (!text || text === '请输入JSON数据！' || text.startsWith('处理出错：')) {
+                alert('没有可复制的有效内容！');
+                return;
+            }
+
+            try {
+                // 方案1：现代浏览器Clipboard API
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                    alert('✅ 结果已成功复制到剪贴板！');
+                }
+                // 方案2：兼容所有浏览器的降级方案
+                else {
+                    const tempTextArea = document.createElement('textarea');
+                    tempTextArea.value = text;
+                    tempTextArea.style.position = 'fixed';
+                    tempTextArea.style.left = '-9999px';
+                    tempTextArea.style.top = '-9999px';
+                    document.body.appendChild(tempTextArea);
+
+                    // 选中内容（兼容移动端）
+                    tempTextArea.select();
+                    tempTextArea.setSelectionRange(0, text.length);
+                    const success = document.execCommand('copy');
+                    document.body.removeChild(tempTextArea);
+
+                    if (success) {
+                        alert('✅ 结果已成功复制到剪贴板！');
+                    } else {
+                        throw new Error('剪贴板操作失败');
+                    }
+                }
+            } catch (err) {
+                console.error('复制失败:', err);
+                // 自动选中内容，方便手动复制
+                const range = document.createRange();
+                range.selectNodeContents(outputContent);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+                alert(`❌ 自动复制失败！\n已帮你选中内容，请按Ctrl+C手动复制。\n错误信息：${err.message}`);
+            }
+        });
+    </script>
+</body>
+
+</html>
