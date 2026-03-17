@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FYC数据处理工具集</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .update-time {
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+
+        /* Tab样式 */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e4e7ed;
+            margin-bottom: 20px;
+        }
+
+        .tab-item {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab-item.active {
+            color: #409eff;
+            border-bottom-color: #409eff;
+            font-weight: bold;
+        }
+
+        .tab-item:hover {
+            color: #409eff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 通用表单样式 */
+        .input-section,
+        .output-section {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            font-family: Consolas, monospace;
+        }
+
+        /* 缩小JSON输出框高度 */
+        #jsonOutput {
+            height: 250px;
+            margin-bottom: 15px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #409eff;
+            box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+        }
+
+        .btn-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 10px 30px;
+            background-color: #409eff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #337ecc;
+        }
+
+        button:disabled {
+            background-color: #909399;
+            cursor: not-allowed;
+        }
+
+        .output-section textarea {
+            background-color: #f8f9fa;
+        }
+
+        .tip {
+            color: #999;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        /* 提示框样式 */
+        .alert {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .alert-success {
+            background-color: #f0f9eb;
+            color: #67c23a;
+            border: 1px solid #e1f3d8;
+            display: block;
+        }
+
+        .alert-error {
+            background-color: #fef0f0;
+            color: #f56c6c;
+            border: 1px solid #fde2e2;
+            display: block;
+        }
+
+        /* PDF工具样式 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .result-box {
+            padding: 15px;
+            border: 1px solid #e6f7ff;
+            border-radius: 4px;
+            background-color: #f0f9ff;
+            margin-bottom: 15px;
+            word-break: break-all;
+            display: none;
+        }
+
+        .result-box a {
+            color: #409eff;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .result-box a:hover {
+            text-decoration: underline;
+        }
+
+        .tips {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .error {
+            color: #f56c6c;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .success {
+            color: #67c23a;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        /* 等待期样式 - 新增禁用状态样式 */
+        .waiting-period-section {
+            margin: 15px 0;
+            padding: 15px;
+            background-color: #f0f8ff;
+            border-radius: 6px;
+            border: 1px solid #e6f7ff;
+        }
+
+        .waiting-period-section.disabled {
+            background-color: #f9f9f9;
+            border-color: #e9e9e9;
+        }
+
+        .waiting-period-btns {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+
+        .waiting-btn {
+            padding: 8px 16px;
+            background-color: #e6f7ff;
+            color: #409eff;
+            border: 1px solid #409eff;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .waiting-btn.active {
+            background-color: #409eff;
+            color: white;
+        }
+
+        .waiting-btn:disabled,
+        .waiting-period-input input:disabled {
+            background-color: #e9e9e9;
+            color: #999;
+            border-color: #ddd;
+            cursor: not-allowed;
+        }
+
+        .waiting-btn:hover:not(:disabled) {
+            background-color: #337ecc;
+            color: white;
+        }
+
+        .waiting-period-input {
+            margin-top: 10px;
+        }
+
+        .waiting-period-input input {
+            width: 100px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 8px;
+        }
+
+        .waiting-period-input span {
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* 固定产品提示样式 */
+        .fixed-waiting-tip {
+            color: #67c23a;
+            font-size: 14px;
+            margin-top: 8px;
+            font-weight: bold;
+            display: none;
+        }
+
+        /* 字段复制样式 */
+        .field-copy-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .field-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            min-height: 50px;
+            flex-wrap: nowrap;
+        }
+
+        .field-label {
+            font-weight: bold;
+            color: #495057;
+            margin-right: 8px;
+            min-width: 70px;
+            flex-shrink: 0;
+        }
+
+        .field-value {
+            flex: 1;
+            color: #212529;
+            word-break: break-all;
+            padding: 4px 8px;
+            min-width: 0;
+        }
+
+        .copy-btn {
+            padding: 4px 12px;
+            font-size: 12px;
+            background-color: #67c23a;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            min-width: 60px;
+        }
+
+        .copy-btn:hover {
+            background-color: #52c41a;
+        }
+
+        .copy-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: rgba(103, 194, 58, 0.9);
+            color: white;
+            border-radius: 4px;
+            display: none;
+            z-index: 9999;
+            animation: fadeInOut 2s ease;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(20px); }
+            20% { opacity: 1; transform: translateX(0); }
+            80% { opacity: 1; transform: translateX(0); }
+            100% { opacity: 0; transform: translateX(20px); }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>FYC数据处理工具集</h1>
+        <p class="update-time">更新时间：2026年3月17日11:04:56</p>
+
+        <div class="tabs">
+            <div class="tab-item active" data-tab="pdf-tab">保单下载</div>
+            <div class="tab-item" data-tab="fyc-tab">FYC抓取</div>
+        </div>
+
+        <!-- FYC抓取 Tab 内容 -->
+        <div class="tab-content" id="fyc-tab">
+            <div id="message" class="alert"></div>
+            <div class="input-section">
+                <label for="jsonInput">请输入原始JSON数据：</label>
+                <p>先打开F12输入保单号发起请求，找getReportDetailListFooter请求</p>
+                <textarea id="jsonInput" placeholder="请在此粘贴或输入完整的JSON数据..."></textarea>
+                <div class="tip">提示：请确保输入的是有效的JSON格式数据</div>
+            </div>
+
+            <!-- 等待期设置区域 -->
+            <div class="waiting-period-section" id="waitingPeriodSection">
+                <label><strong>等待期设置：</strong></label>
+                <div class="waiting-period-btns">
+                    <button class="waiting-btn" data-days="30">30天</button>
+                    <button class="waiting-btn" data-days="90">90天</button>
+                    <button class="waiting-btn" data-days="180">180天</button>
+                </div>
+                <div class="waiting-period-input">
+                    <input type="number" id="customWaitingDays" placeholder="自定义天数" min="1">
+                    <span>天（选择预设或输入自定义天数）</span>
+                </div>
+                <!-- 固定产品提示 -->
+                <div class="fixed-waiting-tip" id="fixedWaitingTip">
+                    ⚠️ 该产品（众民保·百万医疗险2025版）等待期固定为30天，不可修改！
+                </div>
+            </div>
+
+            <div class="btn-container">
+                <button id="processBtn" onclick="processInsuranceData()">确认处理</button>
+            </div>
+            <div class="output-section">
+                <label for="jsonOutput">提取结果：</label>
+                <textarea id="jsonOutput" readonly placeholder="处理后的结果将显示在这里..."></textarea>
+                
+                <!-- 字段复制区域 -->
+                <div id="fieldCopyContainer" class="field-copy-container"></div>
+            </div>
+        </div>
+
+        <!-- PDF链接提取 Tab 内容 -->
+        <div class="tab-content active" id="pdf-tab">
+            <div class="form-group">
+                <label for="pdfJsonInput">请粘贴JSON数据：</label>
+                <textarea id="pdfJsonInput"
+                    placeholder='示例：{"任意层级":{"ePolicyAddress":"https://xxx.pdf"},"insuredName":"张三","productName":"重疾险","insuranceStartTime":"2026-03-16"}'></textarea>
+            </div>
+            <button id="extractBtn">提取PDF保单</button>
+
+            <div class="result-box" id="resultBox">
+                <p><strong>原始PDF链接（点击跳转）：</strong></p>
+                <a id="pdfLink" href="#" target="_blank"></a>
+                <p style="margin-top: 10px;"><strong>文件名称：</strong><span id="fileName"></span></p>
+            </div>
+
+            <div class="error" id="errorMsg"></div>
+            <div class="success" id="successMsg"></div>
+
+            <div class="tips">
+                <p>⚠️ 操作步骤：</p>
+                <p>1. 明亚后台→保单→详情页→info→粘贴JSON；</p>
+                <p>2. 点击原始PDF链接跳转 → 下载PDF时直接粘贴复制的文件名即可。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 复制成功提示框 -->
+    <div id="copyToast" class="copy-toast">复制成功！</div>
+
+    <script>
+        // Tab切换功能
+        document.querySelectorAll('.tab-item').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                tab.classList.add('active');
+                const tabId = tab.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // ==================== 核心：固定产品等待期逻辑 ====================
+        // 定义固定等待期的产品名称（支持模糊匹配）
+        const FIXED_WAITING_PRODUCT = "众民保·百万医疗险2025版";
+        const FIXED_WAITING_DAYS = 30;
+        
+        // 等待期控件元素
+        const waitingBtns = document.querySelectorAll('.waiting-btn');
+        const customWaitingInput = document.getElementById('customWaitingDays');
+        const waitingPeriodSection = document.getElementById('waitingPeriodSection');
+        const fixedWaitingTip = document.getElementById('fixedWaitingTip');
+        
+        // 重置等待期控件状态
+        function resetWaitingPeriodControls() {
+            // 启用所有控件
+            waitingBtns.forEach(btn => {
+                btn.disabled = false;
+                btn.classList.remove('active');
+            });
+            customWaitingInput.disabled = false;
+            customWaitingInput.value = '';
+            // 移除禁用样式和提示
+            waitingPeriodSection.classList.remove('disabled');
+            fixedWaitingTip.style.display = 'none';
+            // 重置选中天数
+            selectedWaitingDays = 0;
+        }
+        
+        // 禁用等待期控件（固定30天）
+        function disableWaitingPeriodControls() {
+            // 禁用所有按钮，默认选中30天
+            waitingBtns.forEach(btn => {
+                btn.disabled = true;
+                if (parseInt(btn.getAttribute('data-days')) === FIXED_WAITING_DAYS) {
+                    btn.classList.add('active');
+                }
+            });
+            // 禁用自定义输入框
+            customWaitingInput.disabled = true;
+            customWaitingInput.value = '';
+            // 添加禁用样式和提示
+            waitingPeriodSection.classList.add('disabled');
+            fixedWaitingTip.style.display = 'block';
+            // 强制设置为30天
+            selectedWaitingDays = FIXED_WAITING_DAYS;
+        }
+
+        // ==================== 等待期基础功能 ====================
+        let selectedWaitingDays = 0;
+        
+        // 预设等待期按钮点击事件
+        waitingBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (btn.disabled) return; // 禁用状态不响应
+                // 移除所有active状态
+                waitingBtns.forEach(b => b.classList.remove('active'));
+                // 激活当前按钮
+                btn.classList.add('active');
+                // 清空自定义输入框
+                customWaitingInput.value = '';
+                // 记录选中的天数
+                selectedWaitingDays = parseInt(btn.getAttribute('data-days'));
+            });
+        });
+
+        // 自定义等待期输入事件
+        customWaitingInput.addEventListener('input', () => {
+            if (customWaitingInput.disabled) return; // 禁用状态不响应
+            // 移除预设按钮的active状态
+            waitingBtns.forEach(b => b.classList.remove('active'));
+            // 记录自定义天数
+            const customDays = parseInt(customWaitingInput.value) || 0;
+            selectedWaitingDays = customDays > 0 ? customDays : 0;
+        });
+
+        // 计算等待期结束日（生效日 + 等待期天数 + 1天）
+        function calculateWaitingEndDate(startDateStr, days) {
+            if (!startDateStr || days <= 0) return "";
+            try {
+                const startDate = new Date(startDateStr);
+                if (isNaN(startDate.getTime())) return "";
+                // 计算结束日期（生效日 + 等待期天数 + 1天）
+                const endDate = new Date(startDate);
+                endDate.setDate(endDate.getDate() + days + 1);
+                // 格式化日期
+                const year = endDate.getFullYear();
+                const month = String(endDate.getMonth() + 1).padStart(2, '0');
+                const day = String(endDate.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            } catch (e) {
+                return "";
+            }
+        }
+
+        // ==================== 复制功能 ====================
+        // 定义不需要复制按钮的字段列表
+        const noCopyFields = [
+            "下单时间", 
+            "生效日期", 
+            "保障期间", 
+            "缴费期间", 
+            "缴费方式", 
+            "等待期天数", 
+            "等待期结束日"
+        ];
+
+        // 显示复制成功提示
+        function showCopyToast() {
+            const toast = document.getElementById('copyToast');
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 2000);
+        }
+
+        // 复制字段值
+        function copyFieldValue(value) {
+            if (!value) {
+                showMessage('暂无可复制的内容', false);
+                return;
+            }
+            try {
+                // 优先使用剪贴板API
+                navigator.clipboard.writeText(value).then(() => {
+                    showCopyToast();
+                }).catch(err => {
+                    // 降级方案
+                    const textArea = document.createElement('textarea');
+                    textArea.value = value;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    showCopyToast();
+                });
+            } catch (err) {
+                showMessage('复制失败：' + err.message, false);
+            }
+        }
+
+        // 渲染字段复制按钮
+        function renderFieldCopyButtons(data) {
+            const container = document.getElementById('fieldCopyContainer');
+            container.innerHTML = ''; // 清空原有内容
+
+            // 遍历数据创建字段项
+            for (const [label, value] of Object.entries(data)) {
+                const fieldItem = document.createElement('div');
+                fieldItem.className = 'field-item';
+
+                const labelEl = document.createElement('div');
+                labelEl.className = 'field-label';
+                labelEl.textContent = label + '：';
+
+                const valueEl = document.createElement('div');
+                valueEl.className = 'field-value';
+                valueEl.textContent = value || '无';
+
+                // 先添加标签和值，再添加按钮（避免布局错乱）
+                fieldItem.appendChild(labelEl);
+                fieldItem.appendChild(valueEl);
+
+                // 仅为非排除字段添加复制按钮
+                if (!noCopyFields.includes(label)) {
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'copy-btn';
+                    copyBtn.textContent = '复制';
+                    copyBtn.onclick = () => copyFieldValue(value);
+                    fieldItem.appendChild(copyBtn);
+                }
+
+                container.appendChild(fieldItem);
+            }
+        }
+
+        // ==================== FYC抓取核心功能 ====================
+        function showMessage(text, isSuccess = true) {
+            const messageEl = document.getElementById('message');
+            messageEl.className = isSuccess ? 'alert alert-success' : 'alert alert-error';
+            messageEl.textContent = text;
+            setTimeout(() => {
+                messageEl.className = 'alert';
+                messageEl.textContent = '';
+            }, 3000);
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return "";
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) return dateString;
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            } catch (e) {
+                return dateString;
+            }
+        }
+
+        async function processInsuranceData() {
+            const inputEl = document.getElementById('jsonInput');
+            const outputEl = document.getElementById('jsonOutput');
+            const btnEl = document.getElementById('processBtn');
+
+            btnEl.disabled = true;
+            btnEl.textContent = '处理中...';
+
+            try {
+                const inputText = inputEl.value.trim();
+                if (!inputText) {
+                    throw new Error('输入内容不能为空，请粘贴有效的JSON数据');
+                }
+
+                let data;
+                try {
+                    data = JSON.parse(inputText);
+                } catch (e) {
+                    throw new Error('❌ JSON格式错误，请检查输入内容：' + e.message);
+                }
+
+                if (!data || data.code !== "0" || !data.data || !data.data.rows || data.data.rows.length === 0) {
+                    throw new Error('❌ 数据格式不正确或没有保单数据，请检查：\n- code是否为"0"\n- 是否包含data.rows数组\n- rows数组是否有数据');
+                }
+
+                const row = data.data.rows[0];
+                const productName = row.productname || "";
+                
+                // 核心逻辑：判断产品名称，控制等待期
+                resetWaitingPeriodControls(); // 先重置控件
+                if (productName.includes(FIXED_WAITING_PRODUCT)) {
+                    disableWaitingPeriodControls(); // 固定产品禁用控件
+                }
+
+                // 格式化生效日期
+                const policyStartDate = formatDate(row.policystartdate);
+                // 计算等待期结束日（固定产品强制用30天）
+                const finalWaitingDays = productName.includes(FIXED_WAITING_PRODUCT) 
+                    ? FIXED_WAITING_DAYS 
+                    : selectedWaitingDays;
+                const waitingEndDate = calculateWaitingEndDate(row.policystartdate, finalWaitingDays);
+
+                // 提取数据（移除保险公司字段）
+                const extractedData = {
+                    "保单号": row.policycode || "",
+                    "产品名": productName,
+                    "所属家庭": row.holdername || "",
+                    "被保人": row.inseredname || "",
+                    "下单时间": formatDate(row.receivedate) || "",
+                    "生效日期": policyStartDate || "",
+                    "保费": row.scalefee || "0.0000",
+                    "保单服务费": row.servicecommis || "0.0000",
+                    "推广费": row.promotecommis || 0.0000,
+                    "推广奖励": row.rewardcommis || 0.0000,
+                    "业绩": row.personachievesum || "0.0000",
+                    "保障期间": row.insperiodtext || "",
+                    "缴费期间": row.paycostdate || "",
+                    "缴费方式": row.paytype || "",
+                    "等待期天数": finalWaitingDays > 0 ? `${finalWaitingDays}天` : "未设置",
+                    "等待期结束日": waitingEndDate || "未设置"
+                };
+
+                const resultJson = JSON.stringify(extractedData, null, 2);
+                outputEl.value = resultJson;
+                // 渲染复制按钮
+                renderFieldCopyButtons(extractedData);
+                
+                // 提示信息（区分固定产品）
+                const tipMsg = productName.includes(FIXED_WAITING_PRODUCT) 
+                    ? `✅ 数据提取成功！该产品等待期固定为30天` 
+                    : `✅ 数据提取成功！${finalWaitingDays > 0 ? `等待期结束日已计算` : ""}`;
+                showMessage(tipMsg, true);
+                console.log('提取的数据:', extractedData);
+
+            } catch (error) {
+                showMessage(error.message, false);
+                outputEl.value = '';
+                // 清空复制按钮区域
+                document.getElementById('fieldCopyContainer').innerHTML = '';
+                console.error('处理错误:', error);
+
+            } finally {
+                btnEl.disabled = false;
+                btnEl.textContent = '确认处理';
+            }
+        }
+
+        // ==================== PDF链接提取功能 ====================
+        const jsonInput = document.getElementById('pdfJsonInput');
+        const extractBtn = document.getElementById('extractBtn');
+        const errorMsg = document.getElementById('errorMsg');
+        const successMsg = document.getElementById('successMsg');
+        const resultBox = document.getElementById('resultBox');
+        const pdfLink = document.getElementById('pdfLink');
+        const fileNameSpan = document.getElementById('fileName');
+
+        function findFieldRecursively(obj, fieldName) {
+            if (typeof obj === 'object' && obj !== null) {
+                if (obj.hasOwnProperty(fieldName)) {
+                    return obj[fieldName];
+                }
+                for (const key in obj) {
+                    const result = findFieldRecursively(obj[key], fieldName);
+                    if (result !== undefined) {
+                        return result;
+                    }
+                }
+            }
+            return undefined;
+        }
+
+        function formatEffectiveDate(dateStr) {
+            if (!dateStr) return "";
+            try {
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) {
+                    return dateStr.replace(/-/g, "");
+                }
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}${month}${day}`;
+            } catch (e) {
+                return dateStr.replace(/-/g, "");
+            }
+        }
+
+        function copyFileNameToClipboard(fileName) {
+            try {
+                navigator.clipboard.writeText(fileName).then(() => {
+                    successMsg.textContent = `✅ 文件名已自动复制到剪贴板：${fileName}`;
+                    setTimeout(() => {
+                        successMsg.textContent = '';
+                    }, 3000);
+                }).catch(err => {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = fileName;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    successMsg.textContent = `✅ 文件名已自动复制到剪贴板：${fileName}`;
+                    setTimeout(() => {
+                        successMsg.textContent = '';
+                    }, 3000);
+                });
+            } catch (err) {
+                errorMsg.textContent = `文件名复制失败：${err.message}`;
+            }
+        }
+
+        extractBtn.addEventListener('click', () => {
+            errorMsg.textContent = '';
+            successMsg.textContent = '';
+            resultBox.style.display = 'none';
+
+            const jsonStr = jsonInput.value.trim();
+            if (!jsonStr) {
+                errorMsg.textContent = '请输入JSON数据！';
+                return;
+            }
+
+            try {
+                const data = JSON.parse(jsonStr);
+                const ePolicyAddress = findFieldRecursively(data, 'ePolicyAddress');
+                const insuredName = findFieldRecursively(data, 'insuredName');
+                const productName = findFieldRecursively(data, 'productName');
+                const insuranceStartTime = findFieldRecursively(data, 'insuranceStartTime');
+
+                if (!ePolicyAddress) throw new Error('未找到 ePolicyAddress 字段！');
+                if (!insuredName) throw new Error('未找到 insuredName 字段！');
+                if (!productName) throw new Error('未找到 productName 字段！');
+                if (!insuranceStartTime) throw new Error('未找到 insuranceStartTime 字段！');
+
+                const formattedDate = formatEffectiveDate(insuranceStartTime);
+                const fileName = `${insuredName}-${productName}-生效日${formattedDate}`;
+                copyFileNameToClipboard(fileName);
+
+                resultBox.style.display = 'block';
+                pdfLink.href = ePolicyAddress;
+                pdfLink.textContent = ePolicyAddress;
+                fileNameSpan.textContent = fileName;
+            } catch (err) {
+                errorMsg.textContent = `处理失败：${err.message}`;
+            }
+        });
+    </script>
+</body>
+</html>
