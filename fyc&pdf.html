@@ -1,73 +1,65 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FYC数据处理工具集</title>
+    <title>FYC抓取&保单下载工具</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
         }
 
         body {
-            background-color: #f5f7fa;
             padding: 20px;
+            background-color: #f5f5f5;
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
-            padding: 30px;
-            border-radius: 10px;
+            padding: 20px;
+            border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 24px;
-        }
-
-        .update-time {
-            text-align: center;
-            color: #999;
-            font-size: 14px;
-            margin-bottom: 25px;
-        }
-
-        /* Tab样式 */
-        .tabs {
-            display: flex;
-            border-bottom: 1px solid #e4e7ed;
             margin-bottom: 20px;
         }
 
-        .tab-item {
-            padding: 10px 20px;
+        /* 标签切换样式 */
+        .tab-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .tabs {
+            display: flex;
+            background-color: #f8f8f8;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 12px 24px;
             cursor: pointer;
-            font-size: 16px;
+            border: none;
+            background: transparent;
+            font-size: 14px;
             color: #666;
-            border-bottom: 2px solid transparent;
-            transition: all 0.3s;
         }
 
-        .tab-item.active {
-            color: #409eff;
-            border-bottom-color: #409eff;
-            font-weight: bold;
-        }
-
-        .tab-item:hover {
-            color: #409eff;
+        .tab.active {
+            color: #1890ff;
+            background: #fff;
+            border-bottom: 2px solid #1890ff;
         }
 
         .tab-content {
+            padding: 20px;
             display: none;
         }
 
@@ -75,772 +67,908 @@
             display: block;
         }
 
-        /* 通用表单样式 */
-        .input-section,
-        .output-section {
+        .input-section {
             margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #555;
         }
 
         textarea {
             width: 100%;
-            min-height: 200px;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+            height: 200px;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            resize: vertical;
             font-size: 14px;
             line-height: 1.5;
-            resize: vertical;
-            font-family: Consolas, monospace;
-        }
-
-        /* 缩小JSON输出框高度 */
-        #jsonOutput {
-            height: 250px;
-            margin-bottom: 15px;
-        }
-
-        textarea:focus {
-            outline: none;
-            border-color: #409eff;
-            box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
-        }
-
-        .btn-container {
-            text-align: center;
-            margin: 20px 0;
         }
 
         button {
-            padding: 10px 30px;
-            background-color: #409eff;
+            padding: 8px 16px;
+            background-color: #1890ff;
             color: white;
             border: none;
-            border-radius: 6px;
-            font-size: 16px;
+            border-radius: 4px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-top: 10px;
         }
 
         button:hover {
-            background-color: #337ecc;
+            background-color: #40a9ff;
         }
 
         button:disabled {
-            background-color: #909399;
+            background-color: #cccccc;
             cursor: not-allowed;
         }
 
-        .output-section textarea {
-            background-color: #f8f9fa;
-        }
-
-        .tip {
-            color: #999;
-            font-size: 12px;
-            margin-top: 5px;
-        }
-
-        /* 提示框样式 */
-        .alert {
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            display: none;
-        }
-
-        .alert-success {
-            background-color: #f0f9eb;
-            color: #67c23a;
-            border: 1px solid #e1f3d8;
-            display: block;
-        }
-
-        .alert-error {
-            background-color: #fef0f0;
-            color: #f56c6c;
-            border: 1px solid #fde2e2;
-            display: block;
-        }
-
-        /* PDF工具样式 */
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .result-box {
+        .result-section {
+            margin-top: 20px;
             padding: 15px;
-            border: 1px solid #e6f7ff;
+            background-color: #fafafa;
             border-radius: 4px;
-            background-color: #f0f9ff;
-            margin-bottom: 15px;
-            word-break: break-all;
-            display: none;
+            min-height: 100px;
         }
 
-        .result-box a {
-            color: #409eff;
-            text-decoration: none;
-            font-size: 14px;
-        }
-
-        .result-box a:hover {
-            text-decoration: underline;
-        }
-
-        .tips {
-            margin-top: 15px;
+        .message {
             padding: 10px;
-            background-color: #f5f5f5;
+            margin-bottom: 15px;
             border-radius: 4px;
-            font-size: 12px;
-            color: #666;
-        }
-
-        .error {
-            color: #f56c6c;
-            margin-top: 10px;
             font-size: 14px;
         }
 
         .success {
-            color: #67c23a;
-            margin-top: 10px;
-            font-size: 14px;
+            background-color: #f0fff4;
+            color: #52c41a;
+            border: 1px solid #b7eb8f;
         }
 
-        /* 等待期样式 - 新增禁用状态样式 */
-        .waiting-period-section {
-            margin: 15px 0;
-            padding: 15px;
-            background-color: #f0f8ff;
-            border-radius: 6px;
-            border: 1px solid #e6f7ff;
+        .error {
+            background-color: #fff2f0;
+            color: #f5222d;
+            border: 1px solid #ffccc7;
         }
 
-        .waiting-period-section.disabled {
-            background-color: #f9f9f9;
-            border-color: #e9e9e9;
+        .warning {
+            background-color: #fffbe6;
+            color: #faad14;
+            border: 1px solid #ffe58f;
         }
 
-        .waiting-period-btns {
-            display: flex;
-            gap: 10px;
-            margin: 10px 0;
-            flex-wrap: wrap;
-        }
-
-        .waiting-btn {
-            padding: 8px 16px;
-            background-color: #e6f7ff;
-            color: #409eff;
-            border: 1px solid #409eff;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .waiting-btn.active {
-            background-color: #409eff;
-            color: white;
-        }
-
-        .waiting-btn:disabled,
-        .waiting-period-input input:disabled {
-            background-color: #e9e9e9;
-            color: #999;
-            border-color: #ddd;
-            cursor: not-allowed;
-        }
-
-        .waiting-btn:hover:not(:disabled) {
-            background-color: #337ecc;
-            color: white;
-        }
-
-        .waiting-period-input {
-            margin-top: 10px;
-        }
-
-        .waiting-period-input input {
-            width: 100px;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-right: 8px;
-        }
-
-        .waiting-period-input span {
-            color: #666;
-            font-size: 14px;
-        }
-
-        /* 固定产品提示样式 */
-        .fixed-waiting-tip {
-            color: #67c23a;
-            font-size: 14px;
-            margin-top: 8px;
-            font-weight: bold;
-            display: none;
-        }
-
-        /* 字段复制样式 */
-        .field-copy-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 12px;
-            margin-top: 15px;
-        }
-
+        /* 核心优化：多列网格布局 + 缩小内边距 */
         .field-item {
+            margin: 4px 0; /* 减少垂直间距 */
+            padding: 6px 8px; /* 减少内边距 */
+            background-color: #fff;
+            border-radius: 4px;
             display: flex;
             align-items: center;
-            padding: 10px 15px;
-            background-color: #f8f9fa;
-            border-radius: 6px;
-            border: 1px solid #e9ecef;
-            min-height: 50px;
-            flex-wrap: nowrap;
+            gap: 8px;
+            font-size: 13px; /* 缩小字体 */
         }
 
         .field-label {
             font-weight: bold;
-            color: #495057;
-            margin-right: 8px;
-            min-width: 70px;
+            color: #333;
+            min-width: 80px; /* 固定标签宽度，对齐更整齐 */
             flex-shrink: 0;
         }
 
         .field-value {
-            flex: 1;
-            color: #212529;
+            color: #666;
             word-break: break-all;
-            padding: 4px 8px;
-            min-width: 0;
+            flex: 1;
+        }
+
+        /* 数字字段右对齐 */
+        .field-value.numeric {
+            text-align: right;
         }
 
         .copy-btn {
-            padding: 4px 12px;
+            padding: 2px 6px; /* 缩小按钮 */
             font-size: 12px;
-            background-color: #67c23a;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-left: 10px;
+            background-color: #f0f0f0;
+            color: #666;
             white-space: nowrap;
-            flex-shrink: 0;
-            min-width: 60px;
         }
 
         .copy-btn:hover {
-            background-color: #52c41a;
+            background-color: #e0e0e0;
         }
 
-        .copy-toast {
+        .toast {
             position: fixed;
             top: 20px;
-            right: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             padding: 10px 20px;
-            background-color: rgba(103, 194, 58, 0.9);
+            background-color: rgba(0, 0, 0, 0.7);
             color: white;
             border-radius: 4px;
-            display: none;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
             z-index: 9999;
-            animation: fadeInOut 2s ease;
         }
 
-        @keyframes fadeInOut {
-            0% { opacity: 0; transform: translateX(20px); }
-            20% { opacity: 1; transform: translateX(0); }
-            80% { opacity: 1; transform: translateX(0); }
-            100% { opacity: 0; transform: translateX(20px); }
+        .toast.show {
+            opacity: 1;
+        }
+
+        /* 折叠/展开样式：默认折叠 */
+        .policy-container {
+            margin-bottom: 10px; /* 减少保单容器间距 */
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .policy-header {
+            padding: 10px 15px; /* 缩小头部内边距 */
+            background-color: #f8f8f8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .policy-title {
+            font-size: 15px; /* 缩小标题 */
+            font-weight: bold;
+            color: #333;
+        }
+
+        .toggle-btn {
+            padding: 2px 6px; /* 缩小折叠按钮 */
+            font-size: 12px;
+            background-color: #e0e0e0;
+            color: #666;
+            border-radius: 4px;
+        }
+
+        /* 核心优化：保单内容默认折叠 + 网格布局 */
+        .policy-content {
+            padding: 10px 15px; /* 缩小内容内边距 */
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* 自动多列布局 */
+            gap: 8px; /* 列间距 */
+            display: none; /* 默认折叠 */
+        }
+
+        .policy-content.collapsed {
+            display: none;
+        }
+
+        .policy-content:not(.collapsed) {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 8px;
+        }
+
+        /* 保单下载表格样式 */
+        .policy-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+
+        .policy-table th,
+        .policy-table td {
+            border: 1px solid #e9ecef;
+            padding: 12px 8px;
+            text-align: left;
+        }
+
+        .policy-table th {
+            background-color: #f8f9fa;
+            color: #333;
+            font-weight: normal;
+        }
+
+        .policy-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* 空数据提示 */
+        .empty-tip {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        /* 错误提示 */
+        .error-tip {
+            color: #f53f3f;
+            font-size: 13px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        /* 保单操作按钮组 */
+        .policy-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .download-btn {
+            padding: 4px 8px;
+            font-size: 12px;
+            background-color: #1890ff;
+            color: white;
+        }
+
+        .download-btn:hover {
+            background-color: #40a9ff;
+        }
+
+        .download-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        /* 操作行单独占一列 */
+        .action-field-item {
+            grid-column: 1 / -1;
+            margin-top: 8px;
+            border-top: 1px dashed #e0e0e0;
+            padding-top: 8px;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <h1>FYC数据处理工具集</h1>
-        <p class="update-time">更新时间：2026年3月17日11:04:56</p>
-
+          <label>更新：2026年3月17日20:52:52</label>
+    <div class="tab-container">
+  
+        <!-- 标签栏：调整顺序，保单下载放前面 -->
         <div class="tabs">
-            <div class="tab-item active" data-tab="pdf-tab">保单下载</div>
-            <div class="tab-item" data-tab="fyc-tab">FYC抓取</div>
+            <button class="tab active" data-tab="policy-download-tab">保单下载</button>
+            <button class="tab" data-tab="fyc-tab">FYC抓取</button>
         </div>
 
-        <!-- FYC抓取 Tab 内容 -->
-        <div class="tab-content" id="fyc-tab">
-            <div id="message" class="alert"></div>
+        <!-- 保单下载标签内容（移到前面） -->
+        <div class="tab-content active" id="policy-download-tab">
             <div class="input-section">
-                <label for="jsonInput">请输入原始JSON数据：</label>
-                <p>先打开F12输入保单号发起请求，找getReportDetailListFooter请求</p>
-                <textarea id="jsonInput" placeholder="请在此粘贴或输入完整的JSON数据..."></textarea>
-                <div class="tip">提示：请确保输入的是有效的JSON格式数据</div>
+                <h4>请输入保单JSON数据（工作台→保单→保单→Network→pageList）：</h4>
+                <textarea class="json-textarea" id="pdfJsonTextarea" placeholder="请粘贴完整的保单JSON数据到这里..."></textarea>
+                <button class="parse-btn" id="pdfParseBtn">解析保单</button>
+                <div class="error-tip" id="pdfErrorTip">JSON格式错误，请检查数据后重新提交！</div>
             </div>
-
-            <!-- 等待期设置区域 -->
-            <div class="waiting-period-section" id="waitingPeriodSection">
-                <label><strong>等待期设置：</strong></label>
-                <div class="waiting-period-btns">
-                    <button class="waiting-btn" data-days="30">30天</button>
-                    <button class="waiting-btn" data-days="90">90天</button>
-                    <button class="waiting-btn" data-days="180">180天</button>
-                </div>
-                <div class="waiting-period-input">
-                    <input type="number" id="customWaitingDays" placeholder="自定义天数" min="1">
-                    <span>天（选择预设或输入自定义天数）</span>
-                </div>
-                <!-- 固定产品提示 -->
-                <div class="fixed-waiting-tip" id="fixedWaitingTip">
-                    ⚠️ 该产品（众民保·百万医疗险2025版）等待期固定为30天，不可修改！
-                </div>
-            </div>
-
-            <div class="btn-container">
-                <button id="processBtn" onclick="processInsuranceData()">确认处理</button>
-            </div>
-            <div class="output-section">
-                <label for="jsonOutput">提取结果：</label>
-                <textarea id="jsonOutput" readonly placeholder="处理后的结果将显示在这里..."></textarea>
-                
-                <!-- 字段复制区域 -->
-                <div id="fieldCopyContainer" class="field-copy-container"></div>
-            </div>
+            <h3 style="color: #333; margin-bottom: 16px;">保单列表</h3>
+            <div class="empty-tip" id="pdfEmptyTip">请先输入JSON数据并点击解析按钮</div>
+            <table class="policy-table" id="policyTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>投保人</th>
+                        <th>被保人</th>
+                        <th>产品名称</th>
+                        <th>生效日</th>
+                        <th>保单号</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="policyTableBody"></tbody>
+            </table>
         </div>
 
-        <!-- PDF链接提取 Tab 内容 -->
-        <div class="tab-content active" id="pdf-tab">
-            <div class="form-group">
-                <label for="pdfJsonInput">请粘贴JSON数据：</label>
-                <textarea id="pdfJsonInput"
-                    placeholder='示例：{"任意层级":{"ePolicyAddress":"https://xxx.pdf"},"insuredName":"张三","productName":"重疾险","insuranceStartTime":"2026-03-16"}'></textarea>
+        <!-- FYC抓取标签内容 -->
+        <div class="tab-content" id="fyc-tab">
+            <div class="input-section">
+                <h3>请输入JSON数据（业绩明细→选择日期→getReportDetailList）</h3>
+                <textarea id="jsonInput" placeholder='请粘贴从getReportDetailList请求获取的JSON数据...'></textarea>
+                <button id="processBtn">处理数据</button>
+                <button id="clearBtn">清空内容</button>
             </div>
-            <button id="extractBtn">提取PDF保单</button>
-
-            <div class="result-box" id="resultBox">
-                <p><strong>原始PDF链接（点击跳转）：</strong></p>
-                <a id="pdfLink" href="#" target="_blank"></a>
-                <p style="margin-top: 10px;"><strong>文件名称：</strong><span id="fileName"></span></p>
-            </div>
-
-            <div class="error" id="errorMsg"></div>
-            <div class="success" id="successMsg"></div>
-
-            <div class="tips">
-                <p>⚠️ 操作步骤：</p>
-                <p>1. 明亚后台→保单→详情页→info→粘贴JSON；</p>
-                <p>2. 点击原始PDF链接跳转 → 下载PDF时直接粘贴复制的文件名即可。</p>
-            </div>
+            <div class="result-section" id="fycResult"></div>
         </div>
     </div>
 
-    <!-- 复制成功提示框 -->
-    <div id="copyToast" class="copy-toast">复制成功！</div>
+    <div class="toast" id="toast"></div>
+    <div class="toast" id="copyToast">复制成功！</div>
 
     <script>
-        // Tab切换功能
-        document.querySelectorAll('.tab-item').forEach(tab => {
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-                tab.classList.add('active');
-                const tabId = tab.getAttribute('data-tab');
-                document.getElementById(tabId).classList.add('active');
-            });
+        // 全局存储保单下载数据（用于和FYC数据关联）
+        let globalPolicyDownloadData = [];
+
+        // 核心配置：产品名称-等待期对应表
+        const PRODUCT_WAITING_PERIOD = {
+            "众民保·百万医疗险2025版": 30,
+            "众安尊享e生中高端医疗保险2025版": 30,
+            "京东安联安行万里亚洲境外旅行险（互联网）": 0,
+            "平安小玩童7号少儿意外险（互联网）": 0,
+            "众民保·重疾险": 90,
+            "平安健康岁月长安特定疾病保险": 180,
+        };
+
+        // 核心配置：FYC字段映射（关键修改：保单号改为items.policycode）
+        const FIELD_MAPPING = {
+            policyNo: ['items.policycode', 'policycode'], // 优先取items下的policycode，兼容直接的policycode
+            productName: ['productname'],
+            holdername: ['holdername'],
+            insuredName: ['inseredname'],
+            orderTime: ['receivedate'],
+            effectiveDate: ['policystartdate'],
+            premium: ['scalefee'],
+            policyServiceFee: ['servicecommis'],
+            promotionFee: ['promotecommis'],
+            promotionReward: ['rewardcommis'],
+            performance: ['personachievesum'],
+            insurancePeriod: ['insperiodtext'],
+            paymentPeriod: ['paycostdate'],
+            paymentMethod: ['paytype'],
+            applyDate: ['receivedate']
+        };
+
+        // DOM加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initTabSwitch();
+            initEventListeners();
         });
 
-        // ==================== 核心：固定产品等待期逻辑 ====================
-        // 定义固定等待期的产品名称（支持模糊匹配）
-        const FIXED_WAITING_PRODUCT = "众民保·百万医疗险2025版";
-        const FIXED_WAITING_DAYS = 30;
-        
-        // 等待期控件元素
-        const waitingBtns = document.querySelectorAll('.waiting-btn');
-        const customWaitingInput = document.getElementById('customWaitingDays');
-        const waitingPeriodSection = document.getElementById('waitingPeriodSection');
-        const fixedWaitingTip = document.getElementById('fixedWaitingTip');
-        
-        // 重置等待期控件状态
-        function resetWaitingPeriodControls() {
-            // 启用所有控件
-            waitingBtns.forEach(btn => {
-                btn.disabled = false;
-                btn.classList.remove('active');
+        // 初始化标签切换
+        function initTabSwitch() {
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // 移除所有激活状态
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    // 激活当前标签
+                    tab.classList.add('active');
+                    const targetTab = tab.getAttribute('data-tab');
+                    document.getElementById(targetTab).classList.add('active');
+                });
             });
-            customWaitingInput.disabled = false;
-            customWaitingInput.value = '';
-            // 移除禁用样式和提示
-            waitingPeriodSection.classList.remove('disabled');
-            fixedWaitingTip.style.display = 'none';
-            // 重置选中天数
-            selectedWaitingDays = 0;
         }
-        
-        // 禁用等待期控件（固定30天）
-        function disableWaitingPeriodControls() {
-            // 禁用所有按钮，默认选中30天
-            waitingBtns.forEach(btn => {
-                btn.disabled = true;
-                if (parseInt(btn.getAttribute('data-days')) === FIXED_WAITING_DAYS) {
-                    btn.classList.add('active');
-                }
+
+        // 初始化事件监听
+        function initEventListeners() {
+            // FYC相关事件
+            document.getElementById('processBtn').addEventListener('click', processFYCData);
+            document.getElementById('clearBtn').addEventListener('click', () => {
+                document.getElementById('jsonInput').value = '';
+                document.getElementById('fycResult').innerHTML = '';
             });
-            // 禁用自定义输入框
-            customWaitingInput.disabled = true;
-            customWaitingInput.value = '';
-            // 添加禁用样式和提示
-            waitingPeriodSection.classList.add('disabled');
-            fixedWaitingTip.style.display = 'block';
-            // 强制设置为30天
-            selectedWaitingDays = FIXED_WAITING_DAYS;
+
+            // 保单下载相关事件
+            document.getElementById('pdfParseBtn').addEventListener('click', parsePolicyDownloadData);
         }
 
-        // ==================== 等待期基础功能 ====================
-        let selectedWaitingDays = 0;
-        
-        // 预设等待期按钮点击事件
-        waitingBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (btn.disabled) return; // 禁用状态不响应
-                // 移除所有active状态
-                waitingBtns.forEach(b => b.classList.remove('active'));
-                // 激活当前按钮
-                btn.classList.add('active');
-                // 清空自定义输入框
-                customWaitingInput.value = '';
-                // 记录选中的天数
-                selectedWaitingDays = parseInt(btn.getAttribute('data-days'));
-            });
-        });
-
-        // 自定义等待期输入事件
-        customWaitingInput.addEventListener('input', () => {
-            if (customWaitingInput.disabled) return; // 禁用状态不响应
-            // 移除预设按钮的active状态
-            waitingBtns.forEach(b => b.classList.remove('active'));
-            // 记录自定义天数
-            const customDays = parseInt(customWaitingInput.value) || 0;
-            selectedWaitingDays = customDays > 0 ? customDays : 0;
-        });
-
-        // 计算等待期结束日（生效日 + 等待期天数 + 1天）
-        function calculateWaitingEndDate(startDateStr, days) {
-            if (!startDateStr || days <= 0) return "";
-            try {
-                const startDate = new Date(startDateStr);
-                if (isNaN(startDate.getTime())) return "";
-                // 计算结束日期（生效日 + 等待期天数 + 1天）
-                const endDate = new Date(startDate);
-                endDate.setDate(endDate.getDate() + days + 1);
-                // 格式化日期
-                const year = endDate.getFullYear();
-                const month = String(endDate.getMonth() + 1).padStart(2, '0');
-                const day = String(endDate.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            } catch (e) {
-                return "";
-            }
+        // ====================== 核心修复：保单号格式化函数 ======================
+        function formatPolicyNo(policyNo) {
+            if (!policyNo) return '';
+            // 统一格式化：去空格、转大写、去除特殊字符
+            return policyNo.toString().trim().toUpperCase().replace(/\s+/g, '');
         }
 
-        // ==================== 复制功能 ====================
-        // 定义不需要复制按钮的字段列表
-        const noCopyFields = [
-            "下单时间", 
-            "生效日期", 
-            "保障期间", 
-            "缴费期间", 
-            "缴费方式", 
-            "等待期天数", 
-            "等待期结束日"
-        ];
+        // ====================== FYC核心功能 ======================
+        // 处理FYC数据
+        function processFYCData() {
+            const jsonInput = document.getElementById('jsonInput').value.trim();
+            const resultEl = document.getElementById('fycResult');
+            resultEl.innerHTML = '';
 
-        // 显示复制成功提示
-        function showCopyToast() {
-            const toast = document.getElementById('copyToast');
-            toast.style.display = 'block';
-            setTimeout(() => {
-                toast.style.display = 'none';
-            }, 2000);
-        }
-
-        // 复制字段值
-        function copyFieldValue(value) {
-            if (!value) {
-                showMessage('暂无可复制的内容', false);
+            if (!jsonInput) {
+                showMessage('请输入JSON数据', false, resultEl);
                 return;
             }
+
             try {
-                // 优先使用剪贴板API
-                navigator.clipboard.writeText(value).then(() => {
-                    showCopyToast();
-                }).catch(err => {
-                    // 降级方案
-                    const textArea = document.createElement('textarea');
-                    textArea.value = value;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    showCopyToast();
+                const data = JSON.parse(jsonInput);
+                const rows = data.data?.rows || [];
+
+                if (!Array.isArray(rows) || rows.length === 0) {
+                    showMessage('未找到有效的rows数据', false, resultEl);
+                    return;
+                }
+
+                const noWaitingPeriodProducts = new Set();
+                // 存储FYC的保单号（用于匹配校验）
+                const fycPolicyNos = [];
+
+                rows.forEach((row, index) => {
+                    // 直接使用row作为数据源（因为policycode在row的items里，由字段映射处理）
+                    if (!row) {
+                        const emptyContainer = createPolicyContainer(index + 1, true);
+                        emptyContainer.querySelector('.policy-content').innerHTML = '<div class="message error">该保单无有效数据</div>';
+                        resultEl.appendChild(emptyContainer);
+                        return;
+                    }
+
+                    const policyContainer = createPolicyContainer(index + 1);
+                    const contentEl = policyContainer.querySelector('.policy-content');
+
+                    // 提取并处理FYC字段（现在会自动从items.policycode提取保单号）
+                    const policyData = extractPolicyFields(row);
+                    // 格式化保单号（关键修复）
+                    policyData.policyNo = formatPolicyNo(policyData.policyNo);
+                    // 存入FYC保单号列表
+                    fycPolicyNos.push(policyData.policyNo);
+                    
+                    policyData.effectiveDate = timestampToDate(policyData.effectiveDate);
+                    policyData.orderTime = timestampToDate(policyData.orderTime);
+
+                    // 格式化数字字段
+                    const numericFields = ['premium', 'policyServiceFee', 'promotionFee', 'promotionReward', 'performance'];
+                    numericFields.forEach(field => {
+                        if (policyData[field] !== '' && policyData[field] !== undefined && !isNaN(parseFloat(policyData[field]))) {
+                            policyData[field] = parseFloat(policyData[field]).toFixed(3);
+                        } else if (policyData[field] === undefined) {
+                            policyData[field] = '0.000';
+                        }
+                    });
+
+                    // 获取产品等待期
+                    const { waitingDays, isConfigured } = getProductWaitingDays(policyData.productName);
+                    if (!isConfigured) {
+                        noWaitingPeriodProducts.add(policyData.productName);
+                    }
+
+                    policyData.waitingEndDate = calculateWaitingEndDate(policyData.effectiveDate, waitingDays);
+                    policyData.waitingPeriodDays = waitingDays >= 0 ? `${waitingDays}天` : '未配置';
+
+                    // 关联保单下载数据（核心：通过格式化后的保单号匹配）
+                    const linkedPolicyData = getLinkedPolicyData(policyData.policyNo);
+                    policyData.linkedPolicy = linkedPolicyData;
+
+                    // 渲染字段（包含新增的下载/复制按钮）
+                    renderPolicyFields(policyData, contentEl);
+                    resultEl.appendChild(policyContainer);
                 });
-            } catch (err) {
-                showMessage('复制失败：' + err.message, false);
+
+                showMessage(`成功解析 ${rows.length} 条保单数据`, true, resultEl);
+                if (noWaitingPeriodProducts.size > 0) {
+                    const unconfiguredProducts = Array.from(noWaitingPeriodProducts).join('、');
+                    showMessage(`⚠️ 以下产品未配置等待期，请补充：${unconfiguredProducts}`, 'warning', resultEl);
+                }
+
+                // 提示未关联到下载数据的保单（使用格式化后的保单号匹配）
+                if (globalPolicyDownloadData.length > 0) {
+                    const unmatched = globalPolicyDownloadData.filter(p => !fycPolicyNos.includes(p.policyNo));
+                    if (unmatched.length > 0) {
+                        showMessage(`⚠️ 有${unmatched.length}条保单下载数据未匹配到FYC数据`, 'warning', resultEl);
+                    } else {
+                        showMessage(`✅ 所有保单下载数据已成功匹配到FYC数据`, true, resultEl);
+                    }
+                }
+
+            } catch (e) {
+                showMessage(`解析失败：${e.message}`, false, resultEl);
             }
         }
 
-        // 渲染字段复制按钮
-        function renderFieldCopyButtons(data) {
-            const container = document.getElementById('fieldCopyContainer');
-            container.innerHTML = ''; // 清空原有内容
+        // 提取FYC保单字段（支持嵌套路径，如items.policycode）
+        function extractPolicyFields(data) {
+            const policyData = {};
+            for (const [key, fieldPaths] of Object.entries(FIELD_MAPPING)) {
+                let value = undefined;
+                for (const path of fieldPaths) {
+                    value = getNestedValue(data, path);
+                    if (value !== undefined && value !== null) break;
+                }
+                policyData[key] = (value === undefined || value === null) ? '' : value;
+            }
+            return policyData;
+        }
 
-            // 遍历数据创建字段项
-            for (const [label, value] of Object.entries(data)) {
+        // 通过格式化后的保单号关联保单下载数据
+        function getLinkedPolicyData(policyNo) {
+            if (!policyNo || !globalPolicyDownloadData.length) return null;
+            return globalPolicyDownloadData.find(item => item.policyNo === policyNo) || null;
+        }
+
+        // 渲染FYC保单字段（新增下载/复制按钮 + 适配多列布局）
+        function renderPolicyFields(data, container) {
+            const fields = [
+                { label: '保单号', key: 'policyNo', isNumeric: false },
+                { label: '产品名', key: 'productName', isNumeric: false },
+                { label: '投保人', key: 'holdername', isNumeric: false },
+                { label: '被保人', key: 'insuredName', isNumeric: false },
+                { label: '下单时间', key: 'orderTime', noCopy: true, isNumeric: false },
+                { label: '生效日期', key: 'effectiveDate', noCopy: true, isNumeric: false },
+                { label: '保费', key: 'premium', isNumeric: true },
+                { label: '保单服务费', key: 'policyServiceFee', isNumeric: true },
+                { label: '推广费', key: 'promotionFee', isNumeric: true },
+                { label: '推广奖励', key: 'promotionReward', isNumeric: true },
+                { label: '业绩', key: 'performance', isNumeric: true },
+                { label: '保障期间', key: 'insurancePeriod', noCopy: true, isNumeric: false },
+                { label: '缴费期间', key: 'paymentPeriod', noCopy: true, isNumeric: false },
+                { label: '缴费方式', key: 'paymentMethod', noCopy: true, isNumeric: false },
+                { label: '等待期天数', key: 'waitingPeriodDays', noCopy: true, isNumeric: false },
+                { label: '等待期结束日', key: 'waitingEndDate', noCopy: true, isNumeric: false }
+            ];
+
+            fields.forEach(field => {
                 const fieldItem = document.createElement('div');
                 fieldItem.className = 'field-item';
 
                 const labelEl = document.createElement('div');
                 labelEl.className = 'field-label';
-                labelEl.textContent = label + '：';
+                labelEl.textContent = field.label;
 
                 const valueEl = document.createElement('div');
-                valueEl.className = 'field-value';
-                valueEl.textContent = value || '无';
+                valueEl.className = `field-value ${field.isNumeric ? 'numeric' : ''}`;
+                if (field.key === 'waitingPeriodDays' && data[field.key] === '未配置') {
+                    valueEl.style.color = '#f5222d';
+                    valueEl.style.fontWeight = 'bold';
+                }
+                if (field.key === 'waitingEndDate' && data[field.key] === '请补充配置') {
+                    valueEl.style.color = '#f5222d';
+                    valueEl.style.fontWeight = 'bold';
+                }
+                valueEl.textContent = data[field.key] === '' && ['premium', 'policyServiceFee', 'promotionFee', 'promotionReward', 'performance'].includes(field.key)
+                    ? '0.000'
+                    : (data[field.key] || '');
 
-                // 先添加标签和值，再添加按钮（避免布局错乱）
                 fieldItem.appendChild(labelEl);
                 fieldItem.appendChild(valueEl);
 
-                // 仅为非排除字段添加复制按钮
-                if (!noCopyFields.includes(label)) {
+                // 原有复制按钮
+                if (!field.noCopy) {
                     const copyBtn = document.createElement('button');
                     copyBtn.className = 'copy-btn';
                     copyBtn.textContent = '复制';
-                    copyBtn.onclick = () => copyFieldValue(value);
+                    copyBtn.addEventListener('click', () => {
+                        copyToClipboard(data[field.key], `${field.label}复制成功`);
+                    });
                     fieldItem.appendChild(copyBtn);
                 }
 
                 container.appendChild(fieldItem);
-            }
-        }
+            });
 
-        // ==================== FYC抓取核心功能 ====================
-        function showMessage(text, isSuccess = true) {
-            const messageEl = document.getElementById('message');
-            messageEl.className = isSuccess ? 'alert alert-success' : 'alert alert-error';
-            messageEl.textContent = text;
-            setTimeout(() => {
-                messageEl.className = 'alert';
-                messageEl.textContent = '';
-            }, 3000);
-        }
+            // 新增：保单下载相关操作按钮组（单独占一行）
+            const actionFieldItem = document.createElement('div');
+            actionFieldItem.className = 'field-item action-field-item';
+            
+            const actionLabelEl = document.createElement('div');
+            actionLabelEl.className = 'field-label';
+            actionLabelEl.textContent = '保单操作';
+            
+            const actionValueEl = document.createElement('div');
+            actionValueEl.className = 'field-value';
+            
+            const actionBtnGroup = document.createElement('div');
+            actionBtnGroup.className = 'policy-actions';
 
-        function formatDate(dateString) {
-            if (!dateString) return "";
-            try {
-                const date = new Date(dateString);
-                if (isNaN(date.getTime())) return dateString;
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            } catch (e) {
-                return dateString;
-            }
-        }
-
-        async function processInsuranceData() {
-            const inputEl = document.getElementById('jsonInput');
-            const outputEl = document.getElementById('jsonOutput');
-            const btnEl = document.getElementById('processBtn');
-
-            btnEl.disabled = true;
-            btnEl.textContent = '处理中...';
-
-            try {
-                const inputText = inputEl.value.trim();
-                if (!inputText) {
-                    throw new Error('输入内容不能为空，请粘贴有效的JSON数据');
-                }
-
-                let data;
-                try {
-                    data = JSON.parse(inputText);
-                } catch (e) {
-                    throw new Error('❌ JSON格式错误，请检查输入内容：' + e.message);
-                }
-
-                if (!data || data.code !== "0" || !data.data || !data.data.rows || data.data.rows.length === 0) {
-                    throw new Error('❌ 数据格式不正确或没有保单数据，请检查：\n- code是否为"0"\n- 是否包含data.rows数组\n- rows数组是否有数据');
-                }
-
-                const row = data.data.rows[0];
-                const productName = row.productname || "";
-                
-                // 核心逻辑：判断产品名称，控制等待期
-                resetWaitingPeriodControls(); // 先重置控件
-                if (productName.includes(FIXED_WAITING_PRODUCT)) {
-                    disableWaitingPeriodControls(); // 固定产品禁用控件
-                }
-
-                // 格式化生效日期
-                const policyStartDate = formatDate(row.policystartdate);
-                // 计算等待期结束日（固定产品强制用30天）
-                const finalWaitingDays = productName.includes(FIXED_WAITING_PRODUCT) 
-                    ? FIXED_WAITING_DAYS 
-                    : selectedWaitingDays;
-                const waitingEndDate = calculateWaitingEndDate(row.policystartdate, finalWaitingDays);
-
-                // 提取数据（移除保险公司字段）
-                const extractedData = {
-                    "保单号": row.policycode || "",
-                    "产品名": productName,
-                    "所属家庭": row.holdername || "",
-                    "被保人": row.inseredname || "",
-                    "下单时间": formatDate(row.receivedate) || "",
-                    "生效日期": policyStartDate || "",
-                    "保费": row.scalefee || "0.0000",
-                    "保单服务费": row.servicecommis || "0.0000",
-                    "推广费": row.promotecommis || 0.0000,
-                    "推广奖励": row.rewardcommis || 0.0000,
-                    "业绩": row.personachievesum || "0.0000",
-                    "保障期间": row.insperiodtext || "",
-                    "缴费期间": row.paycostdate || "",
-                    "缴费方式": row.paytype || "",
-                    "等待期天数": finalWaitingDays > 0 ? `${finalWaitingDays}天` : "未设置",
-                    "等待期结束日": waitingEndDate || "未设置"
-                };
-
-                const resultJson = JSON.stringify(extractedData, null, 2);
-                outputEl.value = resultJson;
-                // 渲染复制按钮
-                renderFieldCopyButtons(extractedData);
-                
-                // 提示信息（区分固定产品）
-                const tipMsg = productName.includes(FIXED_WAITING_PRODUCT) 
-                    ? `✅ 数据提取成功！该产品等待期固定为30天` 
-                    : `✅ 数据提取成功！${finalWaitingDays > 0 ? `等待期结束日已计算` : ""}`;
-                showMessage(tipMsg, true);
-                console.log('提取的数据:', extractedData);
-
-            } catch (error) {
-                showMessage(error.message, false);
-                outputEl.value = '';
-                // 清空复制按钮区域
-                document.getElementById('fieldCopyContainer').innerHTML = '';
-                console.error('处理错误:', error);
-
-            } finally {
-                btnEl.disabled = false;
-                btnEl.textContent = '确认处理';
-            }
-        }
-
-        // ==================== PDF链接提取功能 ====================
-        const jsonInput = document.getElementById('pdfJsonInput');
-        const extractBtn = document.getElementById('extractBtn');
-        const errorMsg = document.getElementById('errorMsg');
-        const successMsg = document.getElementById('successMsg');
-        const resultBox = document.getElementById('resultBox');
-        const pdfLink = document.getElementById('pdfLink');
-        const fileNameSpan = document.getElementById('fileName');
-
-        function findFieldRecursively(obj, fieldName) {
-            if (typeof obj === 'object' && obj !== null) {
-                if (obj.hasOwnProperty(fieldName)) {
-                    return obj[fieldName];
-                }
-                for (const key in obj) {
-                    const result = findFieldRecursively(obj[key], fieldName);
-                    if (result !== undefined) {
-                        return result;
-                    }
-                }
-            }
-            return undefined;
-        }
-
-        function formatEffectiveDate(dateStr) {
-            if (!dateStr) return "";
-            try {
-                const date = new Date(dateStr);
-                if (isNaN(date.getTime())) {
-                    return dateStr.replace(/-/g, "");
-                }
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}${month}${day}`;
-            } catch (e) {
-                return dateStr.replace(/-/g, "");
-            }
-        }
-
-        function copyFileNameToClipboard(fileName) {
-            try {
-                navigator.clipboard.writeText(fileName).then(() => {
-                    successMsg.textContent = `✅ 文件名已自动复制到剪贴板：${fileName}`;
-                    setTimeout(() => {
-                        successMsg.textContent = '';
-                    }, 3000);
-                }).catch(err => {
-                    const textArea = document.createElement('textarea');
-                    textArea.value = fileName;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    successMsg.textContent = `✅ 文件名已自动复制到剪贴板：${fileName}`;
-                    setTimeout(() => {
-                        successMsg.textContent = '';
-                    }, 3000);
+            // 复制文件名按钮
+            const copyFileNameBtn = document.createElement('button');
+            copyFileNameBtn.className = 'copy-btn';
+            copyFileNameBtn.textContent = '复制文件名';
+            if (!data.linkedPolicy) {
+                copyFileNameBtn.disabled = true;
+                copyFileNameBtn.title = '未匹配到保单下载数据';
+            } else {
+                const fileName = getPolicyFileName(data.linkedPolicy);
+                copyFileNameBtn.addEventListener('click', () => {
+                    copyToClipboard(fileName, '文件名复制成功');
                 });
-            } catch (err) {
-                errorMsg.textContent = `文件名复制失败：${err.message}`;
             }
+
+            // 下载合同按钮
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'download-btn';
+            downloadBtn.textContent = '下载合同';
+            if (!data.linkedPolicy || !data.linkedPolicy.pdfUrl) {
+                downloadBtn.disabled = true;
+                downloadBtn.title = data.linkedPolicy ? '无下载链接' : '未匹配到保单下载数据';
+            } else {
+                downloadBtn.addEventListener('click', () => {
+                    downloadPolicyPdf(data.linkedPolicy);
+                });
+            }
+
+            actionBtnGroup.appendChild(copyFileNameBtn);
+            actionBtnGroup.appendChild(downloadBtn);
+            actionValueEl.appendChild(actionBtnGroup);
+            actionFieldItem.appendChild(actionLabelEl);
+            actionFieldItem.appendChild(actionValueEl);
+            container.appendChild(actionFieldItem);
         }
 
-        extractBtn.addEventListener('click', () => {
-            errorMsg.textContent = '';
-            successMsg.textContent = '';
-            resultBox.style.display = 'none';
+        // ====================== 保单下载核心功能（核心修复：字段路径+名称） ======================
+        // 解析保单下载数据
+        function parsePolicyDownloadData() {
+            const jsonTextarea = document.getElementById('pdfJsonTextarea');
+            const errorTip = document.getElementById('pdfErrorTip');
+            errorTip.style.display = 'none';
 
-            const jsonStr = jsonInput.value.trim();
-            if (!jsonStr) {
-                errorMsg.textContent = '请输入JSON数据！';
+            if (!jsonTextarea.value.trim()) {
+                alert('请输入JSON数据！');
                 return;
             }
 
             try {
-                const data = JSON.parse(jsonStr);
-                const ePolicyAddress = findFieldRecursively(data, 'ePolicyAddress');
-                const insuredName = findFieldRecursively(data, 'insuredName');
-                const productName = findFieldRecursively(data, 'productName');
-                const insuranceStartTime = findFieldRecursively(data, 'insuranceStartTime');
-
-                if (!ePolicyAddress) throw new Error('未找到 ePolicyAddress 字段！');
-                if (!insuredName) throw new Error('未找到 insuredName 字段！');
-                if (!productName) throw new Error('未找到 productName 字段！');
-                if (!insuranceStartTime) throw new Error('未找到 insuranceStartTime 字段！');
-
-                const formattedDate = formatEffectiveDate(insuranceStartTime);
-                const fileName = `${insuredName}-${productName}-生效日${formattedDate}`;
-                copyFileNameToClipboard(fileName);
-
-                resultBox.style.display = 'block';
-                pdfLink.href = ePolicyAddress;
-                pdfLink.textContent = ePolicyAddress;
-                fileNameSpan.textContent = fileName;
-            } catch (err) {
-                errorMsg.textContent = `处理失败：${err.message}`;
+                const jsonData = JSON.parse(jsonTextarea.value.trim());
+                // 核心修改：支持list下的items嵌套（兼容直接list和list.items两种格式）
+                const rawList = jsonData.code === '00' && jsonData.data && jsonData.data.list ? 
+                    (jsonData.data.list.items || jsonData.data.list) : [];
+                
+                globalPolicyDownloadData = formatPolicyDownloadData(rawList);
+                renderPolicyTable(globalPolicyDownloadData);
+                showToast(`成功解析 ${globalPolicyDownloadData.length} 条保单下载数据`);
+            } catch (e) {
+                errorTip.style.display = 'block';
+                console.error('JSON解析失败：', e);
             }
-        });
+        }
+
+        // 格式化保单下载数据（核心修复：1. 改用items下的policyCode 2. 兼容大小写 3. 格式化）
+        function formatPolicyDownloadData(rawList) {
+            if (!Array.isArray(rawList)) return [];
+            
+            return rawList.map(policy => {
+                // 核心修改：支持policy本身是items嵌套的情况
+                const realPolicy = policy.items || policy;
+                
+                // 提取PDF下载链接
+                let pdfUrl = '';
+                if (realPolicy.newOrderBtnNeed && realPolicy.newOrderBtnNeed.ePolicyAddressList && realPolicy.newOrderBtnNeed.ePolicyAddressList.length > 0) {
+                    pdfUrl = realPolicy.newOrderBtnNeed.ePolicyAddressList[0].ePolicyAddress;
+                }
+
+                return {
+                    // 核心修改：1. 取policyCode（注意大小写） 2. 格式化 3. 兼容policycode小写
+                    policyNo: formatPolicyNo(realPolicy.policyCode || realPolicy.policycode || ''), 
+                    appntName: realPolicy.appntName || '未知', // 投保人
+                    insuredName: realPolicy.insuredName || '未知', // 被保人
+                    productName: realPolicy.productName || '未知产品', // 产品名称
+                    validDate: realPolicy.validDate || '', // 生效日期
+                    pdfUrl: pdfUrl // PDF下载链接
+                };
+            });
+        }
+
+        // 渲染保单下载表格
+        function renderPolicyTable(policyDataList) {
+            const emptyTip = document.getElementById('pdfEmptyTip');
+            const policyTable = document.getElementById('policyTable');
+            const tableBody = document.getElementById('policyTableBody');
+            tableBody.innerHTML = '';
+
+            if (!policyDataList || policyDataList.length === 0) {
+                emptyTip.style.display = 'block';
+                policyTable.style.display = 'none';
+                return;
+            }
+
+            emptyTip.style.display = 'none';
+            policyTable.style.display = 'table';
+
+            policyDataList.forEach(policy => {
+                const validDate = formatDate(policy.validDate);
+                const copyFileName = getPolicyFileName(policy);
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${policy.appntName}</td>
+                    <td>${policy.insuredName}</td>
+                    <td>${policy.productName}</td>
+                    <td>${validDate}</td>
+                    <td>${policy.policyNo || '未知'}</td>
+                    <td>
+                        <button class="copy-btn" data-copy-text="${copyFileName}">复制文件名</button>
+                        <button class="download-btn" ${policy.pdfUrl ? '' : 'disabled'} data-pdf-url="${policy.pdfUrl}">下载合同</button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            // 绑定表格按钮事件
+            document.querySelectorAll('.copy-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const copyText = btn.getAttribute('data-copy-text');
+                    copyToClipboard(copyText || '未知文件名');
+                });
+            });
+            
+            document.querySelectorAll('.download-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const pdfUrl = btn.getAttribute('data-pdf-url');
+                    if (!pdfUrl) {
+                        alert('该保单暂无PDF下载链接！');
+                        return;
+                    }
+                    const copyText = btn.parentElement.querySelector('.copy-btn').getAttribute('data-copy-text');
+                    const fileName = `${copyText || '保单文件'}.pdf`;
+                    downloadFile(pdfUrl, fileName);
+                });
+            });
+        }
+
+        // 获取保单文件名
+        function getPolicyFileName(policy) {
+            const insuredName = policy.insuredName || '未知';
+            const productName = policy.productName || '未知产品';
+            const validDate = formatDate(policy.validDate);
+            return `${insuredName}-${productName}-生效日${validDate}`;
+        }
+
+        // 下载保单PDF
+        function downloadPolicyPdf(policy) {
+            if (!policy.pdfUrl) {
+                showToast('无下载链接');
+                return;
+            }
+            const fileName = getPolicyFileName(policy);
+            downloadFile(policy.pdfUrl, `${fileName}.pdf`);
+        }
+
+        // ====================== 通用工具函数 ======================
+        // 获取嵌套字段的值（支持多层路径，如items.policycode）
+        function getNestedValue(obj, path) {
+            if (!obj || !path) return undefined;
+            const keys = path.split('.');
+            let value = obj;
+            for (const key of keys) {
+                if (value[key] === undefined || value[key] === null) return undefined;
+                value = value[key];
+            }
+            return value;
+        }
+
+        // 时间戳转日期字符串
+        function timestampToDate(timestamp) {
+            if (!timestamp || isNaN(timestamp)) return '无效日期';
+            const date = new Date(parseInt(timestamp));
+            if (isNaN(date.getTime())) return '日期解析失败';
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        // 获取产品等待期天数
+        function getProductWaitingDays(productName) {
+            if (!productName) return { waitingDays: -1, isConfigured: false };
+            for (const [productKeyword, days] of Object.entries(PRODUCT_WAITING_PERIOD)) {
+                if (productName.includes(productKeyword)) {
+                    return { waitingDays: days, isConfigured: true };
+                }
+            }
+            return { waitingDays: -1, isConfigured: false };
+        }
+
+        // 计算等待期结束日
+        function calculateWaitingEndDate(effectiveDate, days) {
+            if (days === 0) return '无等待期';
+            if (days < 0) return '请补充配置';
+            if (!effectiveDate || effectiveDate === '无效日期' || effectiveDate === '日期解析失败') {
+                return '日期无效';
+            }
+            try {
+                let date;
+                if (/^\d{4}-\d{2}-\d{2}$/.test(effectiveDate)) {
+                    date = new Date(effectiveDate);
+                } else {
+                    return '日期格式不支持';
+                }
+                date.setDate(date.getDate() + days);
+                return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+            } catch (e) {
+                return '日期计算错误';
+            }
+        }
+
+        // 格式化日期（保单下载用）
+        function formatDate(dateStr) {
+            if (!dateStr) return '未知';
+            const date = new Date(dateStr);
+            return `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')}`;
+        }
+
+        // 复制到剪贴板
+        function copyToClipboard(text, successMsg) {
+            if (!text) {
+                showToast('无复制内容');
+                return;
+            }
+            try {
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        showToast(successMsg || '复制成功');
+                    }).catch(() => fallbackCopy(text));
+                } else {
+                    fallbackCopy(text);
+                }
+            } catch (e) {
+                showToast('复制失败，请手动复制');
+            }
+        }
+
+        // 复制降级方案
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('复制成功');
+            } catch (e) {
+                showToast('复制失败，请手动复制');
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        }
+
+        // 下载文件
+        function downloadFile(url, fileName) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            showToast(`开始下载：${fileName}`);
+        }
+
+        // 显示提示消息
+        function showMessage(text, type, container) {
+            const messageEl = document.createElement('div');
+            if (type === true) {
+                messageEl.className = 'message success';
+            } else if (type === false) {
+                messageEl.className = 'message error';
+            } else if (type === 'warning') {
+                messageEl.className = 'message warning';
+            }
+            messageEl.textContent = text;
+            container.insertBefore(messageEl, container.firstChild);
+        }
+
+        // 显示Toast提示
+        function showToast(text) {
+            const toast = document.getElementById('toast');
+            toast.textContent = text;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        // 创建带折叠功能的保单容器（默认折叠）
+        function createPolicyContainer(policyNum, isEmpty = false) {
+            const container = document.createElement('div');
+            container.className = 'policy-container';
+
+            const header = document.createElement('div');
+            header.className = 'policy-header';
+
+            const title = document.createElement('div');
+            title.className = 'policy-title';
+            title.textContent = `保单 ${policyNum}`;
+
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'toggle-btn';
+            toggleBtn.textContent = '展开'; // 默认显示展开
+
+            header.appendChild(title);
+            header.appendChild(toggleBtn);
+
+            const content = document.createElement('div');
+            content.className = 'policy-content collapsed'; // 默认折叠
+
+            toggleBtn.addEventListener('click', () => {
+                content.classList.toggle('collapsed');
+                toggleBtn.textContent = content.classList.contains('collapsed') ? '展开' : '折叠';
+            });
+
+            // 点击头部也能折叠/展开
+            header.addEventListener('click', (e) => {
+                if (e.target !== toggleBtn) {
+                    content.classList.toggle('collapsed');
+                    toggleBtn.textContent = content.classList.contains('collapsed') ? '展开' : '折叠';
+                }
+            });
+
+            container.appendChild(header);
+            container.appendChild(content);
+
+            return container;
+        }
     </script>
 </body>
 </html>
