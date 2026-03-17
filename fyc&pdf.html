@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FYC抓取&保单下载工具</title>
+    <title>MY数据处理</title>
     <style>
         * {
             margin: 0;
@@ -15,6 +15,18 @@
         body {
             padding: 20px;
             background-color: #f5f5f5;
+        }
+
+        /* 新增：顶部标题样式 */
+        .header-title {
+            max-width: 1200px;
+            margin: 0 auto 20px;
+            text-align: center;
+            padding: 15px 0;
+            color: #1890ff;
+            font-size: 24px;
+            font-weight: bold;
+            border-bottom: 2px solid #e0e0e0;
         }
 
         .container {
@@ -35,6 +47,7 @@
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             overflow: hidden;
+            margin-bottom: 20px;
         }
 
         .tabs {
@@ -318,13 +331,24 @@
             border-top: 1px dashed #e0e0e0;
             padding-top: 8px;
         }
+
+        /* 新增：版本信息样式 */
+        .version-info {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: right;
+            color: #999;
+            font-size: 12px;
+            padding: 10px 0;
+        }
     </style>
 </head>
 
 <body>
-          <label>更新：2026年3月17日20:52:52</label>
+    <!-- 新增：顶部居中标题 -->
+    <div class="header-title">MY数据处理</div>
+
     <div class="tab-container">
-  
         <!-- 标签栏：调整顺序，保单下载放前面 -->
         <div class="tabs">
             <button class="tab active" data-tab="policy-download-tab">保单下载</button>
@@ -366,6 +390,10 @@
             </div>
             <div class="result-section" id="fycResult"></div>
         </div>
+    </div>
+
+    <!-- 新增：版本信息区域 -->
+    <div class="version-info">版本号：v2.1.0 | 更新时间：2026年3月17日21:00:34
     </div>
 
     <div class="toast" id="toast"></div>
