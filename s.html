@@ -134,11 +134,12 @@
 <body>
     <div class="button-container">
         <!-- <button id="saveButton">保存</button> -->
-        <button id="reformatButton">排版</button>
-        <button id="scrollTopButton">置顶</button>
+        <button id="reformatButton">排</button>
+        <button id="scrollTopButton">顶</button>
+        <button id="xh">序</button>
         <button id="wordCount">字数: 0</button>
         <!-- <button id="toggleButton">β佥</button> -->
-        <button id="numBigButton">字体</button>
+        <button id="numBigButton">A</button>
         <button id="copyButton">复制</button>
     </div>
     <div id="editor-container">
@@ -155,7 +156,7 @@
             const toggleButton = document.getElementById('toggleButton');
             const numBigButton = document.getElementById('numBigButton');
             const copyButton = document.getElementById('copyButton');
-
+            const xhButton = document.getElementById('xh');
             var wordCountDisplay = document.getElementById('wordCount');
 
             // 获取当前URL
@@ -453,6 +454,31 @@
                 return lines.slice(0, lastNonEmptyLineIndex + 1).join('\n');
             }
 
+            //序号来回切换
+            function xhText() {
+                let text = editor.value;
+                // 执行格式切换
+                // 回显结果
+                // 第一步：判断文本中是否存在三位补零格式的序号（001、 010、 050、）
+                const hasThreeDigitFormat = /\b\d{3}、/g.test(text);
+
+                if (hasThreeDigitFormat) {
+                    // 情况1：存在三位格式 → 还原为 1、 格式
+                    text = text.replace(/\b(\d{3})、/g, (match, num) => {
+                        // 去掉前置零并转为数字，再拼接 、
+                        return `${parseInt(num, 10)}、`;
+                    });
+                } else {
+                    // 情况2：不存在三位格式 → 替换为 001、 格式
+                    text = text.replace(/\b(\d{1,2})、/g, (match, num) => {
+                        // 补零到三位，再拼接 、
+                        return `${parseInt(num, 10).toString().padStart(3, '0')}、`;
+                    });
+                }
+                editor.value = text;
+            }
+
+
             // 自定义自动消失的提示框
             function showAutoCloseAlert(message) {
                 const alert = document.createElement('div');
@@ -492,7 +518,8 @@
 
             // 为替换保险按钮添加点击事件监听器
             // toggleButton.addEventListener('click', toggleReplace);
-
+            //点击序号
+            xhButton.addEventListener('click', xhText);
             // 为数字加粗添加点击事件监听器
             numBigButton.addEventListener('click', numBig);
             //复制

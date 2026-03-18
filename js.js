@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const clearButton = document.getElementById('clearButton');
     // const beautifyDisplay = document.getElementById('beautify');
     const read = document.getElementById('read');
+    const xhButton = document.getElementById('xh');
     // const quan = document.getElementById('quan');
     // 获取当前URL
     var currentUrl = window.location.href;
@@ -66,13 +67,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     //快捷键
     function handleKeyDown(event) {
-        // 快捷键 alt + 1 调用 排版 方法
+
+        //alt+1 置顶
         if (event.altKey && event.key === '1') {
-            event.preventDefault(); // 阻止默认的保存行为
-            reformatText(); // 调用重新排版文本的方法
-        }
-        //alt+2 置顶
-        if (event.altKey && event.key === '2') {
             event.preventDefault(); // 阻止默认的保存行为
             scrollTop(); // 置顶
         }
@@ -421,7 +418,7 @@ document.addEventListener('DOMContentLoaded', function () {
     //跳转到写作猫检查错别字
     function linkCbz() {
         copy('linkCbz');
-    window.open('https://xiezuocat.com/pro/8689953271362609152', '_blank');
+        window.open('https://xiezuocat.com/pro/8689953271362609152', '_blank');
     }
 
     //清空
@@ -439,6 +436,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     }
+    //序号来回切换
+    function xhText() {
+        let text = editor.value;
+        // 执行格式切换
+        // 回显结果
+        // 第一步：判断文本中是否存在三位补零格式的序号（001、 010、 050、）
+        const hasThreeDigitFormat = /\b\d{3}、/g.test(text);
+
+        if (hasThreeDigitFormat) {
+            // 情况1：存在三位格式 → 还原为 1、 格式
+            text = text.replace(/\b(\d{3})、/g, (match, num) => {
+                // 去掉前置零并转为数字，再拼接 、
+               return`${parseInt(num, 10)}、`;
+            });
+        } else {
+            // 情况2：不存在三位格式 → 替换为 001、 格式
+            text = text.replace(/\b(\d{1,2})、/g, (match, num) => {
+                // 补零到三位，再拼接 、
+                return `${parseInt(num, 10).toString().padStart(3, '0')}、`;
+            });
+        }
+        editor.value = text;
+    }
+
 
     //全屏
     /**
@@ -553,7 +574,9 @@ document.addEventListener('DOMContentLoaded', function () {
     //点击字数，隐藏标题
     // wordCountDisplay.addEventListener('click', displayTitle);
     //点击字数排版
-    beautify.addEventListener('click', reformatText);
+    // beautify.addEventListener('click', reformatText);
+    //点击序号
+    xhButton.addEventListener('click', xhText);
     //点击全屏
     // quan.addEventListener('click', quanPin);
     //清除markdown
