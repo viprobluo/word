@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -151,20 +152,24 @@
 
         /* 核心优化：多列网格布局 + 缩小内边距 */
         .field-item {
-            margin: 4px 0; /* 减少垂直间距 */
-            padding: 6px 8px; /* 减少内边距 */
+            margin: 4px 0;
+            /* 减少垂直间距 */
+            padding: 6px 8px;
+            /* 减少内边距 */
             background-color: #fff;
             border-radius: 4px;
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 13px; /* 缩小字体 */
+            font-size: 13px;
+            /* 缩小字体 */
         }
 
         .field-label {
             font-weight: bold;
             color: #333;
-            min-width: 80px; /* 固定标签宽度，对齐更整齐 */
+            min-width: 80px;
+            /* 固定标签宽度，对齐更整齐 */
             flex-shrink: 0;
         }
 
@@ -180,11 +185,25 @@
         }
 
         .copy-btn {
-            padding: 2px 6px; /* 缩小按钮 */
+            padding: 2px 6px;
+            /* 缩小按钮 */
             font-size: 12px;
             background-color: #f0f0f0;
             color: #666;
             white-space: nowrap;
+            opacity: 0;
+            
+            /* 视觉隐藏 */
+            position: absolute;
+            /* 脱离文档流，不占空间 */
+            pointer-events: none;
+            /* 防止误点击 */
+            z-index: -1;
+            /* 放到页面底层，避免遮挡 */
+
+
+
+
         }
 
         .copy-btn:hover {
@@ -213,14 +232,16 @@
 
         /* 折叠/展开样式：默认折叠 */
         .policy-container {
-            margin-bottom: 10px; /* 减少保单容器间距 */
+            margin-bottom: 10px;
+            /* 减少保单容器间距 */
             border: 1px solid #e0e0e0;
             border-radius: 8px;
             overflow: hidden;
         }
 
         .policy-header {
-            padding: 10px 15px; /* 缩小头部内边距 */
+            padding: 10px 15px;
+            /* 缩小头部内边距 */
             background-color: #f8f8f8;
             display: flex;
             justify-content: space-between;
@@ -229,13 +250,15 @@
         }
 
         .policy-title {
-            font-size: 15px; /* 缩小标题 */
+            font-size: 15px;
+            /* 缩小标题 */
             font-weight: bold;
             color: #333;
         }
 
         .toggle-btn {
-            padding: 2px 6px; /* 缩小折叠按钮 */
+            padding: 2px 6px;
+            /* 缩小折叠按钮 */
             font-size: 12px;
             background-color: #e0e0e0;
             color: #666;
@@ -244,11 +267,15 @@
 
         /* 核心优化：保单内容默认折叠 + 网格布局 */
         .policy-content {
-            padding: 10px 15px; /* 缩小内容内边距 */
+            padding: 10px 15px;
+            /* 缩小内容内边距 */
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* 自动多列布局 */
-            gap: 8px; /* 列间距 */
-            display: none; /* 默认折叠 */
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            /* 自动多列布局 */
+            gap: 8px;
+            /* 列间距 */
+            display: none;
+            /* 默认折叠 */
         }
 
         .policy-content.collapsed {
@@ -393,7 +420,7 @@
     </div>
 
     <!-- 新增：版本信息区域 -->
-    <div class="version-info">版本号：v2.1.0 | 更新时间：2026年3月17日21:00:34
+    <div class="version-info">版本号：v2.1.0 | 更新时间：2026年3月19日11:45:35
     </div>
 
     <div class="toast" id="toast"></div>
@@ -517,7 +544,7 @@
                     policyData.policyNo = formatPolicyNo(policyData.policyNo);
                     // 存入FYC保单号列表
                     fycPolicyNos.push(policyData.policyNo);
-                    
+
                     policyData.effectiveDate = timestampToDate(policyData.effectiveDate);
                     policyData.orderTime = timestampToDate(policyData.orderTime);
 
@@ -653,14 +680,14 @@
             // 新增：保单下载相关操作按钮组（单独占一行）
             const actionFieldItem = document.createElement('div');
             actionFieldItem.className = 'field-item action-field-item';
-            
+
             const actionLabelEl = document.createElement('div');
             actionLabelEl.className = 'field-label';
             actionLabelEl.textContent = '保单操作';
-            
+
             const actionValueEl = document.createElement('div');
             actionValueEl.className = 'field-value';
-            
+
             const actionBtnGroup = document.createElement('div');
             actionBtnGroup.className = 'policy-actions';
 
@@ -714,9 +741,9 @@
             try {
                 const jsonData = JSON.parse(jsonTextarea.value.trim());
                 // 核心修改：支持list下的items嵌套（兼容直接list和list.items两种格式）
-                const rawList = jsonData.code === '00' && jsonData.data && jsonData.data.list ? 
+                const rawList = jsonData.code === '00' && jsonData.data && jsonData.data.list ?
                     (jsonData.data.list.items || jsonData.data.list) : [];
-                
+
                 globalPolicyDownloadData = formatPolicyDownloadData(rawList);
                 renderPolicyTable(globalPolicyDownloadData);
                 showToast(`成功解析 ${globalPolicyDownloadData.length} 条保单下载数据`);
@@ -729,11 +756,11 @@
         // 格式化保单下载数据（核心修复：1. 改用items下的policyCode 2. 兼容大小写 3. 格式化）
         function formatPolicyDownloadData(rawList) {
             if (!Array.isArray(rawList)) return [];
-            
+
             return rawList.map(policy => {
                 // 核心修改：支持policy本身是items嵌套的情况
                 const realPolicy = policy.items || policy;
-                
+
                 // 提取PDF下载链接
                 let pdfUrl = '';
                 if (realPolicy.newOrderBtnNeed && realPolicy.newOrderBtnNeed.ePolicyAddressList && realPolicy.newOrderBtnNeed.ePolicyAddressList.length > 0) {
@@ -742,7 +769,7 @@
 
                 return {
                     // 核心修改：1. 取policyCode（注意大小写） 2. 格式化 3. 兼容policycode小写
-                    policyNo: formatPolicyNo(realPolicy.policyCode || realPolicy.policycode || ''), 
+                    policyNo: formatPolicyNo(realPolicy.policyCode || realPolicy.policycode || ''),
                     appntName: realPolicy.appntName || '未知', // 投保人
                     insuredName: realPolicy.insuredName || '未知', // 被保人
                     productName: realPolicy.productName || '未知产品', // 产品名称
@@ -771,7 +798,7 @@
             policyDataList.forEach(policy => {
                 const validDate = formatDate(policy.validDate);
                 const copyFileName = getPolicyFileName(policy);
-                
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${policy.appntName}</td>
@@ -794,7 +821,7 @@
                     copyToClipboard(copyText || '未知文件名');
                 });
             });
-            
+
             document.querySelectorAll('.download-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const pdfUrl = btn.getAttribute('data-pdf-url');
@@ -884,7 +911,7 @@
         function formatDate(dateStr) {
             if (!dateStr) return '未知';
             const date = new Date(dateStr);
-            return `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')}`;
+            return `${date.getFullYear()}${(date.getMonth() + 1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')}`;
         }
 
         // 复制到剪贴板
@@ -928,7 +955,9 @@
         function downloadFile(url, fileName) {
             const a = document.createElement('a');
             a.href = url;
+            a.target = '_blank'; // 关键：新标签页打开
             a.download = fileName;
+            copyToClipboard(fileName)
             a.click();
             showToast(`开始下载：${fileName}`);
         }
@@ -999,4 +1028,5 @@
         }
     </script>
 </body>
+
 </html>
