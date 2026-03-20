@@ -73,8 +73,8 @@ document.addEventListener('DOMContentLoaded', function () {
             event.preventDefault(); // 阻止默认的保存行为
             scrollTop(); // 置顶
         }
-        //alt+3 字体
-        if (event.altKey && event.key === '3') {
+        //alt+4 字体
+        if (event.altKey && event.key === '4') {
             event.preventDefault(); // 阻止默认的保存行为
             numBig(); // 字体
         }
