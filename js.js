@@ -305,7 +305,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // 将表示区间的-替换为~（如5-6岁→5~6岁，5%-8%→5%~8%）
             text = text.replace(/(\d+%?)-(\d+%?)/g, '$1~$2');
             // 自动去掉每一段结尾的句号
-            text = text.replace(/。\s*$/gm, '');
+            text = text.replace(/。[ \t]*$/gm, '');
 
             // 在中文和英文/数字之间插入空格
             text = text.replace(/([\u4e00-\u9fa5])([A-Za-z0-9])/g, '$1 $2');
