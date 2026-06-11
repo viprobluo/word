@@ -302,11 +302,18 @@ document.addEventListener('DOMContentLoaded', function () {
         if (text) {
             // 把英文的,:改为正文的，：
             text = text.replace(/,/g, '，').replace(/:/g, '：');
+            // 将表示区间的-替换为~（如5-6岁→5~6岁，5%-8%→5%~8%）
+            text = text.replace(/(\d+%?)-(\d+%?)/g, '$1~$2');
+            // 自动去掉每一段结尾的句号
+            text = text.replace(/。\s*$/gm, '');
+
             // 在中文和英文/数字之间插入空格
             text = text.replace(/([\u4e00-\u9fa5])([A-Za-z0-9])/g, '$1 $2');
             text = text.replace(/([A-Za-z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
-            //引号替换「」
+            //引号替换「」（同时处理中文双引号和英文双引号）
             text = text.replace(/“/g, '「').replace(/”/g, '」');
+            text = text.replace(/"([^"]+)"/g, '「$1」');
+
             // 在数字和中文/英文之间插入空格
             text = text.replace(/([\u4e00-\u9fa5])(\d)/g, '$1 $2');
             text = text.replace(/(\d)([A-Za-z\u4e00-\u9fa5])/g, '$1 $2');
@@ -371,7 +378,8 @@ document.addEventListener('DOMContentLoaded', function () {
         text = text.replace(/#+/g, '\n\n');
 
         // 将有序列表 1. 转换为 1、并添加空行
-        text = text.replace(/(\d+)\.\s*(.+)/g, '\n$1、$2\n\n');
+        // text = text.replace(/(\d+)\.\s*(.+)/g, '\n$1、$2\n\n');
+        text = text.replace(/(\d+)\.\s+(.+)/g, '\n$1、$2\n\n');
 
         // 规范无序列表格式并添加空行
         text = text.replace(/^[\s\uFEFF\xA0]*-/gm, '-') // 先规范格式
@@ -448,7 +456,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // 情况1：存在三位格式 → 还原为 1、 格式
             text = text.replace(/\b(\d{3})、/g, (match, num) => {
                 // 去掉前置零并转为数字，再拼接 、
-               return`${parseInt(num, 10)}、`;
+                return `${parseInt(num, 10)}、`;
             });
         } else {
             // 情况2：不存在三位格式 → 替换为 001、 格式
