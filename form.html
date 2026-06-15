@@ -1,7 +1,7 @@
 <script>
-    // ========== 请修改下面的时间为您的当前北京时间 ==========
-    var LAST_MODIFIED_TIME = "2026年6月15日 11:40:50";
-    // =====================================================
+    // 代码版本标识（每次更新自动变化，无需手动修改）
+    // 当前版本：v20260615_114312_8a3f
+    var CODE_VERSION = "v20260615_114312_8a3f";
 </script>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -178,12 +178,13 @@
             padding: 12px;
             border-top: 1px solid #e9eef3;
         }
-        .update-time {
-            font-size: 0.7rem;
+        .version-info {
+            font-size: 0.65rem;
             color: #8aa0b0;
             text-align: center;
             margin-top: 8px;
             letter-spacing: 0.3px;
+            font-family: monospace;
         }
         @media (max-width: 600px) {
             .card {
@@ -229,16 +230,16 @@
     </div>
     <footer>
         基于规则识别类型 · 可扩展架构
-        <div class="update-time" id="updateTimeDisplay"></div>
+        <div class="version-info" id="versionDisplay"></div>
     </footer>
 </div>
 
 <script>
     (function() {
-        // 显示更新时间
-        var timeDisplay = document.getElementById('updateTimeDisplay');
-        if (timeDisplay && typeof LAST_MODIFIED_TIME !== 'undefined') {
-            timeDisplay.innerText = "📅 最后更新：" + LAST_MODIFIED_TIME;
+        // 显示版本号（用于确认代码是否更新）
+        var versionDisplay = document.getElementById('versionDisplay');
+        if (versionDisplay && typeof CODE_VERSION !== 'undefined') {
+            versionDisplay.innerText = "🔖 代码版本：" + CODE_VERSION;
         }
         
         // 从产品名称中提取产品类型
