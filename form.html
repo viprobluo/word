@@ -1,3 +1,8 @@
+<script>
+    // ========== 请修改下面的时间为您的当前北京时间 ==========
+    var LAST_MODIFIED_TIME = "2026年6月15日 11:40:50";
+    // =====================================================
+</script>
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -230,24 +235,11 @@
 
 <script>
     (function() {
-        // 更新底部时间显示（精确到秒）
-        function updateFooterTime() {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth() + 1;
-            const day = now.getDate();
-            const hours = now.getHours().toString().padStart(2, '0');
-            const minutes = now.getMinutes().toString().padStart(2, '0');
-            const seconds = now.getSeconds().toString().padStart(2, '0');
-            const timeStr = `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds}`;
-            const timeDisplay = document.getElementById('updateTimeDisplay');
-            if (timeDisplay) {
-                timeDisplay.innerText = `⏱️ 更新时间：${timeStr}`;
-            }
+        // 显示更新时间
+        var timeDisplay = document.getElementById('updateTimeDisplay');
+        if (timeDisplay && typeof LAST_MODIFIED_TIME !== 'undefined') {
+            timeDisplay.innerText = "📅 最后更新：" + LAST_MODIFIED_TIME;
         }
-        
-        updateFooterTime();
-        setInterval(updateFooterTime, 1000);
         
         // 从产品名称中提取产品类型
         function extractProductType(fullProductName) {
@@ -266,7 +258,7 @@
             if (/年金险/.test(fullProductName)) {
                 return "年金险";
             }
-            let shortName = fullProductName.replace(/[·\s版\d]+$/, '').substring(0, 6);
+            var shortName = fullProductName.replace(/[·\s版\d]+$/, '').substring(0, 6);
             if (shortName.length < 2) shortName = "保险";
             return shortName;
         }
@@ -276,15 +268,15 @@
             if (!expireDate || !expireDate.match(/\d{4}-\d{2}-\d{2}/)) {
                 return "";
             }
-            const parts = expireDate.split('-');
+            var parts = expireDate.split('-');
             if (parts.length !== 3) return "";
-            const month = parseInt(parts[1], 10);
-            const day = parseInt(parts[2], 10);
-            return `${month}月${day}日`;
+            var month = parseInt(parts[1], 10);
+            var day = parseInt(parts[2], 10);
+            return month + "月" + day + "日";
         }
         
         // 续保提醒解析器
-        const RenewalParser = {
+        var RenewalParser = {
             typeName: 'renewal',
             match: function(text) {
                 return /投保的.+（保单号：.+，被保人：.+）将于\d{4}-\d{2}-\d{2}到期.*重新投保/.test(text);
@@ -438,7 +430,7 @@
                     showCopySuccess();
                     return;
                 } catch (err) {
-                    // fallback to execCommand
+                    // fallback
                 }
             }
             
