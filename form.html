@@ -129,6 +129,7 @@
             background: #ffffffd9;
             border-radius: 40px;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            cursor: pointer;
         }
         .copy-btn:active {
             background: #e6f0fa;
@@ -169,6 +170,15 @@
             font-size: 0.7rem;
             color: #8aa0b0;
             margin-top: 16px;
+            padding: 12px;
+            border-top: 1px solid #e9eef3;
+        }
+        .update-time {
+            font-size: 0.7rem;
+            color: #8aa0b0;
+            text-align: center;
+            margin-top: 8px;
+            letter-spacing: 0.3px;
         }
         @media (max-width: 600px) {
             .card {
@@ -199,7 +209,7 @@
         
         <div class="info-note">
             💡 当前支持的类型：<strong>续保提醒</strong>（规则：包含“投保的...保单号...被保人...到期...重新投保”）<br>
-            🚧 扩展说明：后续可添加会议提醒、理赔通知等解析规则，平台将自动识别并应用对应模板。
+            🚧 扩展说明：后续可添加会议提醒、理赔通知等解析规则。
         </div>
     </div>
 
@@ -213,73 +223,157 @@
         </div>
     </div>
     <footer>
-        基于规则识别类型 · 可轻松扩展新解析器 | 无任何真实个人信息
+        基于规则识别类型 · 可扩展架构
+        <div class="update-time" id="updateTimeDisplay"></div>
     </footer>
 </div>
 
 <script>
     (function() {
+        // 更新底部时间显示（精确到秒）
+        function updateFooterTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            const timeStr = `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds}`;
+            const timeDisplay = document.getElementById('updateTimeDisplay');
+            if (timeDisplay) {
+                timeDisplay.innerText = `⏱️ 更新时间：${timeStr}`;
+            }
+        }
+        
+        updateFooterTime();
+        setInterval(updateFooterTime, 1000);
+        
+        // 从产品名称中提取产品类型
+        function extractProductType(fullProductName) {
+            if (/医疗险/.test(fullProductName)) {
+                return "医疗险";
+            }
+            if (/重疾险/.test(fullProductName)) {
+                return "重疾险";
+            }
+            if (/意外险/.test(fullProductName)) {
+                return "意外险";
+            }
+            if (/寿险/.test(fullProductName)) {
+                return "寿险";
+            }
+            if (/年金险/.test(fullProductName)) {
+                return "年金险";
+            }
+            let shortName = fullProductName.replace(/[·\s版\d]+$/, '').substring(0, 6);
+            if (shortName.length < 2) shortName = "保险";
+            return shortName;
+        }
+        
+        // 将日期转为 M月D日 格式
+        function formatMonthDay(expireDate) {
+            if (!expireDate || !expireDate.match(/\d{4}-\d{2}-\d{2}/)) {
+                return "";
+            }
+            const parts = expireDate.split('-');
+            if (parts.length !== 3) return "";
+            const month = parseInt(parts[1], 10);
+            const day = parseInt(parts[2], 10);
+            return `${month}月${day}日`;
+        }
+        
         // 续保提醒解析器
         const RenewalParser = {
-            typeName: '续保提醒',
-            match: (text) => {
+            typeName: 'renewal',
+            match: function(text) {
                 return /投保的.+（保单号：.+，被保人：.+）将于\d{4}-\d{2}-\d{2}到期.*重新投保/.test(text);
             },
-            parse: (fullText) => {
-                const pattern = /您的客户([\u4e00-\u9fa5]+)投保的([\s\S]+?)（保单号：([^，]+?)，被保人：([\u4e00-\u9fa5]+)）将于(\d{4}-\d{2}-\d{2})到期，请及时提醒客户通过以下链接重新投保：(https?:\/\/[^\s]+)/g;
-                const results = [];
-                let match;
+            parse: function(fullText) {
+                var pattern = /您的客户([\u4e00-\u9fa5]+)投保的([\s\S]+?)（保单号：([^，]+?)，被保人：([\u4e00-\u9fa5]+)）将于(\d{4}-\d{2}-\d{2})到期，请及时提醒客户通过以下链接重新投保：(https?:\/\/[^\s]+)/g;
+                var results = [];
+                var match;
                 while ((match = pattern.exec(fullText)) !== null) {
-                    const policyHolder = match[1].trim();
-                    let productName = match[2].trim().replace(/\s+/g, ' ');
-                    const policyNo = match[3].trim();
-                    const insured = match[4].trim();
-                    const expireDate = match[5];
-                    let renewalLink = match[6].trim().replace(/[。，,、\s]+$/, '');
-                    results.push({ policyHolder, productName, policyNo, insured, expireDate, renewalLink });
+                    var policyHolder = match[1].trim();
+                    var productNameRaw = match[2].trim().replace(/\s+/g, ' ');
+                    var productName = productNameRaw;
+                    var policyNo = match[3].trim();
+                    var insured = match[4].trim();
+                    var expireDate = match[5];
+                    var renewalLink = match[6].trim().replace(/[。，,、\s]+$/, '');
+                    
+                    var productType = extractProductType(productName);
+                    var monthDay = formatMonthDay(expireDate);
+                    
+                    results.push({
+                        policyHolder: policyHolder,
+                        productType: productType,
+                        policyNo: policyNo,
+                        insured: insured,
+                        expireDate: expireDate,
+                        renewalLink: renewalLink,
+                        monthDay: monthDay
+                    });
                 }
                 if (results.length === 0) return [];
-                return results.map(r => {
-                    return `【续保提醒】${r.insured} | 到期 ${r.expireDate}\n产品名称：${r.productName}\n投保人：${r.policyHolder}；被保人：${r.insured}；保单号：${r.policyNo}\n续保链接：${r.renewalLink}\n备注：请及时提醒客户重新投保，如已投保请忽略`;
-                });
+                
+                var outputBlocks = [];
+                for (var i = 0; i < results.length; i++) {
+                    var r = results[i];
+                    var title = '⏰续保-' + r.insured + '-' + r.productType + '（' + r.monthDay + '）';
+                    var block = title + '\n\n';
+                    block += '【核心时效】到期日：' + r.expireDate + '（请务必在此之前完成！）\n';
+                    block += '【跟进建议】建议在 ' + r.expireDate + ' 前7-10天联系客户，预留沟通和转账时间。\n\n';
+                    block += '投保人：' + r.policyHolder + '\n';
+                    block += '被保人：' + r.insured + '\n';
+                    block += '保单号：' + r.policyNo + '\n\n';
+                    block += '续保链接：' + r.renewalLink + '\n';
+                    block += '备注：如客户已自行投保请忽略。';
+                    outputBlocks.push(block);
+                }
+                return outputBlocks;
             }
         };
         
-        const parsers = [RenewalParser];
+        var parsers = [RenewalParser];
         
         function processUniversal(rawText) {
             if (!rawText || rawText.trim() === '') {
                 return { success: false, output: '' };
             }
-            const allBlocks = [];
-            for (const parser of parsers) {
+            var allBlocks = [];
+            for (var i = 0; i < parsers.length; i++) {
+                var parser = parsers[i];
                 if (parser.match && parser.match(rawText)) {
-                    const parsedItems = parser.parse(rawText);
+                    var parsedItems = parser.parse(rawText);
                     if (parsedItems && parsedItems.length) {
-                        allBlocks.push(...parsedItems);
+                        for (var j = 0; j < parsedItems.length; j++) {
+                            allBlocks.push(parsedItems[j]);
+                        }
                     }
                 }
             }
             if (allBlocks.length === 0) {
                 return { success: false, output: '' };
             }
-            const unique = [...new Map(allBlocks.map(block => [block, block])).values()];
-            return { success: true, output: unique.join('\n\n') };
-        }
-        
-        const textarea = document.getElementById('rawInput');
-        const processBtn = document.getElementById('processBtn');
-        const clearBtn = document.getElementById('clearBtn');
-        const outputDiv = document.getElementById('outputArea');
-        const copyBtn = document.getElementById('copyResultBtn');
-        
-        function updateOutput(content) {
-            if (!content) {
-                outputDiv.innerHTML = `<div class="empty-hint">⚠️ 未能识别到任何支持的消息类型。<br>请确保文本格式符合续保提醒规则。<br>后续将扩展会议提醒等更多类型。</div>`;
-                return;
+            // 简单去重
+            var uniqueMap = {};
+            var uniqueBlocks = [];
+            for (var k = 0; k < allBlocks.length; k++) {
+                if (!uniqueMap[allBlocks[k]]) {
+                    uniqueMap[allBlocks[k]] = true;
+                    uniqueBlocks.push(allBlocks[k]);
+                }
             }
-            outputDiv.innerHTML = `<div style="white-space: pre-wrap; font-family: inherit;">${escapeHtml(content)}</div>`;
+            return { success: true, output: uniqueBlocks.join('\n\n') };
         }
+        
+        // DOM 元素
+        var textarea = document.getElementById('rawInput');
+        var processBtn = document.getElementById('processBtn');
+        var clearBtn = document.getElementById('clearBtn');
+        var outputDiv = document.getElementById('outputArea');
+        var copyBtn = document.getElementById('copyResultBtn');
         
         function escapeHtml(str) {
             if (!str) return '';
@@ -291,13 +385,21 @@
             });
         }
         
-        function handleProcess() {
-            const raw = textarea.value;
-            if (!raw.trim()) {
-                outputDiv.innerHTML = `<div class="empty-hint">📭 输入框为空，请粘贴续保提醒文本</div>`;
+        function updateOutput(content) {
+            if (!content) {
+                outputDiv.innerHTML = '<div class="empty-hint">⚠️ 未能识别到任何支持的消息类型。<br>请确保文本格式符合续保提醒规则。</div>';
                 return;
             }
-            const result = processUniversal(raw);
+            outputDiv.innerHTML = '<div style="white-space: pre-wrap; font-family: inherit;">' + escapeHtml(content) + '</div>';
+        }
+        
+        function handleProcess() {
+            var raw = textarea.value;
+            if (!raw.trim()) {
+                outputDiv.innerHTML = '<div class="empty-hint">📭 输入框为空，请粘贴续保提醒文本</div>';
+                return;
+            }
+            var result = processUniversal(raw);
             if (!result.success || !result.output) {
                 updateOutput('');
                 return;
@@ -307,43 +409,72 @@
         
         function clearAll() {
             textarea.value = '';
-            outputDiv.innerHTML = `<div class="empty-hint">✨ 已清空，粘贴续保提醒文本后点击处理</div>`;
+            outputDiv.innerHTML = '<div class="empty-hint">✨ 已清空，粘贴续保提醒文本后点击处理</div>';
         }
         
-        function copyResult() {
-            let textToCopy = '';
-            const outputContentDiv = outputDiv.querySelector('div');
+        async function copyResult() {
+            var textToCopy = '';
+            var outputContentDiv = outputDiv.querySelector('div');
             if (outputContentDiv && !outputDiv.querySelector('.empty-hint')) {
                 textToCopy = outputContentDiv.innerText || outputContentDiv.textContent;
             } else {
-                const hintDiv = outputDiv.querySelector('.empty-hint');
+                var hintDiv = outputDiv.querySelector('.empty-hint');
                 if (hintDiv) {
-                    textToCopy = '暂无有效结构化内容，请先处理文本。';
+                    textToCopy = hintDiv.innerText;
                 } else {
                     textToCopy = outputDiv.innerText || '';
                 }
             }
-            if (!textToCopy || textToCopy.includes('未能识别到任何支持的消息类型')) {
-                if (confirm('当前没有有效的结构化结果，是否仍要复制提示信息？')) {
-                    textToCopy = outputDiv.innerText;
-                } else {
+            
+            if (!textToCopy || textToCopy.indexOf('未能识别到任何支持的消息类型') !== -1 || textToCopy.indexOf('等待处理') !== -1) {
+                if (!confirm('当前没有有效的结构化结果，是否仍要复制提示信息？')) {
                     return;
                 }
             }
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                const original = copyBtn.innerText;
-                copyBtn.innerText = '✅ 已复制！';
-                setTimeout(() => {
-                    copyBtn.innerText = original;
-                }, 1500);
-            }).catch(() => alert('复制失败，可手动选择复制'));
+            
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                try {
+                    await navigator.clipboard.writeText(textToCopy);
+                    showCopySuccess();
+                    return;
+                } catch (err) {
+                    // fallback to execCommand
+                }
+            }
+            
+            var tempTextarea = document.createElement('textarea');
+            tempTextarea.value = textToCopy;
+            document.body.appendChild(tempTextarea);
+            tempTextarea.select();
+            tempTextarea.setSelectionRange(0, 99999);
+            var success = false;
+            try {
+                success = document.execCommand('copy');
+            } catch (err) {
+                // ignore
+            }
+            document.body.removeChild(tempTextarea);
+            
+            if (success) {
+                showCopySuccess();
+            } else {
+                alert('复制失败，请手动选择文本后复制');
+            }
+        }
+        
+        function showCopySuccess() {
+            var originalText = copyBtn.innerText;
+            copyBtn.innerText = '✅ 已复制！';
+            setTimeout(function() {
+                copyBtn.innerText = originalText;
+            }, 1500);
         }
         
         processBtn.addEventListener('click', handleProcess);
         clearBtn.addEventListener('click', clearAll);
         copyBtn.addEventListener('click', copyResult);
         
-        textarea.addEventListener('keydown', (e) => {
+        textarea.addEventListener('keydown', function(e) {
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 e.preventDefault();
                 handleProcess();
