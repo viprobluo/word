@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>即刻数据提取排序工具 - 纯拖拽版</title>
+<style>
+* { box-sizing: border-box; }
+body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
+.container { max-width: 1000px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+h1 { text-align: center; color: #333; }
+.drop-zone {
+    border: 3px dashed #007bff;
+    border-radius: 8px;
+    padding: 40px 20px;
+    text-align: center;
+    background: #f8f9ff;
+    transition: background 0.3s, border-color 0.3s;
+    cursor: pointer;
+    margin-bottom: 15px;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.drop-zone.dragover {
+    background: #e6f0ff;
+    border-color: #0056b3;
+}
+.drop-zone p {
+    margin: 0;
+    color: #666;
+    font-size: 18px;
+}
+.drop-zone .hint {
+    font-size: 14px;
+    color: #999;
+    margin-top: 8px;
+}
+.drop-zone .file-info {
+    font-weight: bold;
+    color: #007bff;
+    margin-top: 10px;
+}
+.filter {
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.filter input {
+    width: 100px;
+    padding: 5px;
+}
+button {
+    padding: 8px 18px;
+    background: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+button:hover { background: #0056b3; }
+.copy { background: #28a745; }
+.copy:hover { background: #1e7e34; }
+.clear { background: #dc3545; }
+.clear:hover { background: #c82333; }
+.status {
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+    display: none;
+}
+.success { background: #d4edda; color: #155724; display: block; }
+.error { background: #f8d7da; color: #721c24; display: block; }
+.output-area {
+    width: 100%;
+    height: 600px;
+    padding: 10px;
+    font-family: monospace;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    resize: vertical;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>即刻数据提取排序工具（纯拖拽）</h1>
+
+<div class="drop-zone" id="dropZone">
+    <p>📂 拖拽 <code>.txt</code> 文件到此处</p>
+    <p class="hint">即刻API返回的JSON数据（自动按 <code>===</code> 分割）</p>
+    <input type="file" id="fileInput" accept=".txt" style="display:none;">
+    <div id="fileInfo" class="file-info"></div>
+</div>
+
+<div class="filter">
+    <label>点赞数最小值：</label>
+    <input type="number" id="minLikeCount" value="100" min="0">
+    <span style="font-size:14px;color:#888;">（仅保留≥该值的帖子）</span>
+</div>
+<div>
+    <button id="processBtn">提取并排序</button>
+    <button class="copy" id="copyBtn">复制结果</button>
+    <button class="clear" id="clearBtn">清空</button>
+</div>
+<div id="status" class="status"></div>
+<textarea id="outputResult" class="output-area" readonly placeholder="拖拽文件后自动处理，结果将显示在这里..."></textarea>
+</div>
+
+<script>
+const outputEl = document.getElementById('outputResult');
+const processBtn = document.getElementById('processBtn');
+const copyBtn = document.getElementById('copyBtn');
+const clearBtn = document.getElementById('clearBtn');
+const statusEl = document.getElementById('status');
+const minLikeInput = document.getElementById('minLikeCount');
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const fileInfo = document.getElementById('fileInfo');
+
+let rawData = ''; // 存储文件内容
+
+// ============ 拖拽事件 ============
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+});
+
+dropZone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+});
+
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        const file = files[0];
+        if (file.name.endsWith('.txt')) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                rawData = ev.target.result;
+                fileInfo.textContent = `✅ 已加载: ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+                autoProcess();
+            };
+            reader.onerror = () => {
+                showStatus('❌ 读取文件失败', true);
+            };
+            reader.readAsText(file, 'UTF-8');
+        } else {
+            showStatus('⚠️ 请拖拽 .txt 文件', true);
+        }
+    }
+});
+
+// 点击选择文件
+dropZone.addEventListener('click', () => {
+    fileInput.click();
+});
+fileInput.addEventListener('change', (e) => {
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            rawData = ev.target.result;
+            fileInfo.textContent = `✅ 已加载: ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+            autoProcess();
+        };
+        reader.onerror = () => {
+            showStatus('❌ 读取文件失败', true);
+        };
+        reader.readAsText(file, 'UTF-8');
+    }
+});
+
+// ============ 核心处理函数 ============
+function showStatus(msg, isError = false) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status ' + (isError ? 'error' : 'success');
+    setTimeout(() => { statusEl.className = 'status'; }, 5000);
+}
+
+// 按 === 或 --- 或连续空行分割
+function splitBySeparator(text) {
+    let parts = text.split(/\s*===\s*|\s*---\s*/).filter(s => s.trim().length > 0);
+    if (parts.length > 1) return parts;
+    const braceParts = [];
+    let count = 0, start = 0;
+    for (let i = 0; i < text.length; i++) {
+        if (text[i] === '{') count++;
+        else if (text[i] === '}') {
+            count--;
+            if (count === 0) {
+                braceParts.push(text.substring(start, i+1).trim());
+                start = i+1;
+            }
+        }
+    }
+    return braceParts.length ? braceParts : [text];
+}
+
+function processData(raw) {
+    raw = raw.trim();
+    if (!raw) throw new Error('请先拖拽 .txt 文件');
+
+    const minLike = parseInt(minLikeInput.value) || 0;
+    if (minLike < 0) throw new Error('最小值不能为负数');
+
+    const parts = splitBySeparator(raw);
+    let allPosts = [];
+    let parsedCount = 0;
+
+    parts.forEach(part => {
+        try {
+            const json = JSON.parse(part);
+            parsedCount++;
+            if (json.data && Array.isArray(json.data)) {
+                json.data.forEach(item => {
+                    if (item.id && item.likeCount !== undefined) {
+                        const like = Number(item.likeCount);
+                        if (!isNaN(like)) {
+                            const content = item.content !== undefined ? String(item.content) : '';
+                            allPosts.push({
+                                id: String(item.id).trim(),
+                                likeCount: like,
+                                content: content
+                            });
+                        }
+                    }
+                });
+            }
+        } catch (e) {
+            // 忽略解析失败的片段
+        }
+    });
+
+    if (allPosts.length === 0) {
+        throw new Error(`没有提取到任何有效帖子（成功解析 ${parsedCount} 个片段）`);
+    }
+
+    const filtered = allPosts.filter(p => p.likeCount >= minLike);
+    if (filtered.length === 0) {
+        throw new Error(`没有点赞≥${minLike}的帖子（总有效 ${allPosts.length} 条）`);
+    }
+
+    filtered.sort((a, b) => b.likeCount - a.likeCount);
+
+    // 格式化输出：标题（前20个字符，去除换行），链接，空行，正文
+    const result = filtered.map(p => {
+        const cleanContent = p.content.replace(/\n/g, '');
+        const title = cleanContent.slice(0, 20) || '无标题';
+        const link = `https://m.okjike.com/originalPosts/${p.id}`;
+        return `❧ （${p.likeCount}）${title}\n${link}\n\n${p.content}`;
+    }).join('\n\n\n'); // 三条换行 = 两个空行
+
+    showStatus(`成功！共提取 ${allPosts.length} 条，过滤后保留 ${filtered.length} 条`);
+    return result;
+}
+
+function autoProcess() {
+    if (!rawData) {
+        showStatus('请先拖拽 .txt 文件', true);
+        return;
+    }
+    try {
+        const result = processData(rawData);
+        outputEl.value = result;
+    } catch (err) {
+        showStatus('错误：' + err.message, true);
+        outputEl.value = '';
+    }
+}
+
+// ============ 事件绑定 ============
+processBtn.addEventListener('click', autoProcess);
+
+copyBtn.addEventListener('click', async () => {
+    if (!outputEl.value) { showStatus('没有内容可复制', true); return; }
+    try {
+        await navigator.clipboard.writeText(outputEl.value);
+        showStatus('已复制到剪贴板');
+    } catch (_) {
+        outputEl.select();
+        document.execCommand('copy');
+        showStatus('已复制到剪贴板');
+    }
+});
+
+clearBtn.addEventListener('click', () => {
+    rawData = '';
+    outputEl.value = '';
+    minLikeInput.value = '100';
+    fileInfo.textContent = '';
+    statusEl.className = 'status';
+});
+</script>
+</body>
+</html>
