@@ -101,14 +101,19 @@ document.addEventListener('DOMContentLoaded', function () {
         // toFixed(1)返回字符串，用Number转换为数值类型
         return Number(result.toFixed(1));
     }
-    //加花边字
+    //加花边字（使用私有区字符占位，避免被转换）
     function addFancyBorders() {
-        // 这里是一些示例的花边字符，你可以根据需要添加更多
-        // const fancyChars = ['໌້', 'ᮨ', '⋆', '☼', '⚝', '⚚', '⚙', '⚛', '⚜', '☽', '☾', '໌້', 'ᮨ', '⋆', '⁰', 'ʚ', 'ོ', 'ɞ'];
-
+        let text = editor.value;
+        // 提取并保护所有 http/https 链接
+        const urlRegex = /https?:\/\/[^\s]+/g;
+        const urlPlaceholders = [];
+        text = text.replace(urlRegex, function(match) {
+            urlPlaceholders.push(match);
+            // 使用私有区字符作为占位符，不会被任何字母/数字映射规则影响
+            return String.fromCharCode(0xE000 + urlPlaceholders.length - 1);
+        });
 
         const fancyChars = ['໌້', ' ຼ'];
-        let text = editor.value;
         // 将文本分割成单个字符数组
         const characters = text.split('');
         const decoratedText = characters.map(char => char); // 创建一个可修改的副本
@@ -151,34 +156,33 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // 将字符数组重新组合成字符串
-        editor.value = decoratedText.join('');
+        text = decoratedText.join('');
+
+        // 还原被保护的 URL
+        text = text.replace(/[\uE000-\uE7FF]/g, function(ch) {
+            const idx = ch.charCodeAt(0) - 0xE000;
+            return urlPlaceholders[idx] || ch;
+        });
+
+        editor.value = text;
     }
 
-    //替换保险的险字
-    // 定义一个函数来切换替换
-    // function toggleReplace() {
-    //     let text = editor.value;
-    //     const clickCount = localStorage.getItem('clickCount');
-    //     if (clickCount) {
-    //         text = text.replace(/β佥/g, '险');
-    //         text = text.replace(/β日/g, '阳');
-    //         text = text.replace(/者β/g, '都');
-    //         localStorage.removeItem('clickCount');
-
-    //     } else {
-    //         text = text.replace(/险/g, 'β佥');
-    //         text = text.replace(/阳/g, 'β日');
-    //         text = text.replace(/都/g, '者β');
-    //         localStorage.setItem('clickCount', 1);
-    //     }
-
-    //     editor.value = text;
-    // }
-    //数字加粗-来回切换
+    //数字加粗-来回切换（使用私有区字符占位，避免被转换）
     function numBig() {
         let text = editor.value;
+
+        // ----- 提取并保护所有 http/https 链接 -----
+        const urlRegex = /https?:\/\/[^\s]+/g;
+        const urlPlaceholders = [];
+        text = text.replace(urlRegex, function(match) {
+            urlPlaceholders.push(match);
+            // 使用私有区字符作为占位符，不会被任何字母/数字映射规则影响
+            return String.fromCharCode(0xE000 + urlPlaceholders.length - 1);
+        });
+
         const numBig = localStorage.getItem('numBig');
         if (numBig) {
+            // 还原为普通数字和字母
             text = text.replace(/𝟬/g, '0')
                 .replace(/𝟭/g, '1')
                 .replace(/𝟮/g, '2')
@@ -223,6 +227,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             localStorage.removeItem('numBig');
         } else {
+            // 转换为粗体数学符号（数字和字母）
             text = text.split('').map(char => {
                 switch (char) {
                     case '0': return '𝟬';
@@ -293,60 +298,84 @@ document.addEventListener('DOMContentLoaded', function () {
             localStorage.setItem('numBig', 1);
         }
 
+        // 还原被保护的 URL（私有区字符不会被转换，直接还原）
+        text = text.replace(/[\uE000-\uE7FF]/g, function(ch) {
+            const idx = ch.charCodeAt(0) - 0xE000;
+            return urlPlaceholders[idx] || ch;
+        });
+
         editor.value = text;
     }
 
-    // 重新排版文本
+    // 重新排版文本（保护 URL，并移除所有中英文/数字间插入空格的规则，解决字间距过大问题）
     function reformatText() {
-        let text = editor.value;
-        if (text) {
-            // 把英文的,:改为正文的，：
-            text = text.replace(/,/g, '，').replace(/:/g, '：');
-            // 将表示区间的-替换为~（如5-6岁→5~6岁，5%-8%→5%~8%）
-            text = text.replace(/(\d+%?)-(\d+%?)/g, '$1~$2');
-            // 自动去掉每一段结尾的句号
-            text = text.replace(/。[ \t]*$/gm, '');
+        try {
+            let text = editor.value;
+            if (text) {
+                // ----- 1. 提取并保护所有 http/https 链接 -----
+                const urlRegex = /https?:\/\/[^\s]+/g;
+                const urlPlaceholders = [];
+                text = text.replace(urlRegex, function(match) {
+                    urlPlaceholders.push(match);
+                    return String.fromCharCode(0xE000 + urlPlaceholders.length - 1);
+                });
 
-            // 在中文和英文/数字之间插入空格
-            text = text.replace(/([\u4e00-\u9fa5])([A-Za-z0-9])/g, '$1 $2');
-            text = text.replace(/([A-Za-z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
-            //引号替换「」（同时处理中文双引号和英文双引号）
-            text = text.replace(/“/g, '「').replace(/”/g, '」');
-            text = text.replace(/"([^"]+)"/g, '「$1」');
+                // ----- 2. 执行排版替换（注：以下空格插入规则已全部注释，不再插入额外空格）-----
+                text = text.replace(/,/g, '，').replace(/:/g, '：');
+                text = text.replace(/(\d+%?)-(\d+%?)/g, '$1~$2');
+                text = text.replace(/。[ \t]*$/gm, '');
+                // 以下四行原本会在中文与英文/数字之间插入空格，现全部移除
+                // text = text.replace(/([\u4e00-\u9fa5])([A-Za-z0-9])/g, '$1 $2');
+                // text = text.replace(/([A-Za-z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
+                // text = text.replace(/([\u4e00-\u9fa5])(\d)/g, '$1 $2');
+                // text = text.replace(/(\d)([A-Za-z\u4e00-\u9fa5])/g, '$1 $2');
+                text = text.replace(/“/g, '「').replace(/”/g, '」');
+                text = text.replace(/"([^"]+)"/g, '「$1」');
+                // 百分号后加空格也移除，避免多余空格
+                // text = text.replace(/%([\u4e00-\u9fa5])/g, '% $1');
+                // text = text.replace(/%\s+(?=[，,])/g, '%');
+                text = text.replace(new RegExp('\\[语音开始\\]', 'g'), '');
+                text = text.replace(new RegExp('\\[语音结束\\]', 'g'), '');
+                text = text.replace(/^\s+/, '');
+                text = text.replace(/(\n\s*){2,}/g, '\n\n');
+                text = removeTrailingEmptyLines(text);
 
-            // 在数字和中文/英文之间插入空格
-            text = text.replace(/([\u4e00-\u9fa5])(\d)/g, '$1 $2');
-            text = text.replace(/(\d)([A-Za-z\u4e00-\u9fa5])/g, '$1 $2');
-            //序号替换为顿号,有问题，数字3.2万这种会替换成3、2万
-            //text = text.replace(/(\d+)\./g, '$1、').replace(/(\d+)、\s+/g, '$1、')
-            //百分号后面空格问题
-            text = text.replace(/%([\u4e00-\u9fa5])/g, '% $1');
-            text = text.replace(/%\s+(?=[，,])/g, '%');
-            //去掉语音开始和结束字段
-            text = text.replace(new RegExp('\\[语音开始\\]', 'g'), '');
-            text = text.replace(new RegExp('\\[语音结束\\]', 'g'), '');
-            //去掉文字开头的空行
-            text = text.replace(/^\s+/, '');
-            //去掉多余空行
-            text = text.replace(/(\n\s*){2,}/g, '\n\n');
-            //去掉最后一行的空行
-            text = removeTrailingEmptyLines(text)
-            editor.value = text;
-            //获取标题
-            // getTitle();
-            saveText();
-            showAutoCloseAlert("已美化保存")
-        } else {
-            localStorage.removeItem(currentUrl);
+                // ----- 3. 还原所有被保护的 URL -----
+                text = text.replace(/[\uE000-\uE7FF]/g, function(ch) {
+                    const idx = ch.charCodeAt(0) - 0xE000;
+                    return urlPlaceholders[idx] || ch;
+                });
+
+                editor.value = text;
+                saveText();
+                showAutoCloseAlert("已美化保存");
+            } else {
+                localStorage.removeItem(currentUrl);
+            }
+        } catch (e) {
+            console.error('排版出错:', e);
+            showAutoCloseAlert('排版出错，请检查控制台');
         }
-
     }
+
     //复制文本
     async function copy(type) {
-        await navigator.clipboard.writeText(editor.value);
-        if (type !== "linkCbz") {
-            showAutoCloseAlert("复制成功")
-
+        try {
+            await navigator.clipboard.writeText(editor.value);
+            if (type !== "linkCbz") {
+                showAutoCloseAlert("复制成功")
+            }
+        } catch (e) {
+            // 降级方案：如果剪贴板 API 不可用（如 file 协议），使用传统方法
+            const textArea = document.createElement('textarea');
+            textArea.value = editor.value;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            if (type !== "linkCbz") {
+                showAutoCloseAlert("复制成功（降级方式）");
+            }
         }
     }
     //删除最后一行的空行

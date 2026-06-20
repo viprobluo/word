@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="./favicon.png">
+   <link rel="icon" href="data:,">
     <title>写字台</title>
     <style>
         body,
@@ -46,10 +46,9 @@
             border: 1px solid white;
             background-color: #333;
             color: white;
-            text-align: justify;
-            /* 设置文字左右对齐 */
-            text-justify: inter-ideograph;
-            /* 针对汉字的对齐优化 */
+            /* 去掉两端对齐，改为左对齐，避免字间距被拉伸 */
+            text-align: left;
+            /* text-justify: inter-ideograph;  /* 这一行也注释掉 */
             box-sizing: border-box;
             resize: none;
             /* 允许用户调整大小 */
