@@ -6,79 +6,258 @@
 <title>即刻数据提取排序工具</title>
 <style>
 * { box-sizing: border-box; }
-body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
-.container { max-width: 1000px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-h1 { text-align: center; color: #333; }
-.drop-zone {
-    border: 3px dashed #007bff;
-    border-radius: 8px;
-    padding: 40px 20px;
+body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    margin: 20px;
+    background: #f0f2f5;
+    color: #1e2a3a;
+}
+.container {
+    max-width: 1000px;
+    margin: auto;
+    background: #fff;
+    padding: 24px 28px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+}
+h1 {
     text-align: center;
-    background: #f8f9ff;
-    transition: background 0.3s, border-color 0.3s;
+    font-weight: 600;
+    font-size: 26px;
+    color: #0b1a2b;
+    margin-top: 4px;
+    margin-bottom: 20px;
+    letter-spacing: 0.5px;
+}
+.drop-zone {
+    border: 2px dashed #c0c8d8;
+    border-radius: 12px;
+    padding: 32px 20px;
+    text-align: center;
+    background: #f8faff;
+    transition: background 0.2s, border-color 0.2s;
     cursor: pointer;
-    margin-bottom: 15px;
-    min-height: 150px;
+    margin-bottom: 18px;
+    min-height: 120px;
     display: flex;
     flex-direction: column;
     justify-content: center;
 }
-.drop-zone.dragover { background: #e6f0ff; border-color: #0056b3; }
-.drop-zone p { margin: 0; color: #666; font-size: 18px; }
-.drop-zone .hint { font-size: 14px; color: #999; margin-top: 8px; }
-.drop-zone .file-info { font-weight: bold; color: #007bff; margin-top: 10px; font-size: 16px; }
-.filter { margin: 10px 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.filter input { width: 100px; padding: 5px; }
-button { padding: 8px 18px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
-button:hover { background: #0056b3; }
-.copy { background: #28a745; }
-.copy:hover { background: #1e7e34; }
-.clear { background: #dc3545; }
-.clear:hover { background: #c82333; }
-.copy-single { background: #ffc107; color: #333; padding: 2px 10px; font-size: 12px; border-radius: 4px; margin-left: 4px; border: none; cursor: pointer; }
-.copy-single:hover { background: #e0a800; }
-.copy-single.copied { background: #28a745; color: #fff; }
-.entry { border-bottom: 1px dashed #ddd; padding: 8px 0; }
-.entry .actions { margin: 4px 0; }
-.entry .body-text { margin-top: 6px; padding-left: 12px; border-left: 3px solid #007bff; white-space: pre-wrap; word-wrap: break-word; }
+.drop-zone.dragover {
+    background: #e6f0ff;
+    border-color: #4a7cff;
+}
+.drop-zone p {
+    margin: 0;
+    color: #3d4a5c;
+    font-size: 17px;
+}
+.drop-zone .hint {
+    font-size: 14px;
+    color: #8a9aa8;
+    margin-top: 6px;
+}
+.drop-zone .file-info {
+    font-weight: 600;
+    color: #1a73e8;
+    margin-top: 8px;
+    font-size: 16px;
+}
+.filter {
+    margin: 14px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.filter label {
+    font-weight: 500;
+    color: #2c3e50;
+}
+.filter input {
+    width: 100px;
+    padding: 6px 10px;
+    border: 1px solid #d0d7e2;
+    border-radius: 8px;
+    font-size: 14px;
+    background: #fafcff;
+}
+.filter input:focus {
+    outline: none;
+    border-color: #4a7cff;
+    box-shadow: 0 0 0 2px rgba(74,124,255,0.15);
+}
+.btn-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+.btn {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.05s;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: #1a73e8; color: #fff; }
+.btn-primary:hover { background: #1557b0; }
+.btn-success { background: #1e8e3e; color: #fff; }
+.btn-success:hover { background: #166b2f; }
+.btn-danger { background: #d93025; color: #fff; }
+.btn-danger:hover { background: #b3261e; }
+.btn-outline { background: transparent; color: #3d4a5c; border: 1px solid #d0d7e2; }
+.btn-outline:hover { background: #f0f4fb; }
+
 .output-area {
     width: 100%;
     height: 600px;
-    padding: 10px;
-    font-family: monospace;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    padding: 12px 16px;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
     overflow: auto;
-    background: #fff;
+    background: #fafcff;
     resize: vertical;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #1e2a3a;
 }
-.output-area a { color: #007bff; text-decoration: underline; cursor: pointer; }
-.output-area a:hover { color: #0056b3; }
-/* 浮动 Toast */
+
+/* ====== 每条动态卡片 ====== */
+.entry {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    border: 1px solid #edf2f7;
+    transition: box-shadow 0.1s;
+}
+.entry:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.entry .title-row {
+    font-weight: 600;
+    font-size: 16px;
+    color: #0b1a2b;
+    letter-spacing: 0.2px;
+    margin-bottom: 2px;
+}
+.entry .link-row {
+    margin: 2px 0 6px 0;
+}
+.entry .link-row a {
+    color: #1a73e8;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    word-break: break-all;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s;
+}
+.entry .link-row a:hover {
+    border-bottom-color: #1a73e8;
+}
+.entry .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 6px 0 4px 0;
+}
+.entry .actions .btn-sm {
+    padding: 3px 12px;
+    font-size: 12px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: #f0f4fb;
+    color: #2c3e50;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    font-weight: 500;
+}
+.entry .actions .btn-sm:hover {
+    background: #e2eaf5;
+}
+.entry .actions .btn-sm.copy-single {
+    background: #fef3d7;
+    color: #7a5800;
+}
+.entry .actions .btn-sm.copy-single:hover {
+    background: #fde6b0;
+}
+.entry .actions .btn-sm.copy-single.copied {
+    background: #d4edda;
+    color: #155724;
+}
+.entry .actions .btn-sm.toggle-body-btn {
+    background: #e8f0fe;
+    color: #1a5bb5;
+}
+.entry .actions .btn-sm.toggle-body-btn:hover {
+    background: #d2e3fc;
+}
+.entry .actions .btn-sm.hide-btn {
+    background: #fee8e6;
+    color: #b33a34;
+}
+.entry .actions .btn-sm.hide-btn:hover {
+    background: #fcd5d0;
+}
+
+/* ====== 正文样式（已优化） ====== */
+.entry .body-text {
+    margin-top: 8px;
+    padding: 10px 14px;
+    background: #f7f9fc;
+    border-radius: 8px;
+    border-left: 3px solid #1a73e8;
+    font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #1e2a3a;
+    word-wrap: break-word;
+    word-break: break-word;
+    white-space: pre-wrap;
+    max-width: 300px; /* 约21个汉字 */
+}
+@media (max-width: 600px) {
+    .entry .body-text {
+        max-width: 100%;
+        font-size: 14px;
+        padding: 8px 10px;
+    }
+}
+
+/* ====== 浮动 Toast ====== */
 #toast {
     position: fixed;
     bottom: 30px;
     right: 30px;
-    background: #333;
+    background: #2c3e50;
     color: #fff;
     padding: 12px 24px;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 14px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.25s ease;
     pointer-events: none;
     z-index: 999;
     max-width: 80%;
+    font-weight: 500;
 }
 #toast.show { opacity: 1; }
-#toast.success { background: #28a745; }
-#toast.error { background: #dc3545; }
+#toast.success { background: #1e8e3e; }
+#toast.error { background: #d93025; }
 </style>
 </head>
 <body>
 <div class="container">
-<h1>即刻数据提取排序工具</h1>
+<h1>📊 即刻数据提取排序工具</h1>
 
 <div class="drop-zone" id="dropZone">
     <p>📂 拖拽 <code>.txt</code> 文件到此处</p>
@@ -88,15 +267,17 @@ button:hover { background: #0056b3; }
 </div>
 
 <div class="filter">
-    <label>点赞数最小值：</label>
+    <label>👍 点赞数 ≥</label>
     <input type="number" id="minLikeCount" value="100" min="0">
-    <span style="font-size:14px;color:#888;">（修改后自动重新提取）</span>
+    <span style="font-size:14px;color:#8a9aa8;">（修改后自动重新提取）</span>
 </div>
-<div>
-    <button id="processBtn">提取并排序</button>
-    <button class="copy" id="copyBtn">复制结果（标题+链接）</button>
-    <button class="clear" id="clearBtn">清空</button>
+
+<div class="btn-group">
+    <button class="btn btn-primary" id="processBtn">🔄 提取并排序</button>
+    <button class="btn btn-success" id="copyBtn">📋 复制结果（标题+链接）</button>
+    <button class="btn btn-danger" id="clearBtn">🗑 清空</button>
 </div>
+
 <div id="outputResult" class="output-area" placeholder="拖拽文件后自动处理，结果将显示在这里..."></div>
 </div>
 
@@ -115,11 +296,10 @@ const fileInfo = document.getElementById('fileInfo');
 const toast = document.getElementById('toast');
 
 let rawData = '';
-let plainTitleLinkArray = [];      // 每条仅标题+链接
-let marked = [];                   // 标记数组，true 表示已复制标记
-let totalCount = 0;
+let plainTitleLinkArray = [];
+let marked = [];
 
-// ============ Toast 提示 ============
+// ============ Toast ============
 function showToast(msg, type = 'success', duration = 3000) {
     toast.textContent = msg;
     toast.className = type;
@@ -130,7 +310,7 @@ function showToast(msg, type = 'success', duration = 3000) {
     }, duration);
 }
 
-// ============ 拖拽事件 ============
+// ============ 拖拽 ============
 dropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
     dropZone.classList.add('dragover');
@@ -162,7 +342,6 @@ dropZone.addEventListener('drop', (e) => {
         }
     }
 });
-
 dropZone.addEventListener('click', () => {
     fileInput.click();
 });
@@ -183,8 +362,7 @@ fileInput.addEventListener('change', (e) => {
     }
 });
 
-// ============ 全局交互函数 ============
-// 展开/折叠正文
+// ============ 交互函数 ============
 window.toggleBody = function(index) {
     const body = document.getElementById('body-' + index);
     if (!body) return;
@@ -199,7 +377,6 @@ window.toggleBody = function(index) {
     }
 };
 
-// 擦掉（隐藏）整条
 window.hideItem = function(index) {
     const entry = document.querySelector(`.entry[data-index="${index}"]`);
     if (entry) {
@@ -208,7 +385,6 @@ window.hideItem = function(index) {
     }
 };
 
-// 复制单条（仅标题+链接），标记为已复制
 window.copySingle = function(index) {
     if (index < 0 || index >= plainTitleLinkArray.length) {
         showToast('❌ 无效索引', 'error');
@@ -247,7 +423,7 @@ window.copySingle = function(index) {
     }
 };
 
-// ============ 核心处理函数 ============
+// ============ 核心处理 ============
 function splitJsonText(text) {
     try {
         JSON.parse(text);
@@ -324,7 +500,6 @@ function processData(raw) {
 
     filtered.sort((a, b) => b.likeCount - a.likeCount);
 
-    // 构建HTML显示
     let htmlResult = '';
     let titleLinkArray = [];
 
@@ -335,21 +510,22 @@ function processData(raw) {
         const titleLink = `❧ （${p.likeCount}）${title}\n${link}`;
         titleLinkArray.push(titleLink);
 
+        const safeContent = p.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
         htmlResult += `<div class="entry" data-index="${index}">
-    <div><strong>❧ （${p.likeCount}）${title}</strong></div>
-    <div><a href="${link}" target="_blank">${link}</a></div>
+    <div class="title-row">❧ （${p.likeCount}）${title}</div>
+    <div class="link-row"><a href="${link}" target="_blank">${link}</a></div>
     <div class="actions">
-        <button class="copy-single" onclick="copySingle(${index})">📋复制本条</button>
-        <button class="toggle-body-btn" onclick="toggleBody(${index})">展开</button>
-        <button onclick="hideItem(${index})" style="color:#d9534f; background:none; border:1px solid #d9534f; border-radius:4px; padding:2px 8px; cursor:pointer; font-size:12px;">✕ 擦掉</button>
+        <button class="btn-sm copy-single" onclick="copySingle(${index})">📋复制本条</button>
+        <button class="btn-sm toggle-body-btn" onclick="toggleBody(${index})">展开</button>
+        <button class="btn-sm hide-btn" onclick="hideItem(${index})">✕ 擦掉</button>
     </div>
-    <div id="body-${index}" class="body-text" style="display:none;">${p.content}</div>
+    <div id="body-${index}" class="body-text" style="display:none;">${safeContent}</div>
 </div>\n\n`;
     });
 
     plainTitleLinkArray = titleLinkArray;
     marked = new Array(plainTitleLinkArray.length).fill(false);
-    totalCount = plainTitleLinkArray.length;
 
     showToast(`✅ 共提取 ${allPosts.length} 条，过滤后保留 ${filtered.length} 条`, 'success', 4000);
     
@@ -378,24 +554,17 @@ function autoProcess() {
         fileInfo.textContent = '❌ 解析失败，请检查文件内容';
         plainTitleLinkArray = [];
         marked = [];
-        totalCount = 0;
     }
 }
 
 // ============ 事件绑定 ============
-// 点击“提取并排序”按钮
 processBtn.addEventListener('click', autoProcess);
 
-// 当点赞数阈值输入框变化时，自动重新处理（如果已有数据）
 minLikeInput.addEventListener('change', () => {
-    if (rawData) {
-        autoProcess();
-    }
+    if (rawData) autoProcess();
 });
 
-// 顶部复制（智能筛选，只复制标题+链接）
 copyBtn.addEventListener('click', async () => {
-    // 获取所有可见条目的索引
     const entries = document.querySelectorAll('.entry');
     const visibleIndexes = [];
     entries.forEach(entry => {
@@ -408,15 +577,8 @@ copyBtn.addEventListener('click', async () => {
         showToast('没有可见的内容可复制', 'error');
         return;
     }
-    // 检查是否有标记且可见的
     const markedVisible = visibleIndexes.filter(idx => marked[idx]);
-    let copyIndexes = [];
-    if (markedVisible.length > 0) {
-        copyIndexes = markedVisible;
-    } else {
-        copyIndexes = visibleIndexes;
-    }
-    // 收集纯文本（仅标题+链接）
+    let copyIndexes = markedVisible.length > 0 ? markedVisible : visibleIndexes;
     const texts = copyIndexes.map(idx => plainTitleLinkArray[idx]);
     const result = texts.join('\n\n');
     if (!result) {
@@ -437,13 +599,11 @@ copyBtn.addEventListener('click', async () => {
     }
 });
 
-// 清空
 clearBtn.addEventListener('click', () => {
     rawData = '';
     outputEl.innerHTML = '';
     plainTitleLinkArray = [];
     marked = [];
-    totalCount = 0;
     minLikeInput.value = '100';
     fileInfo.textContent = '';
     toast.classList.remove('show');
