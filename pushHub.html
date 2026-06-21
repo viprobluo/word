@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>内容分发管理器 | bate</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.10/dayjs.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, 'Segoe UI', 'Roboto', sans-serif; }
+        body { background: #f4f6fa; padding: 24px 20px; }
+        .app-container { max-width: 1400px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; margin-bottom: 28px; gap: 12px; }
+        h1 { font-size: 1.8rem; background: linear-gradient(135deg, #1e2b3c, #0f2b3d); background-clip: text; -webkit-background-clip: text; color: transparent; display: inline-flex; align-items: center; gap: 10px; }
+        .version { font-size: 0.7rem; color: #94a3b8; background: white; padding: 2px 8px; border-radius: 30px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .btn { padding: 8px 16px; border-radius: 40px; border: none; font-weight: 500; cursor: pointer; transition: 0.2s; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.05); font-size: 0.9rem; }
+        .btn-primary { background: #2c7da0; color: white; }
+        .btn-primary:hover { background: #1f5e7e; transform: translateY(-1px);}
+        .btn-warning { background: #f39c12; color: white; }
+        .btn-warning:hover { background: #e67e22; transform: translateY(-1px);}
+        .btn-outline { border: 1px solid #cbd5e1; background: white; }
+        .btn-outline:hover { background: #f1f5f9; }
+        .btn-danger { background: #e53e3e; color: white; }
+        .btn-danger:hover { background: #c53030; }
+        .btn-sm { padding: 4px 12px; font-size: 0.8rem; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+        .tab-bar { display: flex; gap: 8px; border-bottom: 2px solid #e2e8f0; margin-bottom: 24px; flex-wrap: wrap; }
+        .tab-item { padding: 10px 20px; cursor: pointer; border-radius: 30px 30px 0 0; font-weight: 500; color: #475569; transition: 0.2s; }
+        .tab-item.active { background: white; color: #2c7da0; border-bottom: 3px solid #2c7da0; font-weight: 600; }
+        .articles-grid { display: flex; flex-direction: column; gap: 20px; }
+        .article-card { background: white; border-radius: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 20px; transition: 0.1s; cursor: pointer; }
+        .article-card.clickable { transition: 0.1s; }
+        .article-card.clickable:hover { background: #fefce8; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 12px; gap: 12px; pointer-events: auto; }
+        .article-title { font-size: 1.2rem; font-weight: 700; color: #0f172a; background: #f1f5f9; padding: 4px 12px; border-radius: 30px; display: inline-block; }
+        .platform-badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; pointer-events: auto; }
+        .platform-chip { background: #f1f5f9; border-radius: 40px; padding: 4px 12px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: 0.1s; }
+        .platform-chip.clickable-plat:hover { background: #e2e8f0; transform: scale(1.02); }
+        .platform-chip.published { background: #dcfce7; color: #15803d; }
+        .platform-chip.hot-badge { background: #fee2e2; color: #dc2626; font-weight: bold; }
+        .platform-chip.not-needed { background: #f3f4f6; color: #9ca3af; text-decoration: line-through; }
+        .platform-chip.pending { background: #ffedd5; color: #b45309; }
+        .btn-icon { background: none; border: none; font-size: 1rem; cursor: pointer; margin-left: 8px; color: #5b6e8c; pointer-events: auto; }
+        .btn-icon:hover { color: #2c7da0; }
+        .action-group { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; pointer-events: auto; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+        .modal-mask { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-container { background: white; width: 90%; max-width: 1000px; max-height: 85vh; border-radius: 32px; overflow-y: auto; padding: 24px; box-shadow: 0 20px 35px rgba(0,0,0,0.2); }
+        .modal-container .modal-content-stable { min-height: 550px; }
+        .modal-title { font-size: 1rem; color: #6c757d; font-weight: 500; margin-bottom: 16px; }
+        .platform-tabs { display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #e2e8f0; margin: 16px 0; }
+        .platform-tab { padding: 8px 16px; background: #f8fafc; border-radius: 30px; cursor: pointer; font-size: 0.85rem; }
+        .platform-tab.active-tab { background: #2c7da0; color: white; }
+        .platform-tab.platform-published { background: #dcfce7; color: #15803d; }
+        .platform-tab.platform-not-needed { background: #f3f4f6; color: #9ca3af; text-decoration: line-through; }
+        .platform-tab.platform-pending { background: #ffedd5; color: #b45309; }
+        .platform-tab.platform-hot { background: #fee2e2; color: #dc2626; font-weight: bold; }
+        .platform-tab .lock-icon { font-size: 0.7rem; margin-left: 2px; }
+        .form-row { margin-bottom: 20px; }
+        label { font-weight: 600; display: block; margin-bottom: 6px; }
+        input, textarea, select { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 16px; font-size: 0.9rem; font-family: monospace, 'Courier New', system-ui; }
+        textarea { white-space: pre-wrap; line-height: 1.5; font-size: 14px; }
+        .badge-hot { background: #f97316; color: white; border-radius: 20px; padding: 2px 8px; font-size: 0.7rem; }
+        .content-preview { background: #fafcff; padding: 12px; border-radius: 16px; margin: 12px 0; border-left: 4px solid #2c7da0; white-space: pre-wrap; font-size: 0.85rem; line-height: 1.5; max-height: 200px; overflow-y: auto; pointer-events: none; }
+        .text-muted { color: #6c757d; font-size: 0.75rem; }
+        .action-bar-left { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-bottom: 12px; }
+        .action-bar-left .check-item { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .archived-tag { font-size: 0.7rem; background: #e2e3e5; padding: 2px 8px; border-radius: 20px; margin-left: 8px; }
+        .confirm-modal { max-width: 500px; text-align: center; }
+        .confirm-buttons { display: flex; justify-content: center; gap: 12px; margin-top: 20px; }
+        .tags-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .tag, .tag-select { background: #ffe4e6; border: 1px solid #f472b6; color: #be185d; border-radius: 40px; padding: 3px 11px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+        .tag-select.selected { background: #f472b6; color: white; border-color: #f472b6; }
+        .tag-readonly { background: #ffe4e6; border: 1px solid #f472b6; color: #be185d; cursor: default; }
+        .filter-bar { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .loading-more { text-align: center; padding: 20px; color: #6c757d; }
+        .sync-panel { margin-top: 16px; padding: 12px; background: #f8fafc; border-radius: 16px; }
+        .sync-select { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; align-items: center; }
+        .sync-checkbox { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; white-space: nowrap; background: white; padding: 4px 8px; border-radius: 20px; margin-right: 8px; }
+        .readonly-hint { font-size: 0.75rem; color: #6c757d; margin-top: 4px; }
+        .article-headline { display: flex; flex-direction: column; align-items: flex-start; margin-bottom: 16px; }
+        .article-headline .title-text { font-size: 1.4rem; font-weight: 700; color: #0f172a; line-height: 1.3; }
+        @media (max-width: 700px) { .card-header { flex-direction: column; align-items: start; } }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div class="app-container">
+        <div class="header">
+            <div style="display: flex; align-items: baseline; gap: 12px;">
+                <h1><i class="fas fa-chalkboard-user"></i> 内容分发管理器</h1>
+                <span class="version">{{ version }}</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-warning" @click="exportBackup" :disabled="totalCount === 0"><i class="fas fa-download"></i> 备份数据</button>
+                <button class="btn btn-outline" @click="handleImportClick"><i class="fas fa-upload"></i> 导入数据</button>
+                <button class="btn btn-primary" @click="openCreateModal"><i class="fas fa-plus"></i> 新建</button>
+            </div>
+        </div>
+
+        <div class="tab-bar">
+            <div class="tab-item" :class="{active: currentTab === 'pending'}" @click="changeTab('pending')">待发布</div>
+            <div class="tab-item" :class="{active: currentTab === 'inprogress'}" @click="changeTab('inprogress')">发布中</div>
+            <div class="tab-item" :class="{active: currentTab === 'readyToArchive'}" @click="changeTab('readyToArchive')">待归档</div>
+            <div class="tab-item" :class="{active: currentTab === 'hot'}" @click="changeTab('hot')">爆款复盘</div>
+            <div class="tab-item" :class="{active: currentTab === 'archived'}" @click="changeTab('archived')">已归档飞书</div>
+            <div class="tab-item" :class="{active: currentTab === 'hidden'}" @click="changeTab('hidden')">已隐藏</div>
+        </div>
+
+        <!-- 全局筛选栏 -->
+        <div v-show="currentTab !== 'hot'" class="filter-bar">
+            <span style="font-weight: 500;">筛选标签：</span>
+            <span v-for="tag in allTags" :key="tag" class="tag-select" :class="{selected: globalFilterTags.includes(tag)}" @click="toggleGlobalFilterTag(tag)">{{ tag }}</span>
+            <button v-if="globalFilterTags.length" class="btn btn-sm btn-outline" @click="globalFilterTags = []">清除筛选</button>
+        </div>
+
+        <!-- 爆款复盘页面 -->
+        <div v-show="currentTab === 'hot'">
+            <div class="filter-bar">
+                <span style="font-weight: 500;">筛选标签：</span>
+                <span v-for="tag in allTags" :key="tag" class="tag-select" :class="{selected: hotFilterTags.includes(tag)}" @click="toggleHotFilterTag(tag)">{{ tag }}</span>
+                <button v-if="hotFilterTags.length" class="btn btn-sm btn-outline" @click="hotFilterTags = []">清除筛选</button>
+            </div>
+            <div class="articles-grid" v-if="filteredHotItems.length">
+                <div class="article-card clickable" v-for="hot in filteredHotItems" :key="hot.id+hot.platform" @click="editArticleById(hot.id)">
+                    <div class="card-header">
+                        <div class="article-title">{{ getFirstLine(hot.articleContent) }}<span v-if="hot.isArchived" class="archived-tag">已归档</span></div>
+                        <div class="action-group" @click.stop>
+                            <button class="btn btn-outline btn-sm" @click="editArticleById(hot.id)">编辑详情</button>
+                            <button v-if="!hot.isArchived" class="btn btn-primary btn-sm" @click="showArchiveConfirmById(hot.id)">归档</button>
+                        </div>
+                    </div>
+                    <div class="tags-container" v-if="hot.tags && hot.tags.length">
+                        <span v-for="t in hot.tags" :key="t" class="tag">{{ t }}</span>
+                    </div>
+                    <div>
+                        <span class="platform-chip published">✅ {{ hot.platform }} {{ formatTimeShort(hot.publishTime) }}</span>
+                        <span class="badge-hot">🔥 爆款数据: {{ hot.hitData || '未填' }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="empty-state" v-else>暂无爆款标记</div>
+        </div>
+
+        <!-- 其他文章列表页 -->
+        <div v-show="currentTab !== 'hot'">
+            <div class="articles-grid" v-if="filteredCurrentListArticles.length">
+                <div class="article-card clickable" v-for="article in filteredCurrentListArticles" :key="article.id" @click="editArticle(article)">
+                    <div class="card-header">
+                        <div class="article-title">{{ getFirstLine(article.content) }}</div>
+                        <div class="action-group" @click.stop>
+                            <button v-if="currentTab === 'pending'" class="btn btn-danger btn-sm" @click="hideArticle(article)">隐藏</button>
+                            <button v-if="currentTab === 'inprogress'" class="btn-icon" @click="toggleExpand(article.id)"><i :class="expandedArticleId === article.id ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i></button>
+                            <button v-if="currentTab === 'readyToArchive'" class="btn btn-primary btn-sm" @click="showArchiveConfirm(article)">归档</button>
+                            <button v-if="currentTab === 'archived'" class="btn btn-outline btn-sm" @click="editArticle(article)">编辑详情</button>
+                            <button v-if="currentTab === 'archived'" class="btn btn-danger btn-sm" @click="hideArticle(article)">隐藏</button>
+                            <button v-if="currentTab === 'hidden'" class="btn btn-outline btn-sm" @click="restoreArticle(article)">恢复</button>
+                            <button v-if="currentTab === 'hidden'" class="btn btn-danger btn-sm" @click="permanentDeleteArticle(article)">彻底删除</button>
+                            <button v-if="currentTab !== 'inprogress' && currentTab !== 'readyToArchive' && currentTab !== 'archived' && currentTab !== 'hidden'" class="btn-icon" @click="toggleExpand(article.id)"><i :class="expandedArticleId === article.id ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i></button>
+                        </div>
+                    </div>
+                    <div v-if="expandedArticleId === article.id" class="content-preview">{{ article.content }}</div>
+                    <div class="tags-container" v-if="article.tags && article.tags.length">
+                        <span v-for="t in article.tags" :key="t" class="tag">{{ t }}</span>
+                    </div>
+                    <div class="platform-badges">
+                        <template v-for="plat in sortedPlatformsByStatus(article)" :key="plat">
+                            <div class="platform-chip clickable-plat" :class="getPlatformClass(article, plat)" @click.stop="jumpToPlatformInEdit(article, plat)">
+                                <span v-if="article.platforms[plat]?.published">✅ {{ plat }} {{ article.firstPlatform === plat ? '🔒' : '' }} {{ formatTimeShort(article.platforms[plat].publishTime) }}</span>
+                                <span v-else-if="article.platforms[plat]?.notRequired">🚫 {{ plat }} {{ article.firstPlatform === plat ? '🔒' : '' }}</span>
+                                <span v-else>⏳ {{ plat }} {{ article.firstPlatform === plat ? '🔒' : '' }}</span>
+                                <span v-if="article.platforms[plat]?.isHit && article.platforms[plat]?.published"> 🔥 {{ article.platforms[plat].hitData || '爆款' }}</span>
+                            </div>
+                        </template>
+                    </div>
+                    <div v-if="currentTab === 'inprogress'" class="text-muted">已发布：{{ publishedRequiredCount(article) }} / {{ requiredPlatformsCount(article) }}</div>
+                    <div v-if="currentTab === 'readyToArchive'" class="text-muted">所有需要发布的平台均已发布，可归档。</div>
+                </div>
+            </div>
+            <div v-if="loadingMore" class="loading-more">加载更多...</div>
+            <div v-if="!loadingMore && hasMore && filteredCurrentListArticles.length" class="loading-more">
+                <button class="btn btn-sm btn-outline" @click="loadMore">加载更多</button>
+            </div>
+            <div class="empty-state" v-if="!loadingMore && filteredCurrentListArticles.length === 0">暂无数据</div>
+        </div>
+
+        <!-- 新建文章模态框 -->
+        <div class="modal-mask" v-if="createModalVisible" @click.self="closeCreateModal">
+            <div class="modal-container" style="max-width: 700px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3>新建</h3>
+                    <button class="btn-icon" @click="closeCreateModal"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="form-row">
+                    <textarea rows="10" v-model="newArticleContent" placeholder="第一行作为标题，支持换行保留排版"></textarea>
+                </div>
+                <div class="form-row">
+                    <label>标签（多选）</label>
+                    <div class="tags-container">
+                        <span v-for="tag in allTags" :key="tag" class="tag-select" :class="{selected: newTags.includes(tag)}" @click="toggleNewTag(tag)">{{ tag }}</span>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>首发平台</label>
+                    <select v-model="createFirstPlatform">
+                        <option v-for="p in orderedPlatforms" :value="p">{{ p }}</option>
+                    </select>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                    <button class="btn btn-outline" @click="closeCreateModal">取消</button>
+                    <button class="btn btn-primary" @click="createArticle">保存</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 编辑文章模态框（标签水平排列，文案改为“内容标签”） -->
+        <div class="modal-mask" v-if="editModalVisible" @click.self="closeEditModal">
+            <div class="modal-container">
+                <div style="display: flex; justify-content: space-between;">
+                    <div class="modal-title">编辑文章</div>
+                    <button class="btn-icon" @click="closeEditModal"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-content-stable">
+                    <!-- 标题区域 -->
+                    <div class="article-headline">
+                        <div class="title-text">{{ getFirstLine(editForm.content) }}</div>
+                    </div>
+                    <!-- 仅当当前平台是首发平台时显示全文区域 -->
+                    <div class="form-row" v-if="isFirstPlatform(activePlatformTab)">
+                        <label>主发平台全文</label>
+                        <textarea rows="6" v-model="editForm.content" readonly style="background: #f9fafb;"></textarea>
+                        <div style="margin-top: 8px; text-align: right;">
+                            <button class="btn btn-sm btn-outline" @click="copyFullContent">📋 复制全文</button>
+                        </div>
+                    </div>
+                    <!-- 标签区域：水平排列，文字“内容标签：” + 标签列表 -->
+                    <div class="form-row" style="display: flex; align-items: flex-start; flex-wrap: wrap;">
+                        <span style="font-weight: 600; margin-right: 8px; line-height: 1.8;">内容标签：</span>
+                        <div v-if="isFirstPlatform(activePlatformTab)" class="tags-container" style="display: inline-flex; flex-wrap: wrap; gap: 8px; margin: 0;">
+                            <span v-for="tag in allTags" :key="tag" class="tag-select" :class="{selected: editTags.includes(tag)}" @click="toggleEditTag(tag)">{{ tag }}</span>
+                        </div>
+                        <div v-else class="tags-container" style="display: inline-flex; flex-wrap: wrap; gap: 8px; margin: 0;">
+                            <span v-for="tag in editTags" :key="tag" class="tag tag-readonly">{{ tag }}</span>
+                            <span v-if="editTags.length === 0" class="text-muted" style="line-height: 1.8;">无标签</span>
+                        </div>
+                    </div>
+                    <!-- 平台 Tab（带🔒标识首发平台） -->
+                    <div class="platform-tabs">
+                        <div v-for="plat in orderedPlatforms" :key="plat" class="platform-tab" 
+                            :class="{
+                                'active-tab': activePlatformTab === plat,
+                                'platform-published': editForm.platformsData[plat]?.published && !editForm.platformsData[plat]?.isHit,
+                                'platform-hot': editForm.platformsData[plat]?.published && editForm.platformsData[plat]?.isHit,
+                                'platform-not-needed': editForm.platformsData[plat]?.notRequired,
+                                'platform-pending': !editForm.platformsData[plat]?.published && !editForm.platformsData[plat]?.notRequired
+                            }"
+                            @click="activePlatformTab = plat">
+                            {{ plat }} <span v-if="isFirstPlatform(plat)" class="lock-icon">🔒</span>
+                        </div>
+                    </div>
+                    <!-- 当前平台配置 -->
+                    <div class="form-row" v-if="activePlatformTab">
+                        <div class="action-bar-left">
+                            <div class="check-item" v-if="!isFirstPlatform(activePlatformTab)">
+                                <input type="checkbox" v-model="editForm.platformsData[activePlatformTab].notRequired" id="notReq" @change="onNotRequiredChange(activePlatformTab)">
+                                <label for="notReq">不发布</label>
+                            </div>
+                            <div class="check-item" v-if="!editForm.platformsData[activePlatformTab].notRequired">
+                                <input type="checkbox" v-model="editForm.platformsData[activePlatformTab].published" id="pub" @change="onPublishedChange(activePlatformTab)" :disabled="editForm.platformsData[activePlatformTab].notRequired">
+                                <label for="pub">已发布</label>
+                            </div>
+                            <div class="check-item" v-if="!editForm.platformsData[activePlatformTab].notRequired">
+                                <input type="checkbox" v-model="editForm.platformsData[activePlatformTab].isHit" id="hit" :disabled="!editForm.platformsData[activePlatformTab].published || editForm.platformsData[activePlatformTab].notRequired">
+                                <label for="hit">爆款</label>
+                            </div>
+                        </div>
+                        <div v-if="editForm.platformsData[activePlatformTab].published && !editForm.platformsData[activePlatformTab].notRequired" class="form-row">
+                            <label>发布时间（手动）</label>
+                            <input type="text" v-model="editForm.platformsData[activePlatformTab].publishTime" placeholder="例：2026-06-15 14:30" required />
+                            <div class="text-muted" style="color: #e53e3e;" v-if="publishTimeError[activePlatformTab]">发布时间不能为空</div>
+                        </div>
+                        <div v-if="editForm.platformsData[activePlatformTab].isHit && !editForm.platformsData[activePlatformTab].notRequired" class="form-row">
+                            <label>爆款数据</label>
+                            <input v-model="editForm.platformsData[activePlatformTab].hitData" placeholder="点赞10w+" />
+                        </div>
+                        <!-- 版本内容区域：首发平台不显示；非首发平台且非不发布时显示 -->
+                        <template v-if="!isFirstPlatform(activePlatformTab) && !editForm.platformsData[activePlatformTab].notRequired">
+                            <div class="form-row">
+                                <label>{{ activePlatformTab }}-版本</label>
+                                <!-- 如果是引用状态，显示只读展示区 -->
+                                <div v-if="editForm.platformsData[activePlatformTab].refSource && !editForm.syncUnlockFlag[activePlatformTab]">
+                                    <div class="text-muted" style="background:#f3f4f6; padding: 12px; border-radius: 12px; margin-bottom: 8px;">
+                                        📎 内容引用自 <strong>{{ editForm.platformsData[activePlatformTab].refSource }}</strong><br>
+                                        实际内容请查看源平台版本。
+                                    </div>
+                                    <button class="btn btn-sm btn-outline" @click.stop="unlockReference(activePlatformTab)">✏️ 转为独立编辑</button>
+                                </div>
+                                <!-- 非引用状态 -->
+                                <div v-else>
+                                    <textarea rows="3" v-model="editForm.platformsData[activePlatformTab].versionContent" 
+                                        :readonly="editForm.platformsData[activePlatformTab].published && !editForm.syncUnlockFlag[activePlatformTab]"
+                                        :placeholder="editForm.platformsData[activePlatformTab].published ? '已发布，内容不可修改（可复制后新建引用）' : '独立版本内容'"
+                                        style="background: #f9fafb;"></textarea>
+                                    <div v-if="editForm.platformsData[activePlatformTab].published && !editForm.syncUnlockFlag[activePlatformTab]" class="text-muted" style="margin-top: 6px;">
+                                        内容已发布，不可直接修改。
+                                        <button class="btn-icon" @click.stop="copyVersionContent(activePlatformTab)">📋 复制全文</button>
+                                    </div>
+                                </div>
+                                <!-- 引用按钮：仅当未引用、未解锁、且平台未发布时显示 -->
+                                <div class="sync-panel" v-if="!editForm.platformsData[activePlatformTab].refSource && !editForm.syncUnlockFlag[activePlatformTab] && !editForm.platformsData[activePlatformTab].published && getAvailableRefSources(activePlatformTab).length">
+                                    <div class="text-muted" style="margin-bottom: 6px;">引用其他平台已发布的内容：</div>
+                                    <div class="sync-select">
+                                        <div v-for="src in getAvailableRefSources(activePlatformTab)" :key="src" class="sync-checkbox">
+                                            <button class="btn btn-sm btn-outline" @click.stop="applyReference(activePlatformTab, src)">引用 {{ src }}</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <div v-if="editForm.platformsData[activePlatformTab].notRequired" class="text-muted" style="background:#f3f4f6; padding: 8px; border-radius: 12px;">已标记不发布，无需配置。</div>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+                    <button class="btn btn-outline" @click="closeEditModal">取消</button>
+                    <button class="btn btn-primary" @click="saveArticle">保存修改</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 归档确认、导入冲突模态框（同前） -->
+        <div class="modal-mask" v-if="archiveConfirmVisible" @click.self="closeArchiveConfirm">
+            <div class="modal-container confirm-modal">
+                <h3><i class="fas fa-archive"></i> 归档确认</h3>
+                <p style="margin: 16px 0;">请确认已备份至飞书多维表格：</p>
+                <button class="btn-link" @click="openFeishuBackup">📋 打开飞书备份链接</button>
+                <p style="margin: 16px 0 0; font-size: 0.85rem; color: #6c757d;">备份完成后，点击“确认归档”即可归档文章。</p>
+                <div class="confirm-buttons">
+                    <button class="btn btn-outline" @click="closeArchiveConfirm">取消</button>
+                    <button class="btn btn-primary" @click="confirmArchive">确认归档</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-mask" v-if="importConflictVisible" @click.self="closeImportConflict">
+            <div class="modal-container confirm-modal" style="max-width: 600px;">
+                <h3>导入冲突</h3>
+                <p>文章 ID “{{ conflictId }}” 已存在，如何处理？</p>
+                <div class="confirm-buttons">
+                    <button class="btn btn-outline" @click="resolveConflict('keep')">保留现有</button>
+                    <button class="btn btn-primary" @click="resolveConflict('overwrite')">覆盖为导入数据</button>
+                </div>
+                <div class="text-muted" style="margin-top: 12px;">后续冲突将按照本次选择批量处理</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, computed, onMounted } = Vue;
+    const ORDERED_PLATFORMS = ["即刻","视频号","小红书","公众号","知乎","墨问","微信读书","抖音","朋友圈A","朋友圈R","知识星球"];
+    const FEISHU_BACKUP_URL = "https://pvvpi9d32e.feishu.cn/base/NoZjbOgstaRihJsPFZUceDklnjf?table=tblyEqKltnVFPhRG&view=vewLp4qct1";
+    const STATIC_VERSION = "20260616183000";
+    const BACKUP_FOLDER_PATH = "D:\\BaiduSyncdisk\\WWW\\gitpage\\内容分发管理器\\数据备份";
+    const ALL_TAGS = ["保障科普","养老金/储蓄科普","理赔故事","保障成交故事","养老金/储蓄成交故事","非保险","政策截图"];
+    const PAGE_SIZE = 20;
+    
+    function formatTimeShort(t) { return t && t.trim() !== "" ? t : "未设"; }
+    function generateId() { return Date.now() + '-' + Math.random().toString(36).substr(2, 8); }
+    function getFirstLine(str) { if(!str) return "无标题"; return str.split('\n')[0].slice(0, 60); }
+    
+    function createEmptyPlatforms() {
+        let obj = {};
+        ORDERED_PLATFORMS.forEach(p => { obj[p] = { published: false, publishTime: "", notRequired: false, isHit: false, hitData: "", versionContent: "", refSource: null }; });
+        return obj;
+    }
+    
+    // IndexedDB 封装（同前）
+    const DB_NAME = "PushHubDB";
+    const STORE_NAME = "articles";
+    let db = null;
+    function openDB() { return new Promise((resolve, reject) => { const request = indexedDB.open(DB_NAME, 1); request.onerror = () => reject(request.error); request.onsuccess = () => { db = request.result; resolve(db); }; request.onupgradeneeded = (event) => { const db = event.target.result; if (!db.objectStoreNames.contains(STORE_NAME)) { db.createObjectStore(STORE_NAME, { keyPath: "id" }); } }; }); }
+    async function getAllArticles() { const db = await openDB(); return new Promise((resolve, reject) => { const tx = db.transaction(STORE_NAME, "readonly"); const store = tx.objectStore(STORE_NAME); const request = store.getAll(); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); }); }
+    async function putArticle(article) { const db = await openDB(); const cleanArticle = JSON.parse(JSON.stringify(article)); return new Promise((resolve, reject) => { const tx = db.transaction(STORE_NAME, "readwrite"); const store = tx.objectStore(STORE_NAME); const request = store.put(cleanArticle); request.onsuccess = () => resolve(); request.onerror = () => reject(request.error); }); }
+    async function deleteArticleById(id) { const db = await openDB(); return new Promise((resolve, reject) => { const tx = db.transaction(STORE_NAME, "readwrite"); const store = tx.objectStore(STORE_NAME); const request = store.delete(id); request.onsuccess = () => resolve(); request.onerror = () => reject(request.error); }); }
+    async function queryArticlesByCondition(conditionFn, offset, limit) { const all = await getAllArticles(); let filtered = all.filter(conditionFn); filtered.sort((a,b) => (b.id.localeCompare(a.id))); return filtered.slice(offset, offset + limit); }
+    async function getArticlesCount(conditionFn) { const all = await getAllArticles(); return all.filter(conditionFn).length; }
+    
+    function migrateArticle(article) {
+        if (!article.platforms) article.platforms = createEmptyPlatforms();
+        ORDERED_PLATFORMS.forEach(plat => {
+            if (!article.platforms[plat]) article.platforms[plat] = { published: false, publishTime: "", notRequired: false, isHit: false, hitData: "", versionContent: "", refSource: null };
+            else { if (article.platforms[plat].refSource === undefined) article.platforms[plat].refSource = null; }
+        });
+        if (!article.firstPlatform) article.firstPlatform = "即刻";
+        if (article.hidden === undefined) article.hidden = false;
+        if (!article.tags) article.tags = [];
+        return article;
+    }
+    async function migrateFromLocalStorage() {
+        const stored = localStorage.getItem("pushHub");
+        if (stored) {
+            try {
+                let oldData = JSON.parse(stored);
+                if (Array.isArray(oldData) && oldData.length > 0) {
+                    for (let art of oldData) { if (!art.id) art.id = generateId(); migrateArticle(art); await putArticle(art); }
+                    localStorage.removeItem("pushHub");
+                }
+            } catch(e) { console.warn(e); }
+        }
+    }
+    
+    const app = createApp({
+        setup() {
+            const articles = ref([]);
+            const totalCount = ref(0);
+            const currentTab = ref("pending");
+            const createModalVisible = ref(false);
+            const newArticleContent = ref("");
+            const newTags = ref([]);
+            const createFirstPlatform = ref("即刻");
+            const editModalVisible = ref(false);
+            const editForm = ref({ content: "", platformsData: null, firstPlatform: "", tags: [], syncUnlockFlag: {} });
+            const editTags = ref([]);
+            const editingArticleId = ref(null);
+            const activePlatformTab = ref(ORDERED_PLATFORMS[0]);
+            const expandedArticleId = ref(null);
+            const archiveConfirmVisible = ref(false);
+            const pendingArchiveArticle = ref(null);
+            const importConflictVisible = ref(false);
+            const hotFilterTags = ref([]);
+            const globalFilterTags = ref([]);
+            const publishTimeError = ref({});
+            let pendingImportData = null;
+            let conflictQueue = [];
+            let currentConflictIndex = 0;
+            let conflictResolveStrategy = null;
+            const currentPage = ref(0);
+            const hasMore = ref(true);
+            const loadingMore = ref(false);
+            const version = STATIC_VERSION;
+            const orderedPlatforms = ORDERED_PLATFORMS;
+            const allTags = ALL_TAGS;
+            
+            function requiredPlatforms(article) { return orderedPlatforms.filter(plat => !article.platforms[plat]?.notRequired); }
+            function requiredPlatformsCount(article) { return requiredPlatforms(article).length; }
+            function publishedRequiredCount(article) { return requiredPlatforms(article).filter(plat => article.platforms[plat]?.published === true).length; }
+            function isFullyPublished(article) { const req = requiredPlatforms(article); if(req.length === 0) return false; return req.every(plat => article.platforms[plat]?.published === true); }
+            
+            const conditionMap = {
+                pending: (a) => !a.hidden && !a.archived && !orderedPlatforms.some(p => a.platforms[p]?.published),
+                inprogress: (a) => !a.hidden && !a.archived && orderedPlatforms.some(p => a.platforms[p]?.published) && !isFullyPublished(a),
+                readyToArchive: (a) => !a.hidden && !a.archived && isFullyPublished(a),
+                archived: (a) => a.archived && !a.hidden,
+                hidden: (a) => a.hidden === true
+            };
+            async function refreshCurrentList(resetPage = true) { 
+                if (resetPage) { currentPage.value = 0; hasMore.value = true; articles.value = []; } 
+                const condition = conditionMap[currentTab.value]; 
+                if (!condition) return; 
+                const total = await getArticlesCount(condition); 
+                totalCount.value = total; 
+                const offset = currentPage.value * PAGE_SIZE; 
+                const newItems = await queryArticlesByCondition(condition, offset, PAGE_SIZE); 
+                if (resetPage) articles.value = newItems; 
+                else articles.value.push(...newItems); 
+                hasMore.value = (offset + PAGE_SIZE) < total; 
+                loadingMore.value = false; 
+            }
+            async function loadMore() { if (loadingMore.value || !hasMore.value) return; loadingMore.value = true; currentPage.value++; await refreshCurrentList(false); }
+            
+            const filteredCurrentListArticles = computed(() => {
+                if (globalFilterTags.value.length === 0) return articles.value;
+                return articles.value.filter(article => {
+                    if (!article.tags || article.tags.length === 0) return false;
+                    return globalFilterTags.value.some(tag => article.tags.includes(tag));
+                });
+            });
+            
+            async function changeTab(tab) {
+                currentTab.value = tab;
+                sessionStorage.setItem("currentTab", tab);
+                await refreshCurrentList(true);
+                if (tab === 'hot') await refreshHotItems();
+            }
+            
+            function toggleGlobalFilterTag(tag) {
+                const idx = globalFilterTags.value.indexOf(tag);
+                if (idx === -1) globalFilterTags.value.push(tag);
+                else globalFilterTags.value.splice(idx, 1);
+            }
+            
+            const hotItems = ref([]);
+            async function refreshHotItems() { const all = await getAllArticles(); const items = []; for(let art of all) { if(art.hidden) continue; for(let plat of orderedPlatforms) { const p = art.platforms[plat]; if(p.isHit && p.published) { items.push({ id: art.id, articleContent: art.content, platform: plat, hitData: p.hitData, publishTime: p.publishTime, isArchived: art.archived, tags: art.tags || [] }); } } } hotItems.value = items; }
+            const filteredHotItems = computed(() => { if (hotFilterTags.value.length === 0) return hotItems.value; return hotItems.value.filter(item => item.tags && hotFilterTags.value.some(tag => item.tags.includes(tag))); });
+            function toggleHotFilterTag(tag) { const idx = hotFilterTags.value.indexOf(tag); idx === -1 ? hotFilterTags.value.push(tag) : hotFilterTags.value.splice(idx, 1); }
+            
+            function sortedPlatformsByStatus(article) { return [...orderedPlatforms].sort((a,b) => { const getPriority = (plat) => { const p = article.platforms[plat]; if(p.published && p.isHit) return 0; if(p.published) return 1; if(!p.published && !p.notRequired) return 2; return 3; }; return getPriority(a) - getPriority(b); }); }
+            function getPlatformClass(article, plat) { const p = article.platforms[plat]; if(p.published && p.isHit) return 'hot-badge'; if(p.published) return 'published'; if(p.notRequired) return 'not-needed'; return 'pending'; }
+            
+            function onPublishedChange(platform) { 
+                if (!editForm.value.platformsData[platform].published) {
+                    editForm.value.platformsData[platform].isHit = false;
+                    editForm.value.platformsData[platform].hitData = "";
+                }
+                if (publishTimeError.value[platform]) delete publishTimeError.value[platform];
+            }
+            function onNotRequiredChange(platform) {
+                if (editForm.value.platformsData[platform].notRequired) {
+                    editForm.value.platformsData[platform].published = false;
+                    editForm.value.platformsData[platform].isHit = false;
+                    editForm.value.platformsData[platform].hitData = "";
+                    editForm.value.platformsData[platform].publishTime = "";
+                    delete editForm.value.platformsData[platform].refSource;
+                    if (editForm.value.syncUnlockFlag[platform]) delete editForm.value.syncUnlockFlag[platform];
+                }
+            }
+            
+            function getAvailableRefSources(targetPlatform) {
+                return orderedPlatforms.filter(p => {
+                    if (p === targetPlatform) return false;
+                    if (p === editForm.value.firstPlatform) return true;
+                    const platformData = editForm.value.platformsData[p];
+                    return platformData.published === true && !platformData.notRequired && platformData.refSource === null;
+                });
+            }
+            function applyReference(targetPlatform, sourcePlatform) {
+                editForm.value.platformsData[targetPlatform].refSource = sourcePlatform;
+                editForm.value.platformsData[targetPlatform].versionContent = "";
+                if (editForm.value.syncUnlockFlag[targetPlatform]) delete editForm.value.syncUnlockFlag[targetPlatform];
+            }
+            function unlockReference(platform) {
+                delete editForm.value.platformsData[platform].refSource;
+                editForm.value.syncUnlockFlag = { ...editForm.value.syncUnlockFlag, [platform]: true };
+                if (!editForm.value.platformsData[platform].versionContent) editForm.value.platformsData[platform].versionContent = "";
+            }
+            function copyVersionContent(platform) {
+                const content = editForm.value.platformsData[platform].versionContent;
+                if (content) { navigator.clipboard.writeText(content); alert("已复制版本内容到剪贴板"); } else { alert("无内容可复制"); }
+            }
+            function copyFullContent() {
+                if (editForm.value.content) { navigator.clipboard.writeText(editForm.value.content); alert("已复制全文到剪贴板"); } else { alert("无内容可复制"); }
+            }
+            
+            async function createArticle() { if(!newArticleContent.value.trim()) { alert("请输入正文"); return; } const newPlatforms = createEmptyPlatforms(); const newId = generateId(); const newArticle = { id: newId, content: newArticleContent.value, archived: false, hidden: false, firstPlatform: createFirstPlatform.value, platforms: newPlatforms, tags: [...newTags.value] }; await putArticle(newArticle); closeCreateModal(); await refreshCurrentList(true); if (currentTab.value === 'hot') await refreshHotItems(); }
+            async function saveArticle() { if(!editForm.value.content.trim()) { alert("内容不能为空"); return; } let hasError = false; const newErrors = {}; for(let plat of orderedPlatforms) { const p = editForm.value.platformsData[plat]; if(p.published && (!p.publishTime || p.publishTime.trim() === "")) { newErrors[plat] = true; hasError = true; } if(p.isHit && (!p.hitData || p.hitData.trim() === "")) { alert(`平台“${plat}”勾选了爆款，但未填写爆款数据，请补充后再保存。`); return; } } if (hasError) { publishTimeError.value = newErrors; alert("请为所有已发布的平台填写发布时间"); return; } publishTimeError.value = {}; const existing = await getAllArticles(); const old = existing.find(a => a.id === editingArticleId.value); const updatedArticle = { id: editingArticleId.value, content: editForm.value.content, archived: old ? old.archived : false, hidden: old ? old.hidden : false, firstPlatform: editForm.value.firstPlatform, platforms: editForm.value.platformsData, tags: [...editTags.value] }; await putArticle(updatedArticle); closeEditModal(); await refreshCurrentList(true); if (currentTab.value === 'hot') await refreshHotItems(); }
+            
+            async function hideArticle(article) { if(confirm(`隐藏文章“${getFirstLine(article.content)}”？可在“已隐藏”中恢复。`)) { article.hidden = true; await putArticle(article); await refreshCurrentList(true); if (currentTab.value === 'hot') await refreshHotItems(); } }
+            async function restoreArticle(article) { article.hidden = false; await putArticle(article); await refreshCurrentList(true); if (currentTab.value === 'hot') await refreshHotItems(); }
+            async function permanentDeleteArticle(article) { if(confirm(`彻底删除文章“${getFirstLine(article.content)}”？不可恢复。`)) { await deleteArticleById(article.id); await refreshCurrentList(true); if (currentTab.value === 'hot') await refreshHotItems(); } }
+            async function confirmArchive() { if(pendingArchiveArticle.value && isFullyPublished(pendingArchiveArticle.value)) { pendingArchiveArticle.value.archived = true; await putArticle(pendingArchiveArticle.value); closeArchiveConfirm(); await refreshCurrentList(true); if (currentTab.value === 'hot') await refreshHotItems(); } else { alert("归档条件不满足，请重试。"); } }
+            
+            function openEditModal(article, targetPlatform = null) { editingArticleId.value = article.id; editForm.value = { content: article.content, platformsData: JSON.parse(JSON.stringify(article.platforms)), firstPlatform: article.firstPlatform, tags: [...(article.tags || [])], syncUnlockFlag: {} }; editTags.value = [...(article.tags || [])]; publishTimeError.value = {}; if(targetPlatform && orderedPlatforms.includes(targetPlatform)) { activePlatformTab.value = targetPlatform; } else { const hotPlat = orderedPlatforms.find(p => editForm.value.platformsData[p]?.isHit && editForm.value.platformsData[p]?.published); activePlatformTab.value = hotPlat || orderedPlatforms[0]; } editModalVisible.value = true; }
+            function editArticle(article) { openEditModal(article); }
+            async function editArticleById(id) { const all = await getAllArticles(); const article = all.find(a => a.id === id); if(article) openEditModal(article); }
+            function jumpToPlatformInEdit(article, platform) { openEditModal(article, platform); }
+            function isFirstPlatform(platform) { return editForm.value.firstPlatform === platform; }
+            function toggleEditTag(tag) { const idx = editTags.value.indexOf(tag); idx === -1 ? editTags.value.push(tag) : editTags.value.splice(idx, 1); }
+            function toggleNewTag(tag) { const idx = newTags.value.indexOf(tag); idx === -1 ? newTags.value.push(tag) : newTags.value.splice(idx, 1); }
+            function toggleExpand(id) { expandedArticleId.value = expandedArticleId.value === id ? null : id; }
+            function openCreateModal() { newArticleContent.value = ""; newTags.value = []; createFirstPlatform.value = "即刻"; createModalVisible.value = true; }
+            function closeCreateModal() { createModalVisible.value = false; }
+            function closeEditModal() { editModalVisible.value = false; editingArticleId.value = null; }
+            function showArchiveConfirm(article) { pendingArchiveArticle.value = article; archiveConfirmVisible.value = true; }
+            function showArchiveConfirmById(id) { (async () => { const all = await getAllArticles(); const art = all.find(a => a.id === id); if(art && !art.archived) showArchiveConfirm(art); })(); }
+            function closeArchiveConfirm() { archiveConfirmVisible.value = false; pendingArchiveArticle.value = null; }
+            function openFeishuBackup() { window.open(FEISHU_BACKUP_URL, '_blank'); }
+            
+            async function exportBackup() { if (totalCount.value === 0) return; try { await navigator.clipboard.writeText(BACKUP_FOLDER_PATH); const userConfirmed = confirm(`✅ 备份目录路径已复制：\n${BACKUP_FOLDER_PATH}\n\n点击“确定”继续选择备份保存位置。`); if (!userConfirmed) return; } catch(e) { console.warn(e); } const all = await getAllArticles(); const dataStr = JSON.stringify(all, null, 2); const fileName = `pushhub_backup_${dayjs().format("YYYY-MM-DD_HHmmss")}.json`; if ('showDirectoryPicker' in window) { try { const dirHandle = await window.showDirectoryPicker({ id: 'backupFolder', startIn: 'documents' }); const fileHandle = await dirHandle.getFileHandle(fileName, { create: true }); const writable = await fileHandle.createWritable(); await writable.write(dataStr); await writable.close(); alert(`备份成功！\n保存位置：${dirHandle.name}\\${fileName}`); } catch (err) { if (err.name === 'AbortError') return; fallbackDownload(dataStr, fileName); } } else { fallbackDownload(dataStr, fileName); } function fallbackDownload(data, name) { const blob = new Blob([data], {type: "application/json"}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url); alert(`浏览器不支持选择文件夹，已触发下载，请手动移至：${BACKUP_FOLDER_PATH}`); } }
+            async function handleImportClick() { try { await navigator.clipboard.writeText(BACKUP_FOLDER_PATH); const userConfirmed = confirm(`✅ 备份目录路径已复制：\n${BACKUP_FOLDER_PATH}\n\n点击“确定”继续选择备份文件导入数据。`); if (userConfirmed) triggerFileImport(); } catch(e) { triggerFileImport(); } }
+            function triggerFileImport() { const input = document.createElement('input'); input.type = 'file'; input.accept = 'application/json'; input.onchange = async (e) => { const file = e.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = async (ev) => { try { const imported = JSON.parse(ev.target.result); if(!Array.isArray(imported)) throw new Error("格式错误"); pendingImportData = imported; await checkConflictsAndImport(); } catch(err) { alert("导入失败：文件格式不正确"); } }; reader.readAsText(file); }; input.click(); }
+            async function checkConflictsAndImport() { const existing = await getAllArticles(); const existingIds = new Set(existing.map(a => a.id)); conflictQueue = pendingImportData.filter(item => existingIds.has(item.id)).map(item => item.id); if(conflictQueue.length === 0) { for (let item of pendingImportData) await putArticle(item); alert(`导入成功，新增 ${pendingImportData.length} 条数据`); pendingImportData = null; await refreshCurrentList(true); if (currentTab.value === 'hot') await refreshHotItems(); } else { currentConflictIndex = 0; conflictResolveStrategy = null; showNextConflict(); } }
+            function showNextConflict() { if(currentConflictIndex >= conflictQueue.length) { (async () => { if(conflictResolveStrategy === 'keep') { const newItems = pendingImportData.filter(item => !conflictQueue.includes(item.id)); for (let item of newItems) await putArticle(item); alert(`导入完成，跳过 ${conflictQueue.length} 条冲突（保留现有），新增 ${newItems.length} 条`); } else if(conflictResolveStrategy === 'overwrite') { const keepIds = new Set(pendingImportData.map(i => i.id)); const all = await getAllArticles(); for (let art of all) if (keepIds.has(art.id)) await deleteArticleById(art.id); for (let item of pendingImportData) await putArticle(item); alert(`导入完成，覆盖 ${conflictQueue.length} 条冲突，总导入 ${pendingImportData.length} 条`); } pendingImportData = null; importConflictVisible.value = false; await refreshCurrentList(true); if (currentTab.value === 'hot') await refreshHotItems(); })(); return; } const conflictId = conflictQueue[currentConflictIndex]; importConflictVisible.value = true; window.conflictId = conflictId; }
+            function resolveConflict(action) { if(action === 'keep') conflictResolveStrategy = 'keep'; else if(action === 'overwrite') conflictResolveStrategy = 'overwrite'; currentConflictIndex = conflictQueue.length; importConflictVisible.value = false; (async () => { if(conflictResolveStrategy === 'keep') { const newItems = pendingImportData.filter(item => !conflictQueue.includes(item.id)); for (let item of newItems) await putArticle(item); alert(`导入完成，跳过 ${conflictQueue.length} 条冲突（保留现有），新增 ${newItems.length} 条`); } else if(conflictResolveStrategy === 'overwrite') { const keepIds = new Set(pendingImportData.map(i => i.id)); const all = await getAllArticles(); for (let art of all) if (keepIds.has(art.id)) await deleteArticleById(art.id); for (let item of pendingImportData) await putArticle(item); alert(`导入完成，覆盖 ${conflictQueue.length} 条冲突，总导入 ${pendingImportData.length} 条`); } pendingImportData = null; importConflictVisible.value = false; await refreshCurrentList(true); if (currentTab.value === 'hot') await refreshHotItems(); })(); }
+            function closeImportConflict() { importConflictVisible.value = false; pendingImportData = null; }
+            
+            onMounted(async () => {
+                await openDB();
+                await migrateFromLocalStorage();
+                let all = await getAllArticles();
+                for (let art of all) {
+                    const oldHash = JSON.stringify(art);
+                    migrateArticle(art);
+                    if (JSON.stringify(art) !== oldHash) await putArticle(art);
+                }
+                const savedTab = sessionStorage.getItem("currentTab");
+                if (savedTab && conditionMap[savedTab]) currentTab.value = savedTab;
+                await refreshCurrentList(true);
+                await refreshHotItems();
+            });
+            
+            return {
+                version, allTags, hotFilterTags, filteredHotItems, globalFilterTags, filteredCurrentListArticles,
+                orderedPlatforms, currentTab, totalCount,
+                createModalVisible, newArticleContent, newTags, createFirstPlatform,
+                editModalVisible, editForm, editTags, editingArticleId, activePlatformTab, expandedArticleId,
+                archiveConfirmVisible, importConflictVisible, publishTimeError,
+                formatTimeShort, getFirstLine, isFirstPlatform,
+                requiredPlatformsCount, publishedRequiredCount, sortedPlatformsByStatus, getPlatformClass,
+                openCreateModal, closeCreateModal, toggleNewTag, createArticle,
+                editArticle, editArticleById, saveArticle, closeEditModal, toggleExpand, toggleEditTag, onPublishedChange, onNotRequiredChange,
+                hideArticle, restoreArticle, permanentDeleteArticle,
+                showArchiveConfirm, showArchiveConfirmById, closeArchiveConfirm, openFeishuBackup, confirmArchive,
+                exportBackup, handleImportClick, resolveConflict, closeImportConflict,
+                jumpToPlatformInEdit, toggleHotFilterTag, toggleGlobalFilterTag, changeTab, loadMore, loadingMore, hasMore,
+                getAvailableRefSources, applyReference, unlockReference, copyVersionContent, copyFullContent
+            };
+        }
+    });
+    app.mount('#app');
+</script>
+</body>
+</html>
