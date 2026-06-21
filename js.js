@@ -18,114 +18,116 @@ document.addEventListener('DOMContentLoaded', function () {
     // 获取当前URL
     var currentUrl = window.location.href;
 
-    // 定义一个函数来计算包含中文、英文字母和数字的字数
+    // ---------- 撤销历史 ----------
+    var undoStack = [];
+    const MAX_UNDO = 50;
+
+    function saveState() {
+        // 保存当前编辑器的内容到历史
+        undoStack.push(editor.value);
+        if (undoStack.length > MAX_UNDO) {
+            undoStack.shift();
+        }
+    }
+
+    // ---------- 字数统计 ----------
     function countWords(text) {
-        // 使用正则表达式匹配中文字符、英文字母和数字
         var wordRegex = /[\u4e00-\u9fa5a-zA-Z0-9]+/g;
         var matches = text.match(wordRegex);
-        // 将匹配到的字符数组转换为字符串，并计算长度
         return matches ? matches.join('').length : 0;
     }
 
-    // 更新字数显示的函数
     function updateReadTime() {
-        var text = editor.value; // 获取文本框中的文本
-        var wordCount = countWords(text); // 计算字数
-        var readTime = madeReadTime(wordCount)//计算阅读
-        read.textContent = "全文 " + wordCount + " 字 预计 " + readTime + " 分钟"; // 更新字数显示
+        var text = editor.value;
+        var wordCount = countWords(text);
+        var readTime = madeReadTime(wordCount);
+        read.textContent = "全文 " + wordCount + " 字 预计 " + readTime + " 分钟";
     }
 
+    function madeReadTime(wordCount) {
+        const result = wordCount / 350;
+        return Number(result.toFixed(1));
+    }
 
-    //置顶按钮
+    //置顶
     function scrollTop() {
         editor.scrollTo({
             top: 0,
             left: 0,
-            behavior: 'smooth' // 平滑滚动效果
+            behavior: 'smooth'
         });
     }
 
-    // 从localStorage加载文本
+    // 加载文本
     function loadText() {
         const text = localStorage.getItem(currentUrl);
         if (text) {
             editor.value = text;
         } else {
             localStorage.removeItem(currentUrl);
-
         }
     }
-    loadText(); // 页面加载时执行
-    // 页面加载完成后立即更新字数
+    loadText();
     updateReadTime();
     editor.scrollBy = 0;
 
-    // 保存文本到localStorage
     function saveText() {
         const text = editor.value;
         localStorage.setItem(currentUrl, text);
     }
-    //快捷键
+
+    // 快捷键
     function handleKeyDown(event) {
+        // Ctrl+Z 撤销（仅当编辑器获得焦点且历史非空）
+        if (event.ctrlKey && event.key === 'z' && document.activeElement === editor) {
+            if (undoStack.length > 0) {
+                event.preventDefault();
+                const prevText = undoStack.pop();
+                editor.value = prevText;
+                updateReadTime();
+                saveText();
+                showAutoCloseAlert("已撤销");
+            }
+            // 若无历史，则不阻止默认，交给浏览器原生撤销
+            return;
+        }
 
-        //alt+1 置顶
         if (event.altKey && event.key === '1') {
-            event.preventDefault(); // 阻止默认的保存行为
-            scrollTop(); // 置顶
+            event.preventDefault();
+            scrollTop();
         }
-        //alt+4 字体
         if (event.altKey && event.key === '4') {
-            event.preventDefault(); // 阻止默认的保存行为
-            numBig(); // 字体
+            event.preventDefault();
+            numBig();
         }
-        //alt+C
         if (event.altKey && event.key.toLowerCase() === 'c') {
-            event.preventDefault(); // 阻止默认的保存行为
-            copy(); //复制
+            event.preventDefault();
+            copy();
         }
-
-        //ctrl+sb保存
         if (event.ctrlKey && event.key.toLowerCase() === 's') {
-            event.preventDefault(); // 阻止默认的保存行为
+            event.preventDefault();
             reformatText();
         }
-
     }
     document.addEventListener('keydown', handleKeyDown);
 
-
-
-    function madeReadTime(wordCount) {
-        // 执行除法并四舍五入保留1位小数
-        const result = wordCount / 350;
-        // toFixed(1)返回字符串，用Number转换为数值类型
-        return Number(result.toFixed(1));
-    }
-    //加花边字（使用私有区字符占位，避免被转换）
+    // 花边字
     function addFancyBorders() {
+        saveState(); // 保存操作前状态
         let text = editor.value;
-        // 提取并保护所有 http/https 链接
         const urlRegex = /https?:\/\/[^\s]+/g;
         const urlPlaceholders = [];
         text = text.replace(urlRegex, function(match) {
             urlPlaceholders.push(match);
-            // 使用私有区字符作为占位符，不会被任何字母/数字映射规则影响
             return String.fromCharCode(0xE000 + urlPlaceholders.length - 1);
         });
 
         const fancyChars = ['໌້', ' ຼ'];
-        // 将文本分割成单个字符数组
         const characters = text.split('');
-        const decoratedText = characters.map(char => char); // 创建一个可修改的副本
-
-        // 正则表达式匹配标点符号
+        const decoratedText = characters.map(char => char);
         const punctuationRegex = /[.,、\/#!$%\^&\*;:{}=\-_`~()]/g;
-        // 正则表达式匹配空行
         const newlineRegex = /\n/g;
-        // 正则表达式匹配数字
         const digitRegex = /\d/g;
-
-        // 找出所有标点符号、空行和数字的位置
         let match;
         const indexesToSkip = [];
         while ((match = punctuationRegex.exec(text)) !== null) {
@@ -138,51 +140,38 @@ document.addEventListener('DOMContentLoaded', function () {
             indexesToSkip.push(match.index);
         }
 
-        // 随机插入花边字符
         for (let i = 0; i < decoratedText.length; i++) {
-
-            // 检查当前位置是否是标点符号、空行或数字
-            if (indexesToSkip.includes(i)) {
-                continue;
-            }
-            // 随机选择一个花边字符
+            if (indexesToSkip.includes(i)) continue;
             const randomChar = fancyChars[Math.floor(Math.random() * fancyChars.length)];
-
             const random_number = Math.floor(Math.random() * 9);
-            if (i % random_number === 0 && Math.random() > 0.9) { // 这里0.7是随机添加花边字符的概率，数字越大花边越少
+            if (i % random_number === 0 && Math.random() > 0.9) {
                 decoratedText[i] += randomChar;
             }
-
         }
 
-        // 将字符数组重新组合成字符串
         text = decoratedText.join('');
-
-        // 还原被保护的 URL
         text = text.replace(/[\uE000-\uE7FF]/g, function(ch) {
             const idx = ch.charCodeAt(0) - 0xE000;
             return urlPlaceholders[idx] || ch;
         });
-
         editor.value = text;
+        updateReadTime();
+        saveText();
     }
 
-    //数字加粗-来回切换（使用私有区字符占位，避免被转换）
+    // 数字加粗
     function numBig() {
+        saveState();
         let text = editor.value;
-
-        // ----- 提取并保护所有 http/https 链接 -----
         const urlRegex = /https?:\/\/[^\s]+/g;
         const urlPlaceholders = [];
         text = text.replace(urlRegex, function(match) {
             urlPlaceholders.push(match);
-            // 使用私有区字符作为占位符，不会被任何字母/数字映射规则影响
             return String.fromCharCode(0xE000 + urlPlaceholders.length - 1);
         });
 
         const numBig = localStorage.getItem('numBig');
         if (numBig) {
-            // 还原为普通数字和字母
             text = text.replace(/𝟬/g, '0')
                 .replace(/𝟭/g, '1')
                 .replace(/𝟮/g, '2')
@@ -193,7 +182,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 .replace(/𝟳/g, '7')
                 .replace(/𝟴/g, '8')
                 .replace(/𝟵/g, '9');
-
             text = text.replace(/𝗔|𝗕|𝗖|𝗗|𝗘|𝗙|𝗚|𝗛|𝗜|𝗝|𝗞|𝗟|𝗠|𝗡|𝗢|𝗣|𝗤|𝗥|𝗦|𝗧|𝗨|𝗩|𝗪|𝗫|𝗬|𝗭/g, function (char) {
                 switch (char) {
                     case '𝗔': return 'A';
@@ -227,7 +215,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             localStorage.removeItem('numBig');
         } else {
-            // 转换为粗体数学符号（数字和字母）
             text = text.split('').map(char => {
                 switch (char) {
                     case '0': return '𝟬';
@@ -298,21 +285,21 @@ document.addEventListener('DOMContentLoaded', function () {
             localStorage.setItem('numBig', 1);
         }
 
-        // 还原被保护的 URL（私有区字符不会被转换，直接还原）
         text = text.replace(/[\uE000-\uE7FF]/g, function(ch) {
             const idx = ch.charCodeAt(0) - 0xE000;
             return urlPlaceholders[idx] || ch;
         });
-
         editor.value = text;
+        updateReadTime();
+        saveText();
     }
 
-    // 重新排版文本（保护 URL，并移除所有中英文/数字间插入空格的规则，解决字间距过大问题）
-    function reformatText() {
+    // 排版（支持是否保存历史）
+    function reformatText(saveHistory = true) {
+        if (saveHistory) saveState();
         try {
             let text = editor.value;
             if (text) {
-                // ----- 1. 提取并保护所有 http/https 链接 -----
                 const urlRegex = /https?:\/\/[^\s]+/g;
                 const urlPlaceholders = [];
                 text = text.replace(urlRegex, function(match) {
@@ -320,33 +307,32 @@ document.addEventListener('DOMContentLoaded', function () {
                     return String.fromCharCode(0xE000 + urlPlaceholders.length - 1);
                 });
 
-                // ----- 2. 执行排版替换（注：以下空格插入规则已全部注释，不再插入额外空格）-----
                 text = text.replace(/,/g, '，').replace(/:/g, '：');
                 text = text.replace(/(\d+%?)-(\d+%?)/g, '$1~$2');
                 text = text.replace(/。[ \t]*$/gm, '');
-                // 以下四行原本会在中文与英文/数字之间插入空格，现全部移除
-                // text = text.replace(/([\u4e00-\u9fa5])([A-Za-z0-9])/g, '$1 $2');
-                // text = text.replace(/([A-Za-z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
-                // text = text.replace(/([\u4e00-\u9fa5])(\d)/g, '$1 $2');
-                // text = text.replace(/(\d)([A-Za-z\u4e00-\u9fa5])/g, '$1 $2');
+                text = text.replace(/([\u4e00-\u9fa5])([A-Za-z0-9])/g, '$1 $2');
+                text = text.replace(/([A-Za-z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
+                text = text.replace(/([\u4e00-\u9fa5])(\d)/g, '$1 $2');
+                text = text.replace(/(\d)([\u4e00-\u9fa5])/g, '$1 $2');
+                text = text.replace(/(\d)([A-Za-z])/g, '$1 $2');
+                text = text.replace(/([A-Za-z])(\d)/g, '$1 $2');
                 text = text.replace(/“/g, '「').replace(/”/g, '」');
                 text = text.replace(/"([^"]+)"/g, '「$1」');
-                // 百分号后加空格也移除，避免多余空格
-                // text = text.replace(/%([\u4e00-\u9fa5])/g, '% $1');
-                // text = text.replace(/%\s+(?=[，,])/g, '%');
+                text = text.replace(/%([\u4e00-\u9fa5])/g, '% $1');
+                text = text.replace(/%\s+(?=[，,])/g, '%');
                 text = text.replace(new RegExp('\\[语音开始\\]', 'g'), '');
                 text = text.replace(new RegExp('\\[语音结束\\]', 'g'), '');
                 text = text.replace(/^\s+/, '');
                 text = text.replace(/(\n\s*){2,}/g, '\n\n');
                 text = removeTrailingEmptyLines(text);
 
-                // ----- 3. 还原所有被保护的 URL -----
                 text = text.replace(/[\uE000-\uE7FF]/g, function(ch) {
                     const idx = ch.charCodeAt(0) - 0xE000;
                     return urlPlaceholders[idx] || ch;
                 });
 
                 editor.value = text;
+                updateReadTime();
                 saveText();
                 showAutoCloseAlert("已美化保存");
             } else {
@@ -358,15 +344,14 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    //复制文本
+    // 复制
     async function copy(type) {
         try {
             await navigator.clipboard.writeText(editor.value);
             if (type !== "linkCbz") {
-                showAutoCloseAlert("复制成功")
+                showAutoCloseAlert("复制成功");
             }
         } catch (e) {
-            // 降级方案：如果剪贴板 API 不可用（如 file 协议），使用传统方法
             const textArea = document.createElement('textarea');
             textArea.value = editor.value;
             document.body.appendChild(textArea);
@@ -378,256 +363,107 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     }
-    //删除最后一行的空行
-    function removeTrailingEmptyLines(text) {
-        // 将文本按行分割
-        var lines = text.split('\n');
 
-        // 找到最后一个非空行
+    function removeTrailingEmptyLines(text) {
+        var lines = text.split('\n');
         var lastNonEmptyLineIndex = lines.reduce((index, line, idx) => {
             return line.trim() ? idx : index;
         }, -1);
-
-        // 如果所有行都是空的，返回空字符串
         if (lastNonEmptyLineIndex === -1) {
             return '';
         }
-
-        // 重新组合文本，不包括最后一个非空行之后的所有行
         return lines.slice(0, lastNonEmptyLineIndex + 1).join('\n');
     }
-    //清除markdown
+
+    // 清除Markdown
     function cleanMarkdown() {
+        saveState(); // 整体操作保存一次
         let text = editor.value;
-
-        // 去除加粗标识 **
         text = text.replace(/\*\*/g, '');
-
-        // 将连续的多个#替换为一个空行
         text = text.replace(/#+/g, '\n\n');
-
-        // 将有序列表 1. 转换为 1、并添加空行
-        // text = text.replace(/(\d+)\.\s*(.+)/g, '\n$1、$2\n\n');
         text = text.replace(/(\d+)\.\s+(.+)/g, '\n$1、$2\n\n');
-
-        // 规范无序列表格式并添加空行
-        text = text.replace(/^[\s\uFEFF\xA0]*-/gm, '-') // 先规范格式
-            .replace(/^(-.*)/gm, '$1\n');        // 在-行后添加空行
-
-        //去掉多余空行
+        text = text.replace(/^[\s\uFEFF\xA0]*-/gm, '-')
+            .replace(/^(-.*)/gm, '$1\n');
         text = text.replace(/(\n\s*){2,}/g, '\n\n');
-        //去掉最后一行的空行
-        text = removeTrailingEmptyLines(text)
-
-        // 将处理后的文本重新赋值给编辑器
+        text = removeTrailingEmptyLines(text);
         editor.value = text;
-        reformatText();
+        // 调用排版但不保存历史（因为我们已经保存过）
+        reformatText(false);
         scrollTop();
-
     }
 
-
-
-    //获取标题
-    function getTitle() {
-        var text = editor.value;
-        var truncatedText = '';
-        var charCount = 0;
-
-        for (var i = 0; i < text.length; i++) {
-            var code = text.charCodeAt(i);
-            // 检查是否是汉字，汉字的Unicode编码范围大致在\u4e00到\u9fa5之间
-            if (code >= 0x4e00 && code <= 0x9fa5) {
-                charCount++;
-                if (charCount > 24) break;
-            }
-            truncatedText += text[i];
-        }
-
-        // 检查是否包含换行符，并在第一个换行符之前截断
-        var firstLineBreakIndex = truncatedText.indexOf('\n');
-        if (firstLineBreakIndex !== -1) {
-            truncatedText = truncatedText.substring(0, firstLineBreakIndex);
-        }
-
-        title.innerText = truncatedText;
-    }
-    //跳转到写作猫检查错别字
+    // 跳转写作猫
     function linkCbz() {
         copy('linkCbz');
         window.open('https://xiezuocat.com/pro/8689953271362609152', '_blank');
     }
 
-    //清空
+    // 清空
     function clear() {
-
         if (confirm('确定要清空吗？')) {
-            // 用户点击"确定"，执行删除
+            saveState();
             editor.value = '';
             localStorage.removeItem(currentUrl);
+            updateReadTime();
             location.reload(true);
-        } else {
-            // 用户点击"取消"，自动忽略，不执行任何操作
-            return
         }
-
-
     }
-    //序号来回切换
-    function xhText() {
-        let text = editor.value;
-        // 执行格式切换
-        // 回显结果
-        // 第一步：判断文本中是否存在三位补零格式的序号（001、 010、 050、）
-        const hasThreeDigitFormat = /\b\d{3}、/g.test(text);
 
+    // 序号切换
+    function xhText() {
+        saveState();
+        let text = editor.value;
+        const hasThreeDigitFormat = /\b\d{3}、/g.test(text);
         if (hasThreeDigitFormat) {
-            // 情况1：存在三位格式 → 还原为 1、 格式
             text = text.replace(/\b(\d{3})、/g, (match, num) => {
-                // 去掉前置零并转为数字，再拼接 、
                 return `${parseInt(num, 10)}、`;
             });
         } else {
-            // 情况2：不存在三位格式 → 替换为 001、 格式
             text = text.replace(/\b(\d{1,2})、/g, (match, num) => {
-                // 补零到三位，再拼接 、
                 return `${parseInt(num, 10).toString().padStart(3, '0')}、`;
             });
         }
         editor.value = text;
+        updateReadTime();
+        saveText();
     }
 
-
-    //全屏
-    /**
-    * 全屏切换功能函数
-    * 点击事件触发，模拟F11全屏效果
-    */
-    // function quanPin() {
-    //     // 获取文档元素
-    //     const docElement = document.documentElement;
-
-    //     // 检查浏览器是否支持全屏API
-    //     const requestFullscreen = docElement.requestFullscreen ||
-    //         docElement.mozRequestFullScreen ||
-    //         docElement.webkitRequestFullscreen ||
-    //         docElement.msRequestFullscreen;
-
-    //     const exitFullscreen = document.exitFullscreen ||
-    //         document.mozCancelFullScreen ||
-    //         document.webkitExitFullscreen ||
-    //         document.msExitFullscreen;
-
-    //     // 检查当前是否处于全屏状态
-    //     const isFullscreen = document.fullscreenElement ||
-    //         document.mozFullScreenElement ||
-    //         document.webkitFullscreenElement ||
-    //         document.msFullscreenElement;
-
-    //     try {
-    //         if (!isFullscreen) {
-    //             // 如果不是全屏状态，则进入全屏
-    //             if (requestFullscreen) {
-    //                 requestFullscreen.call(docElement);
-    //             } else {
-    //                 alert('您的浏览器不支持全屏功能');
-    //             }
-    //         } else {
-    //             // 如果已经是全屏状态，则退出全屏
-    //             if (exitFullscreen) {
-    //                 exitFullscreen.call(document);
-    //             }
-    //         }
-    //     } catch (error) {
-    //         console.error('全屏操作失败:', error);
-    //         alert('全屏操作失败，请重试');
-    //     }
-    // }
-
-    // 使用示例：将函数绑定到按钮点击事件
-    // document.getElementById('fullscreenBtn').addEventListener('click', quanPin);
-
-    // 为页面中所有带有fullscreen-btn类的元素绑定点击事件
-    // document.addEventListener('DOMContentLoaded', function () {
-    //     const fullscreenButtons = document.querySelectorAll('.fullscreen-btn');
-    //     fullscreenButtons.forEach(button => {
-    //         button.addEventListener('click', quanPin);
-    //     });
-    // });
-    //点击字数，隐藏标题
-    // function displayTitle() {
-    //     reformatText();
-    //     var element = document.getElementById('title');
-    //     if (element.textContent != "标题") {
-    //         element.textContent = "标题";
-    //     }
-    // }
-    // 自定义自动消失的提示框
+    // 自定义提示
     function showAutoCloseAlert(message) {
         const alert = document.createElement('div');
-        // 磨砂玻璃效果核心样式
         alert.style.position = 'fixed';
-        // alert.style.top = '50%';
         alert.style.bottom = '0.1%';
         alert.style.left = '50%';
         alert.style.transform = 'translate(-50%, -50%)';
         alert.style.padding = '20px 30px';
-        alert.style.backgroundColor = 'rgba(255, 255, 255, 0.7)'; // 半透明白色
-        alert.style.backdropFilter = 'blur(10px)'; // 磨砂模糊效果
-        alert.style.border = '1px solid rgba(200, 200, 200, 0.5)'; // 半透明边框
+        alert.style.backgroundColor = 'rgba(255, 255, 255, 0.7)';
+        alert.style.backdropFilter = 'blur(10px)';
+        alert.style.border = '1px solid rgba(200, 200, 200, 0.5)';
         alert.style.borderRadius = '8px';
-        alert.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)'; // 柔和阴影
+        alert.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
         alert.style.zIndex = '9999';
-        alert.style.color = 'black'; // 黑色文字
+        alert.style.color = 'black';
         alert.style.fontSize = '16px';
-
         alert.textContent = message;
         document.body.appendChild(alert);
-
-        // 1秒后自动消失
         setTimeout(() => {
             alert.remove();
         }, 800);
     }
-    // 为保存按钮添加点击事件监听器
-    /*     saveButton.addEventListener('click', saveText); */
-    // 为置顶按钮添加点击事件监听器
+
+    // ---------- 事件绑定 ----------
     scrollTopButton.addEventListener('click', scrollTop);
-
-    // 为重新排版按钮添加点击事件监听器
-    // document.getElementById('reformatButton').addEventListener('click', reformatText);
-
-    // 为替换保险按钮添加点击事件监听器
-    // toggleButton.addEventListener('click', toggleReplace);
-
-    // 加花边
-    // flowerButton.addEventListener('click', addFancyBorders);
-    // 为数字加粗添加点击事件监听器
     numBigButton.addEventListener('click', numBig);
-    //复制
     copyButton.addEventListener('click', copy);
-    //清空
     clearButton.addEventListener('click', clear);
-    //点击字数，隐藏标题
-    // wordCountDisplay.addEventListener('click', displayTitle);
-    //点击字数排版
-    // beautify.addEventListener('click', reformatText);
-    //点击序号
     xhButton.addEventListener('click', xhText);
-    //点击全屏
-    // quan.addEventListener('click', quanPin);
-    //清除markdown
     cleanMarkdownButton.addEventListener('click', cleanMarkdown);
-
-    // 监听文本框的输入事件，实时更新字数
     editor.addEventListener('input', updateReadTime);
     cbzButton.addEventListener('click', linkCbz);
 
-    //清空del
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Delete') {
             clear();
         }
     });
-
 });
