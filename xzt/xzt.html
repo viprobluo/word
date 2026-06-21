@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="icon" href="data:,">
+    <title>写字台</title>
+    <style>
+        /* 重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #333;
+            color: white;
+            font-family: 'DeDaoJinKai', 'HarmonyOS Sans SC', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: flex-star;
+            flex-direction: column;
+        }
+
+        /* 按钮容器 - 固定顶部，宽度与编辑器一致 */
+        .button-container {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: auto;
+            max-width: 60ch;
+            min-width: 60ch;
+            text-align: center;
+            z-index: 10;
+            padding: 10px 0;
+            background-color: transparent;
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .button-container button {
+            display: inline-block;
+            padding: 8px 15px;
+            cursor: pointer;
+            background-color: #444;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .button-container button:hover {
+            background-color: #555;
+        }
+
+        /* 编辑器容器 - 宽度60ch，居中 */
+        #editor-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            width: auto;
+            max-width: 60ch;
+            min-width: 60ch;
+            height: 80%;
+            margin-top: 80px;
+            /* 整体上移，配合文案调整 */
+            position: relative;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 字数信息 - 左对齐，与按钮间距缩短 */
+        #read {
+            font-family: 'HarmonyOS Sans SC', sans-serif;
+            font-size: 12px;
+            color: rgba(250, 235, 215, 0.406);
+            margin-top: 6px;
+            /* 原20px，大幅缩短 */
+            margin-bottom: 5px;
+            width: 100%;
+            text-align: left;
+            /* 左对齐 */
+            user-select: none;
+            padding-left: 0;
+            /* 确保左对齐无额外缩进 */
+        }
+
+        /* 编辑器 */
+        #editor {
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            border: 1px solid white;
+            background-color: #333;
+            color: white;
+            text-align: left;
+            box-sizing: border-box;
+            resize: none;
+            overflow-y: scroll;
+            font-family: 'DeDaoJinKai', 'HarmonyOS Sans SC', sans-serif;
+            font-size: 22px;
+            outline: none;
+            line-height: 1.6em;
+        }
+
+        /* 滚动条 */
+        #editor::-webkit-scrollbar {
+            width: 8px;
+        }
+        #editor::-webkit-scrollbar-track {
+            background-color: #333;
+        }
+        #editor::-webkit-scrollbar-thumb {
+            background-color: #555;
+            border-radius: 10px;
+        }
+
+        /* ---------- 移动端适配 ---------- */
+        @media (max-width: 768px) {
+            .button-container {
+                width: 100%;
+                top: 0;
+                transform: none;
+                left: 0;
+                padding: 8px 0 10px;
+                background-color: #333;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 3px;
+                max-width: none;
+                min-width: 0;
+            }
+            .button-container button {
+                padding: 6px 12px;
+                font-size: 12px;
+                margin: 3px 4px;
+            }
+            #editor-container {
+                width: 92%;
+                max-width: none;
+                min-width: 0;
+                height: 85%;
+                margin-top: 72px;
+                margin-left: 0;
+                margin-right: 0;
+            }
+            #editor {
+                font-size: 16px;
+                padding: 12px;
+            }
+            #read {
+                text-align: left;
+                margin-left: 4%;
+                font-size: 11px;
+                margin-top: 10px;
+                width: 92%;
+            }
+            /* 手机端隐藏错别字按钮 */
+            #cbzButton {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .button-container button {
+                padding: 5px 10px;
+                font-size: 11px;
+                margin: 2px 3px;
+            }
+            #editor {
+                font-size: 15px;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="button-container">
+        <button id="scrollTopButton">置顶</button>
+        <button id="cleanMarkdown">|</button>
+        <button id="xh">序号</button>
+        <button id="numBigButton">字体滤镜</button>
+        <button id="copyButton">复制</button>
+        <button id="clearButton">清空</button>
+        <button id="cbzButton">错别字</button>
+    </div>
+
+    <div id="editor-container">
+        <div id="read">全文 0 字 预计 0 分钟</div>
+        <textarea id="editor" autofocus></textarea>
+    </div>
+
+    <script src="xzt.js"></script>
+</body>
+
+</html>
