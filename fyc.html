@@ -538,10 +538,6 @@
                     }
 
                     const policyData = extractPolicyFields(row);
-                    const policyTitle = `${policyData.insuredName || '未知'}-${policyData.productName || '未知产品'}`;
-
-                    const policyContainer = createPolicyContainer(policyTitle, policyData.totalIncome);
-                    const contentEl = policyContainer.querySelector('.policy-content');
                     // 格式化保单号（关键修复）
                     policyData.policyNo = formatPolicyNo(policyData.policyNo);
                     // 存入FYC保单号列表
@@ -570,6 +566,11 @@
                             + (parseFloat(policyData.promotionReward) || 0);
                         policyData.totalIncome = total.toFixed(3);
                     }
+
+                    const policyTitle = `${policyData.insuredName || '未知'}-${policyData.productName || '未知产品'}`;
+
+                    const policyContainer = createPolicyContainer(policyTitle, policyData.totalIncome);
+                    const contentEl = policyContainer.querySelector('.policy-content');
 
                     // 获取产品等待期
                     const { waitingDays, isConfigured, isDual, newDiseaseDays, generalHistoryDays } = getProductWaitingDays(policyData.productName);
