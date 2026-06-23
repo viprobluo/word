@@ -153,23 +153,18 @@
         /* 核心优化：多列网格布局 + 缩小内边距 */
         .field-item {
             margin: 4px 0;
-            /* 减少垂直间距 */
             padding: 6px 8px;
-            /* 减少内边距 */
             background-color: #fff;
             border-radius: 4px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
             font-size: 13px;
-            /* 缩小字体 */
         }
 
         .field-label {
             font-weight: bold;
             color: #333;
-            min-width: 80px;
-            /* 固定标签宽度，对齐更整齐 */
             flex-shrink: 0;
         }
 
@@ -177,11 +172,6 @@
             color: #666;
             word-break: break-all;
             flex: 1;
-        }
-
-        /* 数字字段右对齐 */
-        .field-value.numeric {
-            text-align: right;
         }
 
         .copy-btn {
@@ -687,12 +677,8 @@
                 const fieldItem = document.createElement('div');
                 fieldItem.className = 'field-item';
 
-                const labelEl = document.createElement('div');
-                labelEl.className = 'field-label';
-                labelEl.textContent = field.label;
-
                 const valueEl = document.createElement('div');
-                valueEl.className = `field-value ${field.isNumeric ? 'numeric' : ''}`;
+                valueEl.className = 'field-value';
                 if (field.isRed) {
                     valueEl.style.color = '#f5222d';
                     valueEl.style.fontWeight = 'bold';
@@ -705,20 +691,20 @@
                     valueEl.style.color = '#f5222d';
                     valueEl.style.fontWeight = 'bold';
                 }
-                valueEl.textContent = data[field.key] === '' && ['premium', 'policyServiceFee', 'promotionFee', 'promotionReward', 'performance'].includes(field.key)
+                const displayValue = data[field.key] === '' && ['premium', 'policyServiceFee', 'promotionFee', 'promotionReward', 'performance'].includes(field.key)
                     ? '0.000'
                     : (data[field.key] || '');
+                valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong>${displayValue}`;
 
-                fieldItem.appendChild(labelEl);
                 fieldItem.appendChild(valueEl);
 
-                // 原有复制按钮
+                // 复制按钮
                 if (!field.noCopy) {
                     const copyBtn = document.createElement('button');
                     copyBtn.className = 'copy-btn';
                     copyBtn.textContent = '复制';
                     copyBtn.addEventListener('click', () => {
-                        copyToClipboard(data[field.key], `${field.label}复制成功`);
+                        copyToClipboard(displayValue, `${field.label}复制成功`);
                     });
                     fieldItem.appendChild(copyBtn);
                 }
