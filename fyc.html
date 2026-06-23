@@ -433,6 +433,7 @@
             "平安小玩童7号少儿意外险（互联网）": 0,
             "众民保·重疾险": 90,
             "平安健康岁月长安特定疾病保险": 180,
+            "众民保·中高端医疗险2026": { newDisease: 30, generalHistory: 90 },
         };
 
         // 核心配置：FYC字段映射（关键修改：保单号改为items.policycode）
@@ -554,13 +555,20 @@
                     });
 
                     // 获取产品等待期
-                    const { waitingDays, isConfigured } = getProductWaitingDays(policyData.productName);
+                    const { waitingDays, isConfigured, isDual, newDiseaseDays, generalHistoryDays } = getProductWaitingDays(policyData.productName);
                     if (!isConfigured) {
                         noWaitingPeriodProducts.add(policyData.productName);
                     }
 
                     policyData.waitingEndDate = calculateWaitingEndDate(policyData.effectiveDate, waitingDays);
                     policyData.waitingPeriodDays = waitingDays >= 0 ? `${waitingDays}天` : '未配置';
+
+                    if (isDual) {
+                        policyData.newDiseaseWaitingDays = `${newDiseaseDays}天`;
+                        policyData.newDiseaseWaitingEndDate = calculateWaitingEndDate(policyData.effectiveDate, newDiseaseDays);
+                        policyData.generalHistoryWaitingDays = `${generalHistoryDays}天`;
+                        policyData.generalHistoryWaitingEndDate = calculateWaitingEndDate(policyData.effectiveDate, generalHistoryDays);
+                    }
 
                     // 关联保单下载数据（核心：通过格式化后的保单号匹配）
                     const linkedPolicyData = getLinkedPolicyData(policyData.policyNo);
@@ -629,9 +637,21 @@
                 { label: '保障期间', key: 'insurancePeriod', noCopy: true, isNumeric: false },
                 { label: '缴费期间', key: 'paymentPeriod', noCopy: true, isNumeric: false },
                 { label: '缴费方式', key: 'paymentMethod', noCopy: true, isNumeric: false },
-                { label: '等待期天数', key: 'waitingPeriodDays', noCopy: true, isNumeric: false },
-                { label: '等待期结束日', key: 'waitingEndDate', noCopy: true, isNumeric: false }
             ];
+
+            if (data.newDiseaseWaitingDays !== undefined) {
+                fields.push(
+                    { label: '新发疾病等待期', key: 'newDiseaseWaitingDays', noCopy: true, isNumeric: false },
+                    { label: '新发疾病等待期结束日', key: 'newDiseaseWaitingEndDate', noCopy: true, isNumeric: false },
+                    { label: '一般既往史等待期', key: 'generalHistoryWaitingDays', noCopy: true, isNumeric: false },
+                    { label: '一般既往史等待期结束日', key: 'generalHistoryWaitingEndDate', noCopy: true, isNumeric: false }
+                );
+            } else {
+                fields.push(
+                    { label: '等待期天数', key: 'waitingPeriodDays', noCopy: true, isNumeric: false },
+                    { label: '等待期结束日', key: 'waitingEndDate', noCopy: true, isNumeric: false }
+                );
+            }
 
             fields.forEach(field => {
                 const fieldItem = document.createElement('div');
@@ -872,13 +892,22 @@
 
         // 获取产品等待期天数
         function getProductWaitingDays(productName) {
-            if (!productName) return { waitingDays: -1, isConfigured: false };
+            if (!productName) return { waitingDays: -1, isConfigured: false, isDual: false };
             for (const [productKeyword, days] of Object.entries(PRODUCT_WAITING_PERIOD)) {
                 if (productName.includes(productKeyword)) {
-                    return { waitingDays: days, isConfigured: true };
+                    if (typeof days === 'object' && days !== null) {
+                        return {
+                            waitingDays: days.generalHistory,
+                            newDiseaseDays: days.newDisease,
+                            generalHistoryDays: days.generalHistory,
+                            isConfigured: true,
+                            isDual: true
+                        };
+                    }
+                    return { waitingDays: days, isConfigured: true, isDual: false };
                 }
             }
-            return { waitingDays: -1, isConfigured: false };
+            return { waitingDays: -1, isConfigured: false, isDual: false };
         }
 
         // 计算等待期结束日
