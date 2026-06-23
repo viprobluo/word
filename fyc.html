@@ -185,29 +185,24 @@
         }
 
         .copy-btn {
-            padding: 2px 6px;
-            /* 缩小按钮 */
+            padding: 2px 8px;
             font-size: 12px;
-            background-color: #f0f0f0;
-            color: #666;
+            background-color: #1890ff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
             white-space: nowrap;
-            opacity: 0;
-            
-            /* 视觉隐藏 */
-            position: absolute;
-            /* 脱离文档流，不占空间 */
-            pointer-events: none;
-            /* 防止误点击 */
-            z-index: -1;
-            /* 放到页面底层，避免遮挡 */
-
-
-
-
+            flex-shrink: 0;
         }
 
         .copy-btn:hover {
-            background-color: #e0e0e0;
+            background-color: #40a9ff;
+        }
+
+        .copy-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
 
         .toast {
