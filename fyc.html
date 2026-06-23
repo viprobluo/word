@@ -153,23 +153,18 @@
         /* 核心优化：多列网格布局 + 缩小内边距 */
         .field-item {
             margin: 4px 0;
-            /* 减少垂直间距 */
             padding: 6px 8px;
-            /* 减少内边距 */
             background-color: #fff;
             border-radius: 4px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
             font-size: 13px;
-            /* 缩小字体 */
         }
 
         .field-label {
             font-weight: bold;
             color: #333;
-            min-width: 80px;
-            /* 固定标签宽度，对齐更整齐 */
             flex-shrink: 0;
         }
 
@@ -179,35 +174,25 @@
             flex: 1;
         }
 
-        /* 数字字段右对齐 */
-        .field-value.numeric {
-            text-align: right;
-        }
-
         .copy-btn {
-            padding: 2px 6px;
-            /* 缩小按钮 */
+            padding: 2px 8px;
             font-size: 12px;
-            background-color: #f0f0f0;
-            color: #666;
+            background-color: #1890ff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
             white-space: nowrap;
-            opacity: 0;
-            
-            /* 视觉隐藏 */
-            position: absolute;
-            /* 脱离文档流，不占空间 */
-            pointer-events: none;
-            /* 防止误点击 */
-            z-index: -1;
-            /* 放到页面底层，避免遮挡 */
-
-
-
-
+            flex-shrink: 0;
         }
 
         .copy-btn:hover {
-            background-color: #e0e0e0;
+            background-color: #40a9ff;
+        }
+
+        .copy-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
 
         .toast {
@@ -438,11 +423,17 @@
             "平安小玩童7号少儿意外险（互联网）": 0,
             "众民保·重疾险": 90,
             "平安健康岁月长安特定疾病保险": 180,
+            "众民保·中高端医疗险": 30,
+            "众民保·中高端医疗险2026": { newDisease: 30, generalHistory: 90 },
+            "安盛天平守护百万综合意外伤害保险": 0,
+            "金钟罩": 0,
+            "复星联合达尔文12号重大疾病保险": 180,
         };
 
         // 核心配置：FYC字段映射（关键修改：保单号改为items.policycode）
         const FIELD_MAPPING = {
             policyNo: ['items.policycode', 'policycode'], // 优先取items下的policycode，兼容直接的policycode
+            prePolicyCode: ['prepolicycode'],
             productName: ['productname'],
             holdername: ['holdername'],
             insuredName: ['inseredname'],
@@ -456,7 +447,8 @@
             insurancePeriod: ['insperiodtext'],
             paymentPeriod: ['paycostdate'],
             paymentMethod: ['paytype'],
-            applyDate: ['receivedate']
+            applyDate: ['receivedate'],
+            channelCode: ['channelcode']
         };
 
         // DOM加载完成后初始化
@@ -529,16 +521,12 @@
                 rows.forEach((row, index) => {
                     // 直接使用row作为数据源（因为policycode在row的items里，由字段映射处理）
                     if (!row) {
-                        const emptyContainer = createPolicyContainer(index + 1, true);
+                        const emptyContainer = createPolicyContainer(`保单 ${index + 1}`, undefined, true);
                         emptyContainer.querySelector('.policy-content').innerHTML = '<div class="message error">该保单无有效数据</div>';
                         resultEl.appendChild(emptyContainer);
                         return;
                     }
 
-                    const policyContainer = createPolicyContainer(index + 1);
-                    const contentEl = policyContainer.querySelector('.policy-content');
-
-                    // 提取并处理FYC字段（现在会自动从items.policycode提取保单号）
                     const policyData = extractPolicyFields(row);
                     // 格式化保单号（关键修复）
                     policyData.policyNo = formatPolicyNo(policyData.policyNo);
@@ -547,6 +535,9 @@
 
                     policyData.effectiveDate = timestampToDate(policyData.effectiveDate);
                     policyData.orderTime = timestampToDate(policyData.orderTime);
+
+                    // 判断是否连续投保（有上一期保单号即为连续投保）
+                    policyData.isContinuous = !!(policyData.prePolicyCode && policyData.prePolicyCode.trim() !== '');
 
                     // 格式化数字字段
                     const numericFields = ['premium', 'policyServiceFee', 'promotionFee', 'promotionReward', 'performance'];
@@ -558,14 +549,42 @@
                         }
                     });
 
+                    // 网销单计算总收入 = 保单服务费 + 推广费 + 推广奖励
+                    if (policyData.channelCode === '网销') {
+                        const total = (parseFloat(policyData.policyServiceFee) || 0)
+                            + (parseFloat(policyData.promotionFee) || 0)
+                            + (parseFloat(policyData.promotionReward) || 0);
+                        policyData.totalIncome = total.toFixed(3);
+                    }
+
+                    const policyTitle = `${policyData.insuredName || '未知'}-${policyData.productName || '未知产品'}`;
+
+                    const policyContainer = createPolicyContainer(policyTitle, policyData.totalIncome);
+                    const contentEl = policyContainer.querySelector('.policy-content');
+
                     // 获取产品等待期
-                    const { waitingDays, isConfigured } = getProductWaitingDays(policyData.productName);
+                    const { waitingDays, isConfigured, isDual, newDiseaseDays, generalHistoryDays } = getProductWaitingDays(policyData.productName);
                     if (!isConfigured) {
                         noWaitingPeriodProducts.add(policyData.productName);
                     }
 
-                    policyData.waitingEndDate = calculateWaitingEndDate(policyData.effectiveDate, waitingDays);
-                    policyData.waitingPeriodDays = waitingDays >= 0 ? `${waitingDays}天` : '未配置';
+                    // 医疗险连续投保无等待期
+                    if (policyData.isContinuous && isConfigured && (waitingDays > 0 || isDual)) {
+                        policyData.waitingPeriodDays = '连续投保，无等待期';
+                        policyData.waitingEndDate = '连续投保，无等待期';
+                        policyData.continuousNoWaiting = true;
+                    } else {
+                        policyData.waitingEndDate = calculateWaitingEndDate(policyData.effectiveDate, waitingDays);
+                        policyData.waitingPeriodDays = waitingDays >= 0 ? `${waitingDays}天` : '未配置';
+                        policyData.continuousNoWaiting = false;
+                    }
+
+                    if (isDual && !policyData.continuousNoWaiting) {
+                        policyData.newDiseaseWaitingDays = `${newDiseaseDays}天`;
+                        policyData.newDiseaseWaitingEndDate = calculateWaitingEndDate(policyData.effectiveDate, newDiseaseDays);
+                        policyData.generalHistoryWaitingDays = `${generalHistoryDays}天`;
+                        policyData.generalHistoryWaitingEndDate = calculateWaitingEndDate(policyData.effectiveDate, generalHistoryDays);
+                    }
 
                     // 关联保单下载数据（核心：通过格式化后的保单号匹配）
                     const linkedPolicyData = getLinkedPolicyData(policyData.policyNo);
@@ -634,20 +653,36 @@
                 { label: '保障期间', key: 'insurancePeriod', noCopy: true, isNumeric: false },
                 { label: '缴费期间', key: 'paymentPeriod', noCopy: true, isNumeric: false },
                 { label: '缴费方式', key: 'paymentMethod', noCopy: true, isNumeric: false },
-                { label: '等待期天数', key: 'waitingPeriodDays', noCopy: true, isNumeric: false },
-                { label: '等待期结束日', key: 'waitingEndDate', noCopy: true, isNumeric: false }
             ];
+
+            if (data.continuousNoWaiting) {
+                fields.push(
+                    { label: '等待期', key: 'waitingPeriodDays', noCopy: true, isNumeric: false }
+                );
+            } else if (data.newDiseaseWaitingDays !== undefined) {
+                fields.push(
+                    { label: '新发疾病等待期', key: 'newDiseaseWaitingDays', noCopy: true, isNumeric: false },
+                    { label: '新发疾病等待期结束日', key: 'newDiseaseWaitingEndDate', noCopy: true, isNumeric: false },
+                    { label: '一般既往史等待期', key: 'generalHistoryWaitingDays', noCopy: true, isNumeric: false },
+                    { label: '一般既往史等待期结束日', key: 'generalHistoryWaitingEndDate', noCopy: true, isNumeric: false }
+                );
+            } else if (data.waitingPeriodDays !== '0天' && data.waitingPeriodDays !== '无等待期' && data.waitingPeriodDays !== undefined) {
+                fields.push(
+                    { label: '等待期天数', key: 'waitingPeriodDays', noCopy: true, isNumeric: false },
+                    { label: '等待期结束日', key: 'waitingEndDate', noCopy: true, isNumeric: false }
+                );
+            }
 
             fields.forEach(field => {
                 const fieldItem = document.createElement('div');
                 fieldItem.className = 'field-item';
 
-                const labelEl = document.createElement('div');
-                labelEl.className = 'field-label';
-                labelEl.textContent = field.label;
-
                 const valueEl = document.createElement('div');
-                valueEl.className = `field-value ${field.isNumeric ? 'numeric' : ''}`;
+                valueEl.className = 'field-value';
+                if (field.isRed) {
+                    valueEl.style.color = '#f5222d';
+                    valueEl.style.fontWeight = 'bold';
+                }
                 if (field.key === 'waitingPeriodDays' && data[field.key] === '未配置') {
                     valueEl.style.color = '#f5222d';
                     valueEl.style.fontWeight = 'bold';
@@ -656,20 +691,20 @@
                     valueEl.style.color = '#f5222d';
                     valueEl.style.fontWeight = 'bold';
                 }
-                valueEl.textContent = data[field.key] === '' && ['premium', 'policyServiceFee', 'promotionFee', 'promotionReward', 'performance'].includes(field.key)
+                const displayValue = data[field.key] === '' && ['premium', 'policyServiceFee', 'promotionFee', 'promotionReward', 'performance'].includes(field.key)
                     ? '0.000'
                     : (data[field.key] || '');
+                valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong>${displayValue}`;
 
-                fieldItem.appendChild(labelEl);
                 fieldItem.appendChild(valueEl);
 
-                // 原有复制按钮
+                // 复制按钮
                 if (!field.noCopy) {
                     const copyBtn = document.createElement('button');
                     copyBtn.className = 'copy-btn';
                     copyBtn.textContent = '复制';
                     copyBtn.addEventListener('click', () => {
-                        copyToClipboard(data[field.key], `${field.label}复制成功`);
+                        copyToClipboard(displayValue, `${field.label}复制成功`);
                     });
                     fieldItem.appendChild(copyBtn);
                 }
@@ -877,13 +912,22 @@
 
         // 获取产品等待期天数
         function getProductWaitingDays(productName) {
-            if (!productName) return { waitingDays: -1, isConfigured: false };
+            if (!productName) return { waitingDays: -1, isConfigured: false, isDual: false };
             for (const [productKeyword, days] of Object.entries(PRODUCT_WAITING_PERIOD)) {
                 if (productName.includes(productKeyword)) {
-                    return { waitingDays: days, isConfigured: true };
+                    if (typeof days === 'object' && days !== null) {
+                        return {
+                            waitingDays: days.generalHistory,
+                            newDiseaseDays: days.newDisease,
+                            generalHistoryDays: days.generalHistory,
+                            isConfigured: true,
+                            isDual: true
+                        };
+                    }
+                    return { waitingDays: days, isConfigured: true, isDual: false };
                 }
             }
-            return { waitingDays: -1, isConfigured: false };
+            return { waitingDays: -1, isConfigured: false, isDual: false };
         }
 
         // 计算等待期结束日
@@ -987,7 +1031,7 @@
         }
 
         // 创建带折叠功能的保单容器（默认折叠）
-        function createPolicyContainer(policyNum, isEmpty = false) {
+        function createPolicyContainer(titleText, totalIncome, isEmpty = false) {
             const container = document.createElement('div');
             container.className = 'policy-container';
 
@@ -996,14 +1040,30 @@
 
             const title = document.createElement('div');
             title.className = 'policy-title';
-            title.textContent = `保单 ${policyNum}`;
+            title.textContent = titleText;
+
+            const headerRight = document.createElement('div');
+            headerRight.style.display = 'flex';
+            headerRight.style.alignItems = 'center';
+            headerRight.style.gap = '12px';
+
+            if (totalIncome !== undefined && totalIncome !== null) {
+                const totalIncomeEl = document.createElement('div');
+                totalIncomeEl.style.color = '#f5222d';
+                totalIncomeEl.style.fontWeight = 'bold';
+                totalIncomeEl.style.fontSize = '14px';
+                totalIncomeEl.textContent = `总收入：${totalIncome}`;
+                headerRight.appendChild(totalIncomeEl);
+            }
 
             const toggleBtn = document.createElement('button');
             toggleBtn.className = 'toggle-btn';
             toggleBtn.textContent = '展开'; // 默认显示展开
 
+            headerRight.appendChild(toggleBtn);
+
             header.appendChild(title);
-            header.appendChild(toggleBtn);
+            header.appendChild(headerRight);
 
             const content = document.createElement('div');
             content.className = 'policy-content collapsed'; // 默认折叠
