@@ -457,7 +457,8 @@
             insurancePeriod: ['insperiodtext'],
             paymentPeriod: ['paycostdate'],
             paymentMethod: ['paytype'],
-            applyDate: ['receivedate']
+            applyDate: ['receivedate'],
+            channelCode: ['channelcode']
         };
 
         // DOM加载完成后初始化
@@ -562,6 +563,14 @@
                         }
                     });
 
+                    // 网销单计算总收入 = 保单服务费 + 推广费 + 推广奖励
+                    if (policyData.channelCode === '网销') {
+                        const total = (parseFloat(policyData.policyServiceFee) || 0)
+                            + (parseFloat(policyData.promotionFee) || 0)
+                            + (parseFloat(policyData.promotionReward) || 0);
+                        policyData.totalIncome = total.toFixed(3);
+                    }
+
                     // 获取产品等待期
                     const { waitingDays, isConfigured, isDual, newDiseaseDays, generalHistoryDays } = getProductWaitingDays(policyData.productName);
                     if (!isConfigured) {
@@ -655,6 +664,10 @@
                 { label: '缴费方式', key: 'paymentMethod', noCopy: true, isNumeric: false },
             ];
 
+            if (data.totalIncome !== undefined) {
+                fields.push({ label: '总收入', key: 'totalIncome', noCopy: true, isNumeric: true, isRed: true });
+            }
+
             if (data.continuousNoWaiting) {
                 fields.push(
                     { label: '等待期', key: 'waitingPeriodDays', noCopy: true, isNumeric: false }
@@ -683,6 +696,10 @@
 
                 const valueEl = document.createElement('div');
                 valueEl.className = `field-value ${field.isNumeric ? 'numeric' : ''}`;
+                if (field.isRed) {
+                    valueEl.style.color = '#f5222d';
+                    valueEl.style.fontWeight = 'bold';
+                }
                 if (field.key === 'waitingPeriodDays' && data[field.key] === '未配置') {
                     valueEl.style.color = '#f5222d';
                     valueEl.style.fontWeight = 'bold';
