@@ -1048,7 +1048,7 @@
         }
 
         // 创建带折叠功能的保单容器（默认折叠）
-        function createPolicyContainer(policyNum, isEmpty = false) {
+        function createPolicyContainer(policyNum, totalIncome, isEmpty = false) {
             const container = document.createElement('div');
             container.className = 'policy-container';
 
@@ -1059,12 +1059,28 @@
             title.className = 'policy-title';
             title.textContent = `保单 ${policyNum}`;
 
+            const headerRight = document.createElement('div');
+            headerRight.style.display = 'flex';
+            headerRight.style.alignItems = 'center';
+            headerRight.style.gap = '12px';
+
+            if (totalIncome !== undefined && totalIncome !== null) {
+                const totalIncomeEl = document.createElement('div');
+                totalIncomeEl.style.color = '#f5222d';
+                totalIncomeEl.style.fontWeight = 'bold';
+                totalIncomeEl.style.fontSize = '14px';
+                totalIncomeEl.textContent = `总收入：${totalIncome}`;
+                headerRight.appendChild(totalIncomeEl);
+            }
+
             const toggleBtn = document.createElement('button');
             toggleBtn.className = 'toggle-btn';
             toggleBtn.textContent = '展开'; // 默认显示展开
 
+            headerRight.appendChild(toggleBtn);
+
             header.appendChild(title);
-            header.appendChild(toggleBtn);
+            header.appendChild(headerRight);
 
             const content = document.createElement('div');
             content.className = 'policy-content collapsed'; // 默认折叠
