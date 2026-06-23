@@ -531,17 +531,17 @@
                 rows.forEach((row, index) => {
                     // 直接使用row作为数据源（因为policycode在row的items里，由字段映射处理）
                     if (!row) {
-                        const emptyContainer = createPolicyContainer(index + 1, true);
+                        const emptyContainer = createPolicyContainer(`保单 ${index + 1}`, undefined, true);
                         emptyContainer.querySelector('.policy-content').innerHTML = '<div class="message error">该保单无有效数据</div>';
                         resultEl.appendChild(emptyContainer);
                         return;
                     }
 
-                    const policyContainer = createPolicyContainer(index + 1);
-                    const contentEl = policyContainer.querySelector('.policy-content');
-
-                    // 提取并处理FYC字段（现在会自动从items.policycode提取保单号）
                     const policyData = extractPolicyFields(row);
+                    const policyTitle = `${policyData.insuredName || '未知'}-${policyData.productName || '未知产品'}`;
+
+                    const policyContainer = createPolicyContainer(policyTitle, policyData.totalIncome);
+                    const contentEl = policyContainer.querySelector('.policy-content');
                     // 格式化保单号（关键修复）
                     policyData.policyNo = formatPolicyNo(policyData.policyNo);
                     // 存入FYC保单号列表
@@ -663,10 +663,6 @@
                 { label: '缴费期间', key: 'paymentPeriod', noCopy: true, isNumeric: false },
                 { label: '缴费方式', key: 'paymentMethod', noCopy: true, isNumeric: false },
             ];
-
-            if (data.totalIncome !== undefined) {
-                fields.push({ label: '总收入', key: 'totalIncome', noCopy: true, isNumeric: true, isRed: true });
-            }
 
             if (data.continuousNoWaiting) {
                 fields.push(
@@ -1048,7 +1044,7 @@
         }
 
         // 创建带折叠功能的保单容器（默认折叠）
-        function createPolicyContainer(policyNum, totalIncome, isEmpty = false) {
+        function createPolicyContainer(titleText, totalIncome, isEmpty = false) {
             const container = document.createElement('div');
             container.className = 'policy-container';
 
@@ -1057,7 +1053,7 @@
 
             const title = document.createElement('div');
             title.className = 'policy-title';
-            title.textContent = `保单 ${policyNum}`;
+            title.textContent = titleText;
 
             const headerRight = document.createElement('div');
             headerRight.style.display = 'flex';
