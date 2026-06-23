@@ -1,6 +1,14 @@
 document.addEventListener('DOMContentLoaded', function () {
-    // ---------- 获取元素 ----------
+    // ---------- DOM 元素 ----------
     const editor = document.getElementById('editor');
+    const readDisplay = document.getElementById('read');
+    const docList = document.getElementById('doc-list');
+    const mobileDocList = document.getElementById('mobile-doc-list');
+    const newDocBtn = document.getElementById('newDocBtn');
+    const mobileNewDocBtn = document.getElementById('mobileNewDocBtn');
+    const mobileDocBtn = document.getElementById('mobileDocBtn');
+    const mobileOverlay = document.getElementById('mobile-overlay');
+    const mobileDrawerClose = document.getElementById('mobileDrawerClose');
     const scrollTopButton = document.getElementById('scrollTopButton');
     const cleanMarkdownButton = document.getElementById('cleanMarkdown');
     const numBigButton = document.getElementById('numBigButton');
@@ -8,26 +16,250 @@ document.addEventListener('DOMContentLoaded', function () {
     const clearButton = document.getElementById('clearButton');
     const xhButton = document.getElementById('xh');
     const cbzButton = document.getElementById('cbzButton');
-    const readDisplay = document.getElementById('read');
 
-    // ---------- localStorage 统一键名 ----------
-    const STORAGE_KEY = 'xzt';
+    // ---------- 数据存储 ----------
+    const STORAGE_KEY = 'xzt_docs';
+    const OLD_KEY = 'xzt';
 
-    // ---------- 撤销历史 ----------
-    var undoStack = [];
+    // ---------- 数据模型 ----------
+    let docs = [];
+    let currentId = null;
+    // 撤销历史：每个文档独立
+    let undoStacks = {}; // { docId: [ ... ] }
     const MAX_UNDO = 50;
 
-    function saveState() {
-        undoStack.push(editor.value);
-        if (undoStack.length > MAX_UNDO) {
-            undoStack.shift();
+    // ---------- 工具函数 ----------
+    function generateId() {
+        return Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    }
+
+    function getFirstNonEmptyLine(text) {
+        const lines = text.split('\n');
+        for (let line of lines) {
+            if (line.trim()) return line.trim();
         }
+        return '无标题';
+    }
+
+    // ---------- 加载 / 保存数据 ----------
+    function loadDocs() {
+        let data = localStorage.getItem(STORAGE_KEY);
+        if (data) {
+            try {
+                const parsed = JSON.parse(data);
+                docs = parsed.docs || [];
+                currentId = parsed.currentId || null;
+            } catch (e) {
+                docs = [];
+                currentId = null;
+            }
+        } else {
+            // 尝试迁移旧数据
+            const old = localStorage.getItem(OLD_KEY);
+            if (old) {
+                const id = generateId();
+                docs = [{
+                    id: id,
+                    title: getFirstNonEmptyLine(old),
+                    content: old
+                }];
+                currentId = id;
+                // 删除旧键
+                localStorage.removeItem(OLD_KEY);
+                saveDocs();
+            } else {
+                // 没有任何数据，创建默认文档
+                const id = generateId();
+                docs = [{
+                    id: id,
+                    title: '无标题',
+                    content: ''
+                }];
+                currentId = id;
+                saveDocs();
+            }
+        }
+        // 确保 currentId 有效
+        if (!docs.some(d => d.id === currentId)) {
+            if (docs.length) currentId = docs[0].id;
+            else {
+                // 极端情况，新建
+                const id = generateId();
+                docs.push({ id, title: '无标题', content: '' });
+                currentId = id;
+                saveDocs();
+            }
+        }
+        // 初始化撤销栈
+        docs.forEach(doc => {
+            if (!undoStacks[doc.id]) undoStacks[doc.id] = [];
+        });
+    }
+
+    function saveDocs() {
+        const data = JSON.stringify({ docs, currentId });
+        localStorage.setItem(STORAGE_KEY, data);
+    }
+
+    function getCurrentDoc() {
+        return docs.find(d => d.id === currentId);
+    }
+
+    // ---------- 保存当前文档内容 ----------
+    function saveCurrentContent() {
+        const doc = getCurrentDoc();
+        if (!doc) return;
+        const content = editor.value;
+        if (doc.content !== content) {
+            doc.content = content;
+            // 更新标题
+            const newTitle = getFirstNonEmptyLine(content);
+            if (doc.title !== newTitle) {
+                doc.title = newTitle;
+            }
+            saveDocs();
+            renderLists();
+        }
+    }
+
+    // ---------- 切换文档 ----------
+    function switchDoc(id) {
+        if (id === currentId) return;
+        // 保存当前文档内容
+        saveCurrentContent();
+        // 保存当前撤销栈
+        if (currentId) {
+            undoStacks[currentId] = undoStacks[currentId] || [];
+        }
+        // 切换到新文档
+        currentId = id;
+        const doc = getCurrentDoc();
+        if (doc) {
+            editor.value = doc.content;
+            // 恢复该文档的撤销栈
+            if (!undoStacks[id]) undoStacks[id] = [];
+            updateReadTime();
+            renderLists();
+            // 更新高亮
+            highlightActive();
+            // 滚动到顶部
+            editor.scrollTop = 0;
+            editor.focus();
+        }
+        // 保存当前状态
+        saveDocs();
+    }
+
+    // ---------- 新建文档 ----------
+    function createNewDoc() {
+        const id = generateId();
+        const newDoc = {
+            id: id,
+            title: '无标题',
+            content: ''
+        };
+        docs.push(newDoc);
+        undoStacks[id] = [];
+        // 切换到新文档
+        currentId = id;
+        editor.value = '';
+        updateReadTime();
+        saveDocs();
+        renderLists();
+        highlightActive();
+        editor.focus();
+        // 关闭手机浮层
+        closeMobileDrawer();
+    }
+
+    // ---------- 删除文档 ----------
+    function deleteDoc(id) {
+        if (docs.length <= 1) {
+            showAutoCloseAlert('至少保留一个文档');
+            return;
+        }
+        if (!confirm('确定删除此文档吗？')) return;
+        // 从数组中移除
+        const idx = docs.findIndex(d => d.id === id);
+        if (idx === -1) return;
+        docs.splice(idx, 1);
+        // 删除撤销栈
+        delete undoStacks[id];
+        // 如果删除的是当前文档，切换到第一个
+        if (currentId === id) {
+            currentId = docs[0].id;
+            const doc = docs[0];
+            editor.value = doc.content;
+            updateReadTime();
+            // 切换到目标撤销栈
+            if (!undoStacks[currentId]) undoStacks[currentId] = [];
+        }
+        saveDocs();
+        renderLists();
+        highlightActive();
+        // 关闭浮层
+        closeMobileDrawer();
+    }
+
+    // ---------- 渲染列表（PC和手机） ----------
+    function renderLists() {
+        renderList(docList, 'doc-item', 'doc-delete');
+        renderList(mobileDocList, 'mobile-doc-item', 'doc-delete');
+    }
+
+    function renderList(container, itemClass, deleteClass) {
+        if (!container) return;
+        container.innerHTML = '';
+        docs.forEach(doc => {
+            const div = document.createElement('div');
+            div.className = itemClass;
+            if (doc.id === currentId) div.classList.add('active');
+
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'doc-title';
+            titleSpan.textContent = doc.title;
+            div.appendChild(titleSpan);
+
+            const delBtn = document.createElement('button');
+            delBtn.className = deleteClass;
+            delBtn.textContent = '×';
+            delBtn.title = '删除';
+            delBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                deleteDoc(doc.id);
+            });
+            div.appendChild(delBtn);
+
+            div.addEventListener('click', function () {
+                switchDoc(doc.id);
+                // 手机端切换后关闭浮层
+                closeMobileDrawer();
+            });
+
+            container.appendChild(div);
+        });
+    }
+
+    function highlightActive() {
+        // 高亮更新通过重新渲染完成
+        // 但为了性能，可以只更新类，但简单重新渲染
+        renderLists();
+    }
+
+    // ---------- 浮层控制 ----------
+    function openMobileDrawer() {
+        mobileOverlay.classList.add('show');
+        renderLists(); // 确保内容最新
+    }
+
+    function closeMobileDrawer() {
+        mobileOverlay.classList.remove('show');
     }
 
     // ---------- 字数统计 ----------
     function countWords(text) {
-        var wordRegex = /[\u4e00-\u9fa5a-zA-Z0-9]+/g;
-        var matches = text.match(wordRegex);
+        const wordRegex = /[\u4e00-\u9fa5a-zA-Z0-9]+/g;
+        const matches = text.match(wordRegex);
         return matches ? matches.join('').length : 0;
     }
 
@@ -37,124 +269,79 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function updateReadTime() {
-        var text = editor.value;
-        var wordCount = countWords(text);
-        var readTime = madeReadTime(wordCount);
-        readDisplay.textContent = "全文 " + wordCount + " 字 预计 " + readTime + " 分钟";
+        const text = editor.value;
+        const wordCount = countWords(text);
+        const readTime = madeReadTime(wordCount);
+        readDisplay.textContent = '全文 ' + wordCount + ' 字 预计 ' + readTime + ' 分钟';
     }
 
     // ---------- 置顶 ----------
     function scrollTop() {
-        editor.scrollTo({
-            top: 0,
-            left: 0,
-            behavior: 'smooth'
-        });
+        editor.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
     }
 
-    // ---------- 加载 / 保存 ----------
-    function loadText() {
-        const text = localStorage.getItem(STORAGE_KEY);
-        if (text) {
-            editor.value = text;
-        } else {
-            localStorage.removeItem(STORAGE_KEY);
-        }
-    }
-    loadText();
-    updateReadTime();
-    editor.scrollBy = 0;
-
-    function saveText() {
-        localStorage.setItem(STORAGE_KEY, editor.value);
+    // ---------- 撤销历史操作 ----------
+    function saveState() {
+        const id = currentId;
+        if (!id) return;
+        if (!undoStacks[id]) undoStacks[id] = [];
+        const stack = undoStacks[id];
+        // 如果内容与栈顶相同，不重复添加
+        const currentContent = editor.value;
+        if (stack.length > 0 && stack[stack.length - 1] === currentContent) return;
+        stack.push(currentContent);
+        if (stack.length > MAX_UNDO) stack.shift();
     }
 
-    // ---------- 快捷键 ----------
-    function handleKeyDown(event) {
-        // Ctrl+Z 撤销
-        if (event.ctrlKey && event.key === 'z' && document.activeElement === editor) {
-            if (undoStack.length > 0) {
-                event.preventDefault();
-                const prevText = undoStack.pop();
-                editor.value = prevText;
-                updateReadTime();
-                saveText();
-                showAutoCloseAlert("已撤销");
-            }
+    function undo() {
+        const id = currentId;
+        if (!id) return;
+        const stack = undoStacks[id];
+        if (!stack || stack.length === 0) {
+            showAutoCloseAlert('没有可撤销的操作');
             return;
         }
+        const prev = stack.pop();
+        editor.value = prev;
+        updateReadTime();
+        // 保存当前内容
+        saveCurrentContent();
+        showAutoCloseAlert('已撤销');
+    }
 
-        if (event.altKey && event.key === '1') {
-            event.preventDefault();
+    // 快捷键 Ctrl+Z
+    document.addEventListener('keydown', function (e) {
+        if (e.ctrlKey && e.key === 'z' && document.activeElement === editor) {
+            e.preventDefault();
+            undo();
+        }
+    });
+
+    // 其他快捷键（Alt+1, Alt+4, Alt+C, Ctrl+S）
+    document.addEventListener('keydown', function (e) {
+        if (e.altKey && e.key === '1') {
+            e.preventDefault();
             scrollTop();
         }
-        if (event.altKey && event.key === '4') {
-            event.preventDefault();
+        if (e.altKey && e.key === '4') {
+            e.preventDefault();
             numBig();
         }
-        if (event.altKey && event.key.toLowerCase() === 'c') {
-            event.preventDefault();
+        if (e.altKey && e.key.toLowerCase() === 'c') {
+            e.preventDefault();
             copy();
         }
-        if (event.ctrlKey && event.key.toLowerCase() === 's') {
-            event.preventDefault();
+        if (e.ctrlKey && e.key.toLowerCase() === 's') {
+            e.preventDefault();
             reformatText();
         }
-    }
-    document.addEventListener('keydown', handleKeyDown);
-
-    // ---------- 花边字（保留但未启用） ----------
-    function addFancyBorders() {
-        saveState();
-        let text = editor.value;
-        const urlRegex = /https?:\/\/[^\s]+/g;
-        const urlPlaceholders = [];
-        text = text.replace(urlRegex, function(match) {
-            urlPlaceholders.push(match);
-            return String.fromCharCode(0xE000 + urlPlaceholders.length - 1);
-        });
-
-        const fancyChars = ['໌້', ' ຼ'];
-        const characters = text.split('');
-        const decoratedText = characters.map(char => char);
-        const punctuationRegex = /[.,、\/#!$%\^&\*;:{}=\-_`~()]/g;
-        const newlineRegex = /\n/g;
-        const digitRegex = /\d/g;
-        let match;
-        const indexesToSkip = [];
-        while ((match = punctuationRegex.exec(text)) !== null) {
-            indexesToSkip.push(match.index);
-        }
-        while ((match = newlineRegex.exec(text)) !== null) {
-            indexesToSkip.push(match.index);
-        }
-        while ((match = digitRegex.exec(text)) !== null) {
-            indexesToSkip.push(match.index);
-        }
-
-        for (let i = 0; i < decoratedText.length; i++) {
-            if (indexesToSkip.includes(i)) continue;
-            const randomChar = fancyChars[Math.floor(Math.random() * fancyChars.length)];
-            const random_number = Math.floor(Math.random() * 9);
-            if (i % random_number === 0 && Math.random() > 0.9) {
-                decoratedText[i] += randomChar;
-            }
-        }
-
-        text = decoratedText.join('');
-        text = text.replace(/[\uE000-\uE7FF]/g, function(ch) {
-            const idx = ch.charCodeAt(0) - 0xE000;
-            return urlPlaceholders[idx] || ch;
-        });
-        editor.value = text;
-        updateReadTime();
-        saveText();
-    }
+    });
 
     // ---------- 数字加粗（字体滤镜） ----------
     function numBig() {
         saveState();
         let text = editor.value;
+        // URL保护（略，沿用之前逻辑）
         const urlRegex = /https?:\/\/[^\s]+/g;
         const urlPlaceholders = [];
         text = text.replace(urlRegex, function(match) {
@@ -175,104 +362,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 .replace(/𝟴/g, '8')
                 .replace(/𝟵/g, '9');
             text = text.replace(/𝗔|𝗕|𝗖|𝗗|𝗘|𝗙|𝗚|𝗛|𝗜|𝗝|𝗞|𝗟|𝗠|𝗡|𝗢|𝗣|𝗤|𝗥|𝗦|𝗧|𝗨|𝗩|𝗪|𝗫|𝗬|𝗭/g, function (char) {
-                switch (char) {
-                    case '𝗔': return 'A';
-                    case '𝗕': return 'B';
-                    case '𝗖': return 'C';
-                    case '𝗗': return 'D';
-                    case '𝗘': return 'E';
-                    case '𝗙': return 'F';
-                    case '𝗚': return 'G';
-                    case '𝗛': return 'H';
-                    case '𝗜': return 'I';
-                    case '𝗝': return 'J';
-                    case '𝗞': return 'K';
-                    case '𝗟': return 'L';
-                    case '𝗠': return 'M';
-                    case '𝗡': return 'N';
-                    case '𝗢': return 'O';
-                    case '𝗣': return 'P';
-                    case '𝗤': return 'Q';
-                    case '𝗥': return 'R';
-                    case '𝗦': return 'S';
-                    case '𝗧': return 'T';
-                    case '𝗨': return 'U';
-                    case '𝗩': return 'V';
-                    case '𝗪': return 'W';
-                    case '𝗫': return 'X';
-                    case '𝗬': return 'Y';
-                    case '𝗭': return 'Z';
-                    default: return char;
-                }
+                const map = {
+                    '𝗔':'A','𝗕':'B','𝗖':'C','𝗗':'D','𝗘':'E','𝗙':'F','𝗚':'G','𝗛':'H',
+                    '𝗜':'I','𝗝':'J','𝗞':'K','𝗟':'L','𝗠':'M','𝗡':'N','𝗢':'O','𝗣':'P',
+                    '𝗤':'Q','𝗥':'R','𝗦':'S','𝗧':'T','𝗨':'U','𝗩':'V','𝗪':'W','𝗫':'X',
+                    '𝗬':'Y','𝗭':'Z'
+                };
+                return map[char] || char;
             });
             localStorage.removeItem('numBig');
         } else {
             text = text.split('').map(char => {
-                switch (char) {
-                    case '0': return '𝟬';
-                    case '1': return '𝟭';
-                    case '2': return '𝟮';
-                    case '3': return '𝟯';
-                    case '4': return '𝟰';
-                    case '5': return '𝟱';
-                    case '6': return '𝟲';
-                    case '7': return '𝟳';
-                    case '8': return '𝟴';
-                    case '9': return '𝟵';
-                    case 'a': return '𝗮';
-                    case 'b': return '𝗯';
-                    case 'c': return '𝗰';
-                    case 'd': return '𝗱';
-                    case 'e': return '𝗲';
-                    case 'f': return '𝗳';
-                    case 'g': return '𝗴';
-                    case 'h': return '𝗵';
-                    case 'i': return '𝗶';
-                    case 'j': return '𝗷';
-                    case 'k': return '𝗸';
-                    case 'l': return '𝗹';
-                    case 'm': return '𝗺';
-                    case 'n': return '𝗻';
-                    case 'o': return '𝗼';
-                    case 'p': return '𝗽';
-                    case 'q': return '𝗾';
-                    case 'r': return '𝗿';
-                    case 's': return '𝘀';
-                    case 't': return '𝘁';
-                    case 'u': return '𝘂';
-                    case 'v': return '𝘃';
-                    case 'w': return '𝘄';
-                    case 'x': return '𝘅';
-                    case 'y': return '𝘆';
-                    case 'z': return '𝘇';
-                    case 'A': return '𝗔';
-                    case 'B': return '𝗕';
-                    case 'C': return '𝗖';
-                    case 'D': return '𝗗';
-                    case 'E': return '𝗘';
-                    case 'F': return '𝗙';
-                    case 'G': return '𝗚';
-                    case 'H': return '𝗛';
-                    case 'I': return '𝗜';
-                    case 'J': return '𝗝';
-                    case 'K': return '𝗞';
-                    case 'L': return '𝗟';
-                    case 'M': return '𝗠';
-                    case 'N': return '𝗡';
-                    case 'O': return '𝗢';
-                    case 'P': return '𝗣';
-                    case 'Q': return '𝗤';
-                    case 'R': return '𝗥';
-                    case 'S': return '𝗦';
-                    case 'T': return '𝗧';
-                    case 'U': return '𝗨';
-                    case 'V': return '𝗩';
-                    case 'W': return '𝗪';
-                    case 'X': return '𝗫';
-                    case 'Y': return '𝗬';
-                    case 'Z': return '𝗭';
-                    default: return char;
-                }
+                const boldMap = {
+                    '0':'𝟬','1':'𝟭','2':'𝟮','3':'𝟯','4':'𝟰','5':'𝟱','6':'𝟲','7':'𝟳','8':'𝟴','9':'𝟵',
+                    'a':'𝗮','b':'𝗯','c':'𝗰','d':'𝗱','e':'𝗲','f':'𝗳','g':'𝗴','h':'𝗵','i':'𝗶','j':'𝗷',
+                    'k':'𝗸','l':'𝗹','m':'𝗺','n':'𝗻','o':'𝗼','p':'𝗽','q':'𝗾','r':'𝗿','s':'𝘀','t':'𝘁',
+                    'u':'𝘂','v':'𝘃','w':'𝘄','x':'𝘅','y':'𝘆','z':'𝘇',
+                    'A':'𝗔','B':'𝗕','C':'𝗖','D':'𝗗','E':'𝗘','F':'𝗙','G':'𝗚','H':'𝗛','I':'𝗜','J':'𝗝',
+                    'K':'𝗞','L':'𝗟','M':'𝗠','N':'𝗡','O':'𝗢','P':'𝗣','Q':'𝗤','R':'𝗥','S':'𝗦','T':'𝗧',
+                    'U':'𝗨','V':'𝗩','W':'𝗪','X':'𝗫','Y':'𝗬','Z':'𝗭'
+                };
+                return boldMap[char] || char;
             }).join('');
             localStorage.setItem('numBig', 1);
         }
@@ -283,7 +393,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         editor.value = text;
         updateReadTime();
-        saveText();
+        saveCurrentContent();
     }
 
     // ---------- 排版 ----------
@@ -291,58 +401,63 @@ document.addEventListener('DOMContentLoaded', function () {
         if (saveHistory) saveState();
         try {
             let text = editor.value;
-            if (text) {
-                const urlRegex = /https?:\/\/[^\s]+/g;
-                const urlPlaceholders = [];
-                text = text.replace(urlRegex, function(match) {
-                    urlPlaceholders.push(match);
-                    return String.fromCharCode(0xE000 + urlPlaceholders.length - 1);
-                });
-
-                text = text.replace(/,/g, '，').replace(/:/g, '：');
-                text = text.replace(/(\d+%?)-(\d+%?)/g, '$1~$2');
-                text = text.replace(/。[ \t]*$/gm, '');
-                text = text.replace(/([\u4e00-\u9fa5])([A-Za-z0-9])/g, '$1 $2');
-                text = text.replace(/([A-Za-z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
-                text = text.replace(/([\u4e00-\u9fa5])(\d)/g, '$1 $2');
-                text = text.replace(/(\d)([\u4e00-\u9fa5])/g, '$1 $2');
-                text = text.replace(/(\d)([A-Za-z])/g, '$1 $2');
-                text = text.replace(/([A-Za-z])(\d)/g, '$1 $2');
-                text = text.replace(/“/g, '「').replace(/”/g, '」');
-                text = text.replace(/"([^"]+)"/g, '「$1」');
-                text = text.replace(/%([\u4e00-\u9fa5])/g, '% $1');
-                text = text.replace(/%\s+(?=[，,])/g, '%');
-                text = text.replace(new RegExp('\\[语音开始\\]', 'g'), '');
-                text = text.replace(new RegExp('\\[语音结束\\]', 'g'), '');
-                text = text.replace(/^\s+/, '');
-                text = text.replace(/(\n\s*){2,}/g, '\n\n');
-                text = removeTrailingEmptyLines(text);
-
-                text = text.replace(/[\uE000-\uE7FF]/g, function(ch) {
-                    const idx = ch.charCodeAt(0) - 0xE000;
-                    return urlPlaceholders[idx] || ch;
-                });
-
-                editor.value = text;
-                updateReadTime();
-                saveText();
-                showAutoCloseAlert("已美化保存");
-            } else {
+            if (!text) {
                 localStorage.removeItem(STORAGE_KEY);
+                return;
             }
+            const urlRegex = /https?:\/\/[^\s]+/g;
+            const urlPlaceholders = [];
+            text = text.replace(urlRegex, function(match) {
+                urlPlaceholders.push(match);
+                return String.fromCharCode(0xE000 + urlPlaceholders.length - 1);
+            });
+
+            text = text.replace(/,/g, '，').replace(/:/g, '：');
+            text = text.replace(/(\d+%?)-(\d+%?)/g, '$1~$2');
+            text = text.replace(/。[ \t]*$/gm, '');
+            text = text.replace(/([\u4e00-\u9fa5])([A-Za-z0-9])/g, '$1 $2');
+            text = text.replace(/([A-Za-z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
+            text = text.replace(/([\u4e00-\u9fa5])(\d)/g, '$1 $2');
+            text = text.replace(/(\d)([\u4e00-\u9fa5])/g, '$1 $2');
+            text = text.replace(/(\d)([A-Za-z])/g, '$1 $2');
+            text = text.replace(/([A-Za-z])(\d)/g, '$1 $2');
+            text = text.replace(/“/g, '「').replace(/”/g, '」');
+            text = text.replace(/"([^"]+)"/g, '「$1」');
+            text = text.replace(/%([\u4e00-\u9fa5])/g, '% $1');
+            text = text.replace(/%\s+(?=[，,])/g, '%');
+            text = text.replace(new RegExp('\\[语音开始\\]', 'g'), '');
+            text = text.replace(new RegExp('\\[语音结束\\]', 'g'), '');
+            text = text.replace(/^\s+/, '');
+            text = text.replace(/(\n\s*){2,}/g, '\n\n');
+            text = removeTrailingEmptyLines(text);
+
+            text = text.replace(/[\uE000-\uE7FF]/g, function(ch) {
+                const idx = ch.charCodeAt(0) - 0xE000;
+                return urlPlaceholders[idx] || ch;
+            });
+
+            editor.value = text;
+            updateReadTime();
+            saveCurrentContent();
+            showAutoCloseAlert('已美化保存');
         } catch (e) {
             console.error('排版出错:', e);
             showAutoCloseAlert('排版出错，请检查控制台');
         }
     }
 
+    function removeTrailingEmptyLines(text) {
+        const lines = text.split('\n');
+        let last = lines.length - 1;
+        while (last >= 0 && lines[last].trim() === '') last--;
+        return lines.slice(0, last + 1).join('\n');
+    }
+
     // ---------- 复制 ----------
     async function copy(type) {
         try {
             await navigator.clipboard.writeText(editor.value);
-            if (type !== "linkCbz") {
-                showAutoCloseAlert("复制成功");
-            }
+            if (type !== 'linkCbz') showAutoCloseAlert('复制成功');
         } catch (e) {
             const textArea = document.createElement('textarea');
             textArea.value = editor.value;
@@ -350,22 +465,8 @@ document.addEventListener('DOMContentLoaded', function () {
             textArea.select();
             document.execCommand('copy');
             document.body.removeChild(textArea);
-            if (type !== "linkCbz") {
-                showAutoCloseAlert("复制成功（降级方式）");
-            }
+            if (type !== 'linkCbz') showAutoCloseAlert('复制成功（降级方式）');
         }
-    }
-
-    // ---------- 辅助函数 ----------
-    function removeTrailingEmptyLines(text) {
-        var lines = text.split('\n');
-        var lastNonEmptyLineIndex = lines.reduce((index, line, idx) => {
-            return line.trim() ? idx : index;
-        }, -1);
-        if (lastNonEmptyLineIndex === -1) {
-            return '';
-        }
-        return lines.slice(0, lastNonEmptyLineIndex + 1).join('\n');
     }
 
     // ---------- 清除 Markdown ----------
@@ -384,7 +485,7 @@ document.addEventListener('DOMContentLoaded', function () {
         scrollTop();
     }
 
-    // ---------- 跳转写作猫（错别字） ----------
+    // ---------- 跳转写作猫 ----------
     function linkCbz() {
         copy('linkCbz');
         window.open('https://xiezuocat.com/pro/8689953271362609152', '_blank');
@@ -392,25 +493,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ---------- 清空 ----------
     function clear() {
-        if (confirm('确定要清空吗？')) {
+        if (confirm('确定要清空当前文档吗？')) {
             saveState();
             editor.value = '';
-            // 清除所有项目相关的本地存储
-            localStorage.removeItem(STORAGE_KEY);
-            localStorage.removeItem('numBig');   // 清除字体滤镜状态
+            localStorage.removeItem('numBig');
             updateReadTime();
-            location.reload(true);
+            saveCurrentContent();
+            showAutoCloseAlert('已清空');
         }
     }
 
-    // ---------- 序号切换（仅处理行首，支持 1、↔ 001 空格） ----------
+    // ---------- 序号切换 ----------
     function xhText() {
         saveState();
         let text = editor.value;
-
-        function isNormalDigit(ch) {
-            return ch >= '0' && ch <= '9';
-        }
+        function isNormalDigit(ch) { return ch >= '0' && ch <= '9'; }
 
         function processLine(line) {
             const leading = line.match(/^[ \t]*/)[0];
@@ -420,11 +517,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
             let numSeq = '';
             for (let i = 0; i < rest.length && i < 3; i++) {
-                if (isNormalDigit(rest[i])) {
-                    numSeq += rest[i];
-                } else {
-                    break;
-                }
+                if (isNormalDigit(rest[i])) numSeq += rest[i];
+                else break;
             }
             if (numSeq.length === 0) return line;
 
@@ -448,7 +542,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 targetNum = value.toString().padStart(3, '0');
                 targetDelimiter = ' ';
             }
-
             return leading + targetNum + targetDelimiter + after;
         }
 
@@ -461,14 +554,13 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         if (!hasChanged) {
-            showAutoCloseAlert("未找到行首序号格式（如 1、 或 001 ）");
+            showAutoCloseAlert('未找到行首序号格式（如 1、 或 001 ）');
             return;
         }
-
         editor.value = newLines.join('\n');
         updateReadTime();
-        saveText();
-        showAutoCloseAlert("序号切换成功");
+        saveCurrentContent();
+        showAutoCloseAlert('序号切换成功');
     }
 
     // ---------- 自定义提示 ----------
@@ -489,12 +581,28 @@ document.addEventListener('DOMContentLoaded', function () {
         alert.style.fontSize = '16px';
         alert.textContent = message;
         document.body.appendChild(alert);
-        setTimeout(() => {
-            alert.remove();
-        }, 800);
+        setTimeout(() => alert.remove(), 800);
     }
 
     // ---------- 事件绑定 ----------
+    // 编辑器输入事件：保存当前文档内容，更新字数，更新标题（在saveCurrentContent中已包含标题更新）
+    editor.addEventListener('input', function () {
+        updateReadTime();
+        saveCurrentContent(); // 会更新标题并重绘列表
+    });
+
+    // 新建文档
+    newDocBtn.addEventListener('click', createNewDoc);
+    mobileNewDocBtn.addEventListener('click', createNewDoc);
+
+    // 手机端文档按钮
+    mobileDocBtn.addEventListener('click', openMobileDrawer);
+    mobileDrawerClose.addEventListener('click', closeMobileDrawer);
+    mobileOverlay.addEventListener('click', function (e) {
+        if (e.target === mobileOverlay) closeMobileDrawer();
+    });
+
+    // 其他按钮
     scrollTopButton.addEventListener('click', scrollTop);
     numBigButton.addEventListener('click', numBig);
     copyButton.addEventListener('click', copy);
@@ -503,11 +611,26 @@ document.addEventListener('DOMContentLoaded', function () {
     cleanMarkdownButton.addEventListener('click', cleanMarkdown);
     cbzButton.addEventListener('click', linkCbz);
 
-    editor.addEventListener('input', updateReadTime);
-
-    document.addEventListener('keydown', (e) => {
+    // Delete 键清空（仅当编辑器未聚焦时）
+    document.addEventListener('keydown', function (e) {
         if (e.key === 'Delete' && document.activeElement !== editor) {
             clear();
         }
     });
+
+    // ---------- 初始化 ----------
+    loadDocs();
+    const doc = getCurrentDoc();
+    if (doc) {
+        editor.value = doc.content;
+        updateReadTime();
+        renderLists();
+        highlightActive();
+        // 初始化撤销栈
+        if (!undoStacks[currentId]) undoStacks[currentId] = [];
+        editor.focus();
+    } else {
+        // 理论上不会发生
+        createNewDoc();
+    }
 });
