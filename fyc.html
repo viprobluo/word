@@ -443,6 +443,7 @@
         // 核心配置：FYC字段映射（关键修改：保单号改为items.policycode）
         const FIELD_MAPPING = {
             policyNo: ['items.policycode', 'policycode'], // 优先取items下的policycode，兼容直接的policycode
+            prePolicyCode: ['prepolicycode'],
             productName: ['productname'],
             holdername: ['holdername'],
             insuredName: ['inseredname'],
@@ -548,6 +549,9 @@
                     policyData.effectiveDate = timestampToDate(policyData.effectiveDate);
                     policyData.orderTime = timestampToDate(policyData.orderTime);
 
+                    // 判断是否连续投保（有上一期保单号即为连续投保）
+                    policyData.isContinuous = !!(policyData.prePolicyCode && policyData.prePolicyCode.trim() !== '');
+
                     // 格式化数字字段
                     const numericFields = ['premium', 'policyServiceFee', 'promotionFee', 'promotionReward', 'performance'];
                     numericFields.forEach(field => {
@@ -564,10 +568,18 @@
                         noWaitingPeriodProducts.add(policyData.productName);
                     }
 
-                    policyData.waitingEndDate = calculateWaitingEndDate(policyData.effectiveDate, waitingDays);
-                    policyData.waitingPeriodDays = waitingDays >= 0 ? `${waitingDays}天` : '未配置';
+                    // 医疗险连续投保无等待期
+                    if (policyData.isContinuous && isConfigured && (waitingDays > 0 || isDual)) {
+                        policyData.waitingPeriodDays = '连续投保，无等待期';
+                        policyData.waitingEndDate = '连续投保，无等待期';
+                        policyData.continuousNoWaiting = true;
+                    } else {
+                        policyData.waitingEndDate = calculateWaitingEndDate(policyData.effectiveDate, waitingDays);
+                        policyData.waitingPeriodDays = waitingDays >= 0 ? `${waitingDays}天` : '未配置';
+                        policyData.continuousNoWaiting = false;
+                    }
 
-                    if (isDual) {
+                    if (isDual && !policyData.continuousNoWaiting) {
                         policyData.newDiseaseWaitingDays = `${newDiseaseDays}天`;
                         policyData.newDiseaseWaitingEndDate = calculateWaitingEndDate(policyData.effectiveDate, newDiseaseDays);
                         policyData.generalHistoryWaitingDays = `${generalHistoryDays}天`;
@@ -643,7 +655,11 @@
                 { label: '缴费方式', key: 'paymentMethod', noCopy: true, isNumeric: false },
             ];
 
-            if (data.newDiseaseWaitingDays !== undefined) {
+            if (data.continuousNoWaiting) {
+                fields.push(
+                    { label: '等待期', key: 'waitingPeriodDays', noCopy: true, isNumeric: false }
+                );
+            } else if (data.newDiseaseWaitingDays !== undefined) {
                 fields.push(
                     { label: '新发疾病等待期', key: 'newDiseaseWaitingDays', noCopy: true, isNumeric: false },
                     { label: '新发疾病等待期结束日', key: 'newDiseaseWaitingEndDate', noCopy: true, isNumeric: false },
