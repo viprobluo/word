@@ -227,25 +227,6 @@ h1 {
     user-select: text;
     cursor: text;
 }
-.entry .body-text .float-collapse-btn {
-    position: absolute;
-    bottom: 8px;
-    right: 8px;
-    padding: 4px 10px;
-    font-size: 12px;
-    border-radius: 6px;
-    background: rgba(26, 115, 232, 0.9);
-    color: #fff;
-    border: none;
-    cursor: pointer;
-    z-index: 10;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    opacity: 0.7;
-    transition: opacity 0.2s;
-}
-.entry .body-text .float-collapse-btn:hover {
-    opacity: 1;
-}
 .entry .body-text .double-tap-hint {
     position: absolute;
     top: 8px;
@@ -401,12 +382,20 @@ window.toggleBody = function(id) {
     if (!body) return;
     const btn = document.querySelector(`.entry[data-id="${id}"] .toggle-body-btn`);
     if (!btn) return;
-    if (body.style.display === 'none') {
-        body.style.display = 'block';
-        btn.textContent = '折叠';
-    } else {
+    const entry = document.querySelector(`.entry[data-id="${id}"]`);
+    const isVisible = body.style.display !== 'none';
+
+    if (isVisible) {
+        const entryTop = entry.getBoundingClientRect().top + window.pageYOffset;
         body.style.display = 'none';
         btn.textContent = '展开';
+        window.scrollTo({
+            top: entryTop - 20,
+            behavior: 'auto'
+        });
+    } else {
+        body.style.display = 'block';
+        btn.textContent = '折叠';
     }
 };
 
@@ -573,7 +562,6 @@ function renderVisiblePosts() {
     <div id="body-${p.id}" class="body-text" style="display:none;" ondblclick="toggleBody('${p.id}')">
         <span class="double-tap-hint">双击折叠</span>
         ${safeContent}
-        <button class="float-collapse-btn" onclick="event.stopPropagation(); toggleBody('${p.id}')">折叠</button>
     </div>
 </div>\n\n`;
     });
