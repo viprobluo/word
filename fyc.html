@@ -428,6 +428,8 @@
             "安盛天平守护百万综合意外伤害保险": 0,
             "金钟罩": 0,
             "复星联合达尔文12号重大疾病保险": 180,
+            "中英人寿福临门两全保险C款（互联网）": 0,
+            "中荷互联网岁岁享3.0护理保险": 90,
         };
 
         // 核心配置：FYC字段映射（关键修改：保单号改为items.policycode）
@@ -726,20 +728,6 @@
             const actionBtnGroup = document.createElement('div');
             actionBtnGroup.className = 'policy-actions';
 
-            // 复制文件名按钮
-            const copyFileNameBtn = document.createElement('button');
-            copyFileNameBtn.className = 'copy-btn';
-            copyFileNameBtn.textContent = '复制文件名';
-            if (!data.linkedPolicy) {
-                copyFileNameBtn.disabled = true;
-                copyFileNameBtn.title = '未匹配到保单下载数据';
-            } else {
-                const fileName = getPolicyFileName(data.linkedPolicy);
-                copyFileNameBtn.addEventListener('click', () => {
-                    copyToClipboard(fileName, '文件名复制成功');
-                });
-            }
-
             // 下载合同按钮
             const downloadBtn = document.createElement('button');
             downloadBtn.className = 'download-btn';
@@ -753,7 +741,6 @@
                 });
             }
 
-            actionBtnGroup.appendChild(copyFileNameBtn);
             actionBtnGroup.appendChild(downloadBtn);
             actionValueEl.appendChild(actionBtnGroup);
             actionFieldItem.appendChild(actionLabelEl);
