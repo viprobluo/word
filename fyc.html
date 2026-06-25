@@ -803,7 +803,7 @@
                         ? '0'
                         : (data[field.key] || '');
                 }
-                valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong>${displayValue}${field.note ? `<span style="color: #999; font-size: 12px; margin-left: 8px;">${field.note}</span>` : ''}`;
+                valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong>${displayValue}${field.note ? `<div style="color: #999; font-size: 12px; margin-top: 4px;">${field.note}</div>` : ''}`;
 
                 fieldItem.appendChild(valueEl);
 
@@ -1109,6 +1109,24 @@
             headerRight.style.alignItems = 'center';
             headerRight.style.gap = '12px';
 
+            // 下载合同按钮（放在总收入左边）
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'download-btn';
+            downloadBtn.textContent = '下载合同';
+            if (!linkedPolicy) {
+                downloadBtn.disabled = true;
+                downloadBtn.title = '未匹配到保单下载数据';
+            } else if (!linkedPolicy.pdfUrl) {
+                downloadBtn.disabled = true;
+                downloadBtn.title = '无下载链接';
+            } else {
+                downloadBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    downloadPolicyPdf(linkedPolicy);
+                });
+            }
+            headerRight.appendChild(downloadBtn);
+
             if (totalIncome !== undefined && totalIncome !== null) {
                 const totalIncomeEl = document.createElement('div');
                 totalIncomeEl.style.color = '#f5222d';
@@ -1126,24 +1144,6 @@
                 perfEl.textContent = `业绩：${performance}`;
                 headerRight.appendChild(perfEl);
             }
-
-            // 下载合同按钮（放在总收入旁边）
-            const downloadBtn = document.createElement('button');
-            downloadBtn.className = 'download-btn';
-            downloadBtn.textContent = '下载合同';
-            if (!linkedPolicy) {
-                downloadBtn.disabled = true;
-                downloadBtn.title = '未匹配到保单下载数据';
-            } else if (!linkedPolicy.pdfUrl) {
-                downloadBtn.disabled = true;
-                downloadBtn.title = '无下载链接';
-            } else {
-                downloadBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    downloadPolicyPdf(linkedPolicy);
-                });
-            }
-            headerRight.appendChild(downloadBtn);
 
             const toggleBtn = document.createElement('button');
             toggleBtn.className = 'toggle-btn';
