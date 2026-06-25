@@ -117,6 +117,14 @@
             cursor: not-allowed;
         }
 
+        #clearBtn, #pdfClearBtn, .clear-btn {
+            background-color: #ff4d4f;
+        }
+
+        #clearBtn:hover, #pdfClearBtn:hover, .clear-btn:hover {
+            background-color: #ff7875;
+        }
+
         .result-section {
             margin-top: 20px;
             padding: 15px;
@@ -373,6 +381,7 @@
                 <h4>请输入保单JSON数据（工作台→保单→保单→Network→pageList）：</h4>
                 <textarea class="json-textarea" id="pdfJsonTextarea" placeholder="请粘贴完整的保单JSON数据到这里..."></textarea>
                 <button class="parse-btn" id="pdfParseBtn">解析保单</button>
+                <button class="clear-btn" id="pdfClearBtn">清空内容</button>
                 <div class="error-tip" id="pdfErrorTip">JSON格式错误，请检查数据后重新提交！</div>
             </div>
             <h3 style="color: #333; margin-bottom: 16px;">保单列表</h3>
@@ -405,7 +414,7 @@
     </div>
 
     <!-- 新增：版本信息区域 -->
-    <div class="version-info">版本号：v2.1.0 | 更新时间：2026年3月19日11:45:35
+    <div class="version-info">版本号：V2.2 | 更新时间：2026年6月25日23:11:39
     </div>
 
     <div class="toast" id="toast"></div>
@@ -428,6 +437,8 @@
             "安盛天平守护百万综合意外伤害保险": 0,
             "金钟罩": 0,
             "复星联合达尔文12号重大疾病保险": 180,
+            "中英人寿福临门两全保险C款（互联网）": 0,
+            "中荷互联网岁岁享3.0护理保险": 90,
         };
 
         // 核心配置：FYC字段映射（关键修改：保单号改为items.policycode）
@@ -448,14 +459,35 @@
             paymentPeriod: ['paycostdate'],
             paymentMethod: ['paytype'],
             applyDate: ['receivedate'],
-            channelCode: ['channelcode']
+            channelCode: ['channelcode'],
+            policyYear: ['policyyear']
         };
 
         // DOM加载完成后初始化
         document.addEventListener('DOMContentLoaded', () => {
             initTabSwitch();
             initEventListeners();
+            restoreFromLocalStorage();
         });
+
+        // 从本地存储恢复数据
+        function restoreFromLocalStorage() {
+            const fycData = localStorage.getItem('fyc_raw_data');
+            if (fycData) {
+                document.getElementById('jsonInput').value = fycData;
+                try {
+                    processFYCData();
+                } catch (e) {}
+            }
+
+            const policyData = localStorage.getItem('policy_download_raw_data');
+            if (policyData) {
+                document.getElementById('pdfJsonTextarea').value = policyData;
+                try {
+                    parsePolicyDownloadData();
+                } catch (e) {}
+            }
+        }
 
         // 初始化标签切换
         function initTabSwitch() {
@@ -476,14 +508,54 @@
         // 初始化事件监听
         function initEventListeners() {
             // FYC相关事件
-            document.getElementById('processBtn').addEventListener('click', processFYCData);
+            document.getElementById('jsonInput').addEventListener('input', () => {
+                const jsonStr = document.getElementById('jsonInput').value.trim();
+                if (jsonStr) {
+                    localStorage.setItem('fyc_raw_data', jsonStr);
+                } else {
+                    localStorage.removeItem('fyc_raw_data');
+                }
+            });
+            document.getElementById('processBtn').addEventListener('click', () => {
+                const jsonStr = document.getElementById('jsonInput').value.trim();
+                if (jsonStr) {
+                    localStorage.setItem('fyc_raw_data', jsonStr);
+                }
+                processFYCData();
+            });
             document.getElementById('clearBtn').addEventListener('click', () => {
                 document.getElementById('jsonInput').value = '';
                 document.getElementById('fycResult').innerHTML = '';
+                localStorage.removeItem('fyc_raw_data');
+                showToast('已清空FYC数据');
             });
 
             // 保单下载相关事件
-            document.getElementById('pdfParseBtn').addEventListener('click', parsePolicyDownloadData);
+            document.getElementById('pdfJsonTextarea').addEventListener('input', () => {
+                const jsonStr = document.getElementById('pdfJsonTextarea').value.trim();
+                if (jsonStr) {
+                    localStorage.setItem('policy_download_raw_data', jsonStr);
+                } else {
+                    localStorage.removeItem('policy_download_raw_data');
+                }
+            });
+            document.getElementById('pdfParseBtn').addEventListener('click', () => {
+                const jsonStr = document.getElementById('pdfJsonTextarea').value.trim();
+                if (jsonStr) {
+                    localStorage.setItem('policy_download_raw_data', jsonStr);
+                }
+                parsePolicyDownloadData();
+            });
+            document.getElementById('pdfClearBtn').addEventListener('click', () => {
+                document.getElementById('pdfJsonTextarea').value = '';
+                document.getElementById('policyTableBody').innerHTML = '';
+                document.getElementById('policyTable').style.display = 'none';
+                document.getElementById('pdfEmptyTip').style.display = 'block';
+                document.getElementById('pdfErrorTip').style.display = 'none';
+                globalPolicyDownloadData = [];
+                localStorage.removeItem('policy_download_raw_data');
+                showToast('已清空保单下载数据');
+            });
         }
 
         // ====================== 核心修复：保单号格式化函数 ======================
@@ -536,8 +608,8 @@
                     policyData.effectiveDate = timestampToDate(policyData.effectiveDate);
                     policyData.orderTime = timestampToDate(policyData.orderTime);
 
-                    // 判断是否连续投保（有上一期保单号即为连续投保）
-                    policyData.isContinuous = !!(policyData.prePolicyCode && policyData.prePolicyCode.trim() !== '');
+                    // 判断是否连续投保（保单年度 > 1 即为连续投保/续保）
+                    policyData.isContinuous = !!(policyData.policyYear && parseInt(policyData.policyYear) > 1);
 
                     // 格式化数字字段
                     const numericFields = ['premium', 'policyServiceFee', 'promotionFee', 'promotionReward', 'performance'];
@@ -726,20 +798,6 @@
             const actionBtnGroup = document.createElement('div');
             actionBtnGroup.className = 'policy-actions';
 
-            // 复制文件名按钮
-            const copyFileNameBtn = document.createElement('button');
-            copyFileNameBtn.className = 'copy-btn';
-            copyFileNameBtn.textContent = '复制文件名';
-            if (!data.linkedPolicy) {
-                copyFileNameBtn.disabled = true;
-                copyFileNameBtn.title = '未匹配到保单下载数据';
-            } else {
-                const fileName = getPolicyFileName(data.linkedPolicy);
-                copyFileNameBtn.addEventListener('click', () => {
-                    copyToClipboard(fileName, '文件名复制成功');
-                });
-            }
-
             // 下载合同按钮
             const downloadBtn = document.createElement('button');
             downloadBtn.className = 'download-btn';
@@ -753,7 +811,6 @@
                 });
             }
 
-            actionBtnGroup.appendChild(copyFileNameBtn);
             actionBtnGroup.appendChild(downloadBtn);
             actionValueEl.appendChild(actionBtnGroup);
             actionFieldItem.appendChild(actionLabelEl);
