@@ -404,7 +404,6 @@
                         <th>产品名称</th>
                         <th>生效日</th>
                         <th>保单号</th>
-                        <th>操作</th>
                     </tr>
                 </thead>
                 <tbody id="policyTableBody"></tbody>
@@ -876,24 +875,8 @@
                     <td>${policy.productName}</td>
                     <td>${validDate}</td>
                     <td>${policy.policyNo || '未知'}</td>
-                    <td>
-                        <button class="download-btn" ${policy.pdfUrl ? '' : 'disabled'} data-pdf-url="${policy.pdfUrl}">下载合同</button>
-                    </td>
                 `;
                 tableBody.appendChild(tr);
-            });
-
-            document.querySelectorAll('.download-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const pdfUrl = btn.getAttribute('data-pdf-url');
-                    if (!pdfUrl) {
-                        alert('该保单暂无PDF下载链接！');
-                        return;
-                    }
-                    const copyText = btn.parentElement.querySelector('.copy-btn').getAttribute('data-copy-text');
-                    const fileName = `${copyText || '保单文件'}.pdf`;
-                    downloadFile(pdfUrl, fileName);
-                });
             });
         }
 
@@ -1023,9 +1006,10 @@
 
         // 下载文件
         function downloadFile(url, fileName) {
+            copyToClipboard(fileName, '文件名已复制');
             const a = document.createElement('a');
             a.href = url;
-            a.target = '_blank'; // 关键：新标签页打开
+            a.target = '_blank';
             a.download = fileName;
             a.click();
             showToast(`开始下载：${fileName}`);
