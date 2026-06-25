@@ -947,19 +947,27 @@
         // 获取产品等待期天数
         function getProductWaitingDays(productName) {
             if (!productName) return { waitingDays: -1, isConfigured: false, isDual: false };
+            let matchedKeyword = null;
+            let matchedDays = null;
             for (const [productKeyword, days] of Object.entries(PRODUCT_WAITING_PERIOD)) {
                 if (productName.includes(productKeyword)) {
-                    if (typeof days === 'object' && days !== null) {
-                        return {
-                            waitingDays: days.generalHistory,
-                            newDiseaseDays: days.newDisease,
-                            generalHistoryDays: days.generalHistory,
-                            isConfigured: true,
-                            isDual: true
-                        };
+                    if (!matchedKeyword || productKeyword.length > matchedKeyword.length) {
+                        matchedKeyword = productKeyword;
+                        matchedDays = days;
                     }
-                    return { waitingDays: days, isConfigured: true, isDual: false };
                 }
+            }
+            if (matchedKeyword && matchedDays !== null) {
+                if (typeof matchedDays === 'object' && matchedDays !== null) {
+                    return {
+                        waitingDays: matchedDays.generalHistory,
+                        newDiseaseDays: matchedDays.newDisease,
+                        generalHistoryDays: matchedDays.generalHistory,
+                        isConfigured: true,
+                        isDual: true
+                    };
+                }
+                return { waitingDays: matchedDays, isConfigured: true, isDual: false };
             }
             return { waitingDays: -1, isConfigured: false, isDual: false };
         }
