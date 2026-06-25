@@ -1027,7 +1027,6 @@
             a.href = url;
             a.target = '_blank'; // 关键：新标签页打开
             a.download = fileName;
-            copyToClipboard(fileName)
             a.click();
             showToast(`开始下载：${fileName}`);
         }
