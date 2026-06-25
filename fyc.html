@@ -450,7 +450,8 @@
             paymentPeriod: ['paycostdate'],
             paymentMethod: ['paytype'],
             applyDate: ['receivedate'],
-            channelCode: ['channelcode']
+            channelCode: ['channelcode'],
+            policyYear: ['policyyear']
         };
 
         // DOM加载完成后初始化
@@ -538,8 +539,8 @@
                     policyData.effectiveDate = timestampToDate(policyData.effectiveDate);
                     policyData.orderTime = timestampToDate(policyData.orderTime);
 
-                    // 判断是否连续投保（有上一期保单号即为连续投保）
-                    policyData.isContinuous = !!(policyData.prePolicyCode && policyData.prePolicyCode.trim() !== '');
+                    // 判断是否连续投保（保单年度 > 1 即为连续投保/续保）
+                    policyData.isContinuous = !!(policyData.policyYear && parseInt(policyData.policyYear) > 1);
 
                     // 格式化数字字段
                     const numericFields = ['premium', 'policyServiceFee', 'promotionFee', 'promotionReward', 'performance'];
