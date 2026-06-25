@@ -227,14 +227,16 @@ h1 {
     user-select: text;
     cursor: text;
 }
-.entry .body-text .double-tap-hint {
+.entry .body-text::after {
+    content: "双击折叠";
     position: absolute;
-    top: 8px;
-    right: 8px;
+    top: 6px;
+    right: 10px;
     font-size: 11px;
     color: #8a9aa8;
     opacity: 0.6;
     pointer-events: none;
+    white-space: nowrap;
 }
 @media (max-width: 600px) {
     .entry .body-text {
@@ -389,20 +391,19 @@ window.toggleBody = function(id, event) {
     const isVisible = body.style.display !== 'none';
 
     if (isVisible) {
-        const rect = entry.getBoundingClientRect();
-        const entryTop = rect.top + window.scrollY;
-        body.style.display = 'none';
-        if (btn) btn.textContent = '展开';
         if (window.getSelection) {
             window.getSelection().removeAllRanges();
         }
-        setTimeout(() => {
-            window.scrollTo({
-                top: entryTop - 20,
-                left: 0,
-                behavior: 'auto'
-            });
-        }, 10);
+        const targetTop = entry.getBoundingClientRect().top + window.pageYOffset - 20;
+        body.style.display = 'none';
+        if (btn) btn.textContent = '展开';
+        const doScroll = () => {
+            window.scrollTo(0, targetTop);
+        };
+        doScroll();
+        setTimeout(doScroll, 0);
+        setTimeout(doScroll, 50);
+        setTimeout(doScroll, 100);
     } else {
         body.style.display = 'block';
         if (btn) btn.textContent = '折叠';
@@ -570,7 +571,6 @@ function renderVisiblePosts() {
         <button class="btn-sm hide-btn" onclick="hideItem('${p.id}')">✕</button>
     </div>
     <div id="body-${p.id}" class="body-text" style="display:none;" ondblclick="event.preventDefault(); toggleBody('${p.id}', event);">
-        <span class="double-tap-hint">双击折叠</span>
         ${safeContent}
     </div>
 </div>\n\n`;
