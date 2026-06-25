@@ -167,6 +167,13 @@ h1 {
     flex-wrap: wrap;
     gap: 6px;
     margin: 6px 0 4px 0;
+    align-items: center;
+}
+.entry .actions .hint-text {
+    font-size: 12px;
+    color: #8a9aa8;
+    margin-left: 4px;
+    pointer-events: none;
 }
 .entry .actions .btn-sm {
     padding: 3px 12px;
@@ -223,20 +230,7 @@ h1 {
     word-break: break-word;
     white-space: pre-wrap;
     max-width: 300px; /* 约21个汉字 */
-    position: relative;
-    user-select: text;
     cursor: text;
-}
-.entry .body-text::after {
-    content: "双击折叠";
-    position: absolute;
-    top: 6px;
-    right: 10px;
-    font-size: 11px;
-    color: #8a9aa8;
-    opacity: 0.6;
-    pointer-events: none;
-    white-space: nowrap;
 }
 @media (max-width: 600px) {
     .entry .body-text {
@@ -572,6 +566,7 @@ function renderVisiblePosts() {
         <button class="btn-sm copy-single" onclick="copySingle('${p.id}')">📋复制本条</button>
         <button class="btn-sm toggle-body-btn" onclick="toggleBody('${p.id}')">展开</button>
         <button class="btn-sm hide-btn" onclick="hideItem('${p.id}')">✕</button>
+        <span class="hint-text">双击正文折叠</span>
     </div>
     <div id="body-${p.id}" class="body-text" style="display:none;" ondblclick="event.preventDefault(); toggleBody('${p.id}', event);">${safeContent}</div>
 </div>\n\n`;
