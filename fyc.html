@@ -404,6 +404,8 @@
                         <th>产品名称</th>
                         <th>生效日</th>
                         <th>保单号</th>
+                        <th>扣款银行</th>
+                        <th>银行卡号</th>
                     </tr>
                 </thead>
                 <tbody id="policyTableBody"></tbody>
@@ -839,13 +841,14 @@
                 }
 
                 return {
-                    // 核心修改：1. 取policyCode（注意大小写） 2. 格式化 3. 兼容policycode小写
                     policyNo: formatPolicyNo(realPolicy.policyCode || realPolicy.policycode || ''),
-                    appntName: realPolicy.appntName || '未知', // 投保人
-                    insuredName: realPolicy.insuredName || '未知', // 被保人
-                    productName: realPolicy.productName || '未知产品', // 产品名称
-                    validDate: realPolicy.validDate || '', // 生效日期
-                    pdfUrl: pdfUrl // PDF下载链接
+                    appntName: realPolicy.appntName || '未知',
+                    insuredName: realPolicy.insuredName || '未知',
+                    productName: realPolicy.productName || '未知产品',
+                    validDate: realPolicy.validDate || '',
+                    bankName: realPolicy.bankname || '',
+                    bankAccount: realPolicy.bankaccount || '',
+                    pdfUrl: pdfUrl
                 };
             });
         }
@@ -875,6 +878,8 @@
                     <td>${policy.productName}</td>
                     <td>${validDate}</td>
                     <td>${policy.policyNo || '未知'}</td>
+                    <td>${policy.bankName || '-'}</td>
+                    <td>${policy.bankAccount || '-'}</td>
                 `;
                 tableBody.appendChild(tr);
             });
