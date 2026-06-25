@@ -394,11 +394,14 @@ window.toggleBody = function(id, event) {
         if (window.getSelection) {
             window.getSelection().removeAllRanges();
         }
-        const targetTop = entry.getBoundingClientRect().top + window.pageYOffset - 20;
+        const outputEl = document.getElementById('outputResult');
+        const entryRect = entry.getBoundingClientRect();
+        const outputRect = outputEl.getBoundingClientRect();
+        const relativeTop = entryRect.top - outputRect.top + outputEl.scrollTop - 20;
         body.style.display = 'none';
         if (btn) btn.textContent = '展开';
         const doScroll = () => {
-            window.scrollTo(0, targetTop);
+            outputEl.scrollTop = relativeTop;
         };
         doScroll();
         setTimeout(doScroll, 0);
@@ -570,9 +573,7 @@ function renderVisiblePosts() {
         <button class="btn-sm toggle-body-btn" onclick="toggleBody('${p.id}')">展开</button>
         <button class="btn-sm hide-btn" onclick="hideItem('${p.id}')">✕</button>
     </div>
-    <div id="body-${p.id}" class="body-text" style="display:none;" ondblclick="event.preventDefault(); toggleBody('${p.id}', event);">
-        ${safeContent}
-    </div>
+    <div id="body-${p.id}" class="body-text" style="display:none;" ondblclick="event.preventDefault(); toggleBody('${p.id}', event);">${safeContent}</div>
 </div>\n\n`;
     });
 
