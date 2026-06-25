@@ -404,8 +404,6 @@
                         <th>产品名称</th>
                         <th>生效日</th>
                         <th>保单号</th>
-                        <th>扣款银行</th>
-                        <th>银行卡号</th>
                     </tr>
                 </thead>
                 <tbody id="policyTableBody"></tbody>
@@ -882,8 +880,6 @@
                     <td>${policy.productName}</td>
                     <td>${validDate}</td>
                     <td>${policy.policyNo || '未知'}</td>
-                    <td>${policy.bankName || '-'}</td>
-                    <td>${policy.bankAccount || '-'}</td>
                 `;
                 tableBody.appendChild(tr);
             });
