@@ -223,6 +223,37 @@ h1 {
     word-break: break-word;
     white-space: pre-wrap;
     max-width: 300px; /* 约21个汉字 */
+    position: relative;
+    user-select: text;
+    cursor: text;
+}
+.entry .body-text .float-collapse-btn {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    padding: 4px 10px;
+    font-size: 12px;
+    border-radius: 6px;
+    background: rgba(26, 115, 232, 0.9);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+.entry .body-text .float-collapse-btn:hover {
+    opacity: 1;
+}
+.entry .body-text .double-tap-hint {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 11px;
+    color: #8a9aa8;
+    opacity: 0.6;
+    pointer-events: none;
 }
 @media (max-width: 600px) {
     .entry .body-text {
@@ -539,7 +570,11 @@ function renderVisiblePosts() {
         <button class="btn-sm toggle-body-btn" onclick="toggleBody('${p.id}')">展开</button>
         <button class="btn-sm hide-btn" onclick="hideItem('${p.id}')">✕</button>
     </div>
-    <div id="body-${p.id}" class="body-text" style="display:none;">${safeContent}</div>
+    <div id="body-${p.id}" class="body-text" style="display:none;" ondblclick="toggleBody('${p.id}')">
+        <span class="double-tap-hint">双击折叠</span>
+        ${safeContent}
+        <button class="float-collapse-btn" onclick="event.stopPropagation(); toggleBody('${p.id}')">折叠</button>
+    </div>
 </div>\n\n`;
     });
 
