@@ -175,6 +175,11 @@
             font-size: 13px;
         }
 
+        .field-item.highlight {
+            background-color: #e6f7ff;
+            border: 1px solid #91d5ff;
+        }
+
         .field-label {
             font-weight: bold;
             color: #333;
@@ -645,7 +650,7 @@
                     const linkedPolicyData = getLinkedPolicyData(policyData.policyNo);
                     policyData.linkedPolicy = linkedPolicyData;
 
-                    const policyContainer = createPolicyContainer(policyTitle, policyData.totalIncome, false, policyData.linkedPolicy);
+                    const policyContainer = createPolicyContainer(policyTitle, policyData.totalIncome, false, policyData.linkedPolicy, policyData.performance);
                     const contentEl = policyContainer.querySelector('.policy-content');
 
                     // 获取产品等待期
@@ -722,7 +727,7 @@
                 { label: '保单号', key: 'policyNo', isNumeric: false },
                 { label: '产品名', key: 'productName', isNumeric: false },
                 { label: '投保人', key: 'holdername', isNumeric: false },
-                { label: '被保人', key: 'insuredName', isNumeric: false },
+                { label: '被保人', key: 'insuredName', isHighlight: true, isNumeric: false },
                 { label: '下单时间', key: 'orderTime', noCopy: true, isNumeric: false },
                 { label: '生效日期', key: 'effectiveDate', noCopy: true, isNumeric: false },
                 { label: '保费', key: 'premium', isNumeric: true },
@@ -755,7 +760,7 @@
 
             fields.forEach(field => {
                 const fieldItem = document.createElement('div');
-                fieldItem.className = 'field-item';
+                fieldItem.className = 'field-item' + (field.isHighlight ? ' highlight' : '');
 
                 const valueEl = document.createElement('div');
                 valueEl.className = 'field-value';
@@ -1068,7 +1073,7 @@
         }
 
         // 创建带折叠功能的保单容器（默认折叠）
-        function createPolicyContainer(titleText, totalIncome, isEmpty = false, linkedPolicy = null) {
+        function createPolicyContainer(titleText, totalIncome, isEmpty = false, linkedPolicy = null, performance = null) {
             const container = document.createElement('div');
             container.className = 'policy-container';
 
@@ -1093,6 +1098,15 @@
                 headerRight.appendChild(totalIncomeEl);
             }
 
+            if (performance !== undefined && performance !== null) {
+                const perfEl = document.createElement('div');
+                perfEl.style.color = '#f5222d';
+                perfEl.style.fontWeight = 'bold';
+                perfEl.style.fontSize = '14px';
+                perfEl.textContent = `业绩：${performance}`;
+                headerRight.appendChild(perfEl);
+            }
+
             // 下载合同按钮（放在总收入旁边）
             const downloadBtn = document.createElement('button');
             downloadBtn.className = 'download-btn';
@@ -1104,7 +1118,8 @@
                 downloadBtn.disabled = true;
                 downloadBtn.title = '无下载链接';
             } else {
-                downloadBtn.addEventListener('click', () => {
+                downloadBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
                     downloadPolicyPdf(linkedPolicy);
                 });
             }
