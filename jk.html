@@ -377,25 +377,35 @@ fileInput.addEventListener('change', (e) => {
 });
 
 // ============ 交互函数 ============
-window.toggleBody = function(id) {
+window.toggleBody = function(id, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
     const body = document.getElementById('body-' + id);
     if (!body) return;
     const btn = document.querySelector(`.entry[data-id="${id}"] .toggle-body-btn`);
-    if (!btn) return;
     const entry = document.querySelector(`.entry[data-id="${id}"]`);
     const isVisible = body.style.display !== 'none';
 
     if (isVisible) {
-        const entryTop = entry.getBoundingClientRect().top + window.pageYOffset;
+        const rect = entry.getBoundingClientRect();
+        const entryTop = rect.top + window.scrollY;
         body.style.display = 'none';
-        btn.textContent = '展开';
-        window.scrollTo({
-            top: entryTop - 20,
-            behavior: 'auto'
-        });
+        if (btn) btn.textContent = '展开';
+        if (window.getSelection) {
+            window.getSelection().removeAllRanges();
+        }
+        setTimeout(() => {
+            window.scrollTo({
+                top: entryTop - 20,
+                left: 0,
+                behavior: 'auto'
+            });
+        }, 10);
     } else {
         body.style.display = 'block';
-        btn.textContent = '折叠';
+        if (btn) btn.textContent = '折叠';
     }
 };
 
@@ -559,7 +569,7 @@ function renderVisiblePosts() {
         <button class="btn-sm toggle-body-btn" onclick="toggleBody('${p.id}')">展开</button>
         <button class="btn-sm hide-btn" onclick="hideItem('${p.id}')">✕</button>
     </div>
-    <div id="body-${p.id}" class="body-text" style="display:none;" ondblclick="toggleBody('${p.id}')">
+    <div id="body-${p.id}" class="body-text" style="display:none;" ondblclick="event.preventDefault(); toggleBody('${p.id}', event);">
         <span class="double-tap-hint">双击折叠</span>
         ${safeContent}
     </div>
