@@ -298,6 +298,8 @@ const toast = document.getElementById('toast');
 let rawData = '';
 let plainTitleLinkArray = [];
 let marked = [];
+let allPostsData = [];
+let hiddenIds = new Set();
 
 // ============ Toast ============
 function showToast(msg, type = 'success', duration = 3000) {
@@ -363,10 +365,10 @@ fileInput.addEventListener('change', (e) => {
 });
 
 // ============ 交互函数 ============
-window.toggleBody = function(index) {
-    const body = document.getElementById('body-' + index);
+window.toggleBody = function(id) {
+    const body = document.getElementById('body-' + id);
     if (!body) return;
-    const btn = document.querySelector(`.entry[data-index="${index}"] .toggle-body-btn`);
+    const btn = document.querySelector(`.entry[data-id="${id}"] .toggle-body-btn`);
     if (!btn) return;
     if (body.style.display === 'none') {
         body.style.display = 'block';
@@ -377,29 +379,29 @@ window.toggleBody = function(index) {
     }
 };
 
-window.hideItem = function(index) {
-    const entry = document.querySelector(`.entry[data-index="${index}"]`);
-    if (entry) {
-        entry.style.display = 'none';
-        showToast('已擦掉该条', 'success');
-    }
+window.hideItem = function(id) {
+    hiddenIds.add(id);
+    renderVisiblePosts();
+    showToast('已擦掉该条', 'success');
 };
 
-window.copySingle = function(index) {
-    if (index < 0 || index >= plainTitleLinkArray.length) {
-        showToast('❌ 无效索引', 'error');
+window.copySingle = function(id) {
+    const visiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
+    const visibleIndex = visiblePosts.findIndex(p => p.id === id);
+    if (visibleIndex < 0) {
+        showToast('❌ 未找到该条', 'error');
         return;
     }
-    const text = plainTitleLinkArray[index];
-    if (!text.trim()) {
+    const text = plainTitleLinkArray[visibleIndex];
+    if (!text || !text.trim()) {
         showToast('❌ 内容为空', 'error');
         return;
     }
-    const copyBtnEl = document.querySelector(`.entry[data-index="${index}"] .copy-single`);
+    const copyBtnEl = document.querySelector(`.entry[data-id="${id}"] .copy-single`);
     try {
         navigator.clipboard.writeText(text).then(() => {
-            showToast(`✅ 已复制第 ${index+1} 条（标题+链接）`, 'success');
-            marked[index] = true;
+            showToast(`✅ 已复制第 ${visibleIndex+1} 条（标题+链接）`, 'success');
+            marked[visibleIndex] = true;
             if (copyBtnEl) {
                 copyBtnEl.textContent = '✅ 已复制';
                 copyBtnEl.classList.add('copied');
@@ -411,8 +413,8 @@ window.copySingle = function(index) {
             temp.select();
             document.execCommand('copy');
             document.body.removeChild(temp);
-            showToast(`✅ 已复制第 ${index+1} 条（标题+链接）`, 'success');
-            marked[index] = true;
+            showToast(`✅ 已复制第 ${visibleIndex+1} 条（标题+链接）`, 'success');
+            marked[visibleIndex] = true;
             if (copyBtnEl) {
                 copyBtnEl.textContent = '✅ 已复制';
                 copyBtnEl.classList.add('copied');
@@ -500,10 +502,26 @@ function processData(raw) {
 
     filtered.sort((a, b) => b.likeCount - a.likeCount);
 
+    allPostsData = filtered;
+
+    const visible = renderVisiblePosts();
+
+    showToast(`✅ 共提取 ${allPosts.length} 条，过滤后保留 ${filtered.length} 条`, 'success', 4000);
+    
+    return {
+        total: allPosts.length,
+        filtered: filtered.length,
+        visible: visible
+    };
+}
+
+function renderVisiblePosts() {
+    const visiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
+
     let htmlResult = '';
     let titleLinkArray = [];
 
-    filtered.forEach((p, index) => {
+    visiblePosts.forEach((p, index) => {
         const cleanContent = p.content.replace(/\n/g, '');
         const title = cleanContent.slice(0, 20) || '无标题';
         const link = `https://m.okjike.com/originalPosts/${p.id}`;
@@ -513,28 +531,23 @@ function processData(raw) {
 
         const safeContent = p.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-        htmlResult += `<div class="entry" data-index="${index}">
+        htmlResult += `<div class="entry" data-id="${p.id}" data-visible-index="${index}">
     <div class="title-row">TOP ${topNum} （${p.likeCount}）${title}</div>
     <div class="link-row"><a href="${link}" target="_blank">${link}</a></div>
     <div class="actions">
-        <button class="btn-sm copy-single" onclick="copySingle(${index})">📋复制本条</button>
-        <button class="btn-sm toggle-body-btn" onclick="toggleBody(${index})">展开</button>
-        <button class="btn-sm hide-btn" onclick="hideItem(${index})">✕ 擦掉</button>
+        <button class="btn-sm copy-single" onclick="copySingle('${p.id}')">📋复制本条</button>
+        <button class="btn-sm toggle-body-btn" onclick="toggleBody('${p.id}')">展开</button>
+        <button class="btn-sm hide-btn" onclick="hideItem('${p.id}')">✕</button>
     </div>
-    <div id="body-${index}" class="body-text" style="display:none;">${safeContent}</div>
+    <div id="body-${p.id}" class="body-text" style="display:none;">${safeContent}</div>
 </div>\n\n`;
     });
 
     plainTitleLinkArray = titleLinkArray;
     marked = new Array(plainTitleLinkArray.length).fill(false);
+    outputEl.innerHTML = htmlResult;
 
-    showToast(`✅ 共提取 ${allPosts.length} 条，过滤后保留 ${filtered.length} 条`, 'success', 4000);
-    
-    return {
-        html: htmlResult,
-        total: allPosts.length,
-        filtered: filtered.length
-    };
+    return visiblePosts.length;
 }
 
 function autoProcess() {
@@ -543,8 +556,8 @@ function autoProcess() {
         return;
     }
     try {
+        hiddenIds.clear();
         const res = processData(rawData);
-        outputEl.innerHTML = res.html;
         fileInfo.textContent = `✅ 共提取 ${res.total} 条动态`;
         if (res.filtered < res.total) {
             fileInfo.textContent += `（筛选后保留 ${res.filtered} 条）`;
@@ -555,6 +568,8 @@ function autoProcess() {
         fileInfo.textContent = '❌ 解析失败，请检查文件内容';
         plainTitleLinkArray = [];
         marked = [];
+        allPostsData = [];
+        hiddenIds.clear();
     }
 }
 
@@ -566,20 +581,13 @@ minLikeInput.addEventListener('change', () => {
 });
 
 copyBtn.addEventListener('click', async () => {
-    const entries = document.querySelectorAll('.entry');
-    const visibleIndexes = [];
-    entries.forEach(entry => {
-        if (entry.style.display !== 'none') {
-            const idx = parseInt(entry.dataset.index);
-            if (!isNaN(idx)) visibleIndexes.push(idx);
-        }
-    });
-    if (visibleIndexes.length === 0) {
-        showToast('没有可见的内容可复制', 'error');
+    if (plainTitleLinkArray.length === 0) {
+        showToast('没有可复制的内容', 'error');
         return;
     }
-    const markedVisible = visibleIndexes.filter(idx => marked[idx]);
-    let copyIndexes = markedVisible.length > 0 ? markedVisible : visibleIndexes;
+    const markedIndexes = [];
+    marked.forEach((m, i) => { if (m) markedIndexes.push(i); });
+    let copyIndexes = markedIndexes.length > 0 ? markedIndexes : plainTitleLinkArray.map((_, i) => i);
     const texts = copyIndexes.map(idx => plainTitleLinkArray[idx]);
     const result = texts.join('\n\n');
     if (!result) {
@@ -605,6 +613,8 @@ clearBtn.addEventListener('click', () => {
     outputEl.innerHTML = '';
     plainTitleLinkArray = [];
     marked = [];
+    allPostsData = [];
+    hiddenIds.clear();
     minLikeInput.value = '100';
     fileInfo.textContent = '';
     toast.classList.remove('show');
