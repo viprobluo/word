@@ -772,7 +772,7 @@
                     valueEl.style.fontWeight = 'bold';
                 }
                 const displayValue = data[field.key] === '' && ['premium', 'policyServiceFee', 'promotionFee', 'promotionReward', 'performance'].includes(field.key)
-                    ? '0.000'
+                    ? '0'
                     : (data[field.key] || '');
                 valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong>${displayValue}`;
 
@@ -789,41 +789,24 @@
                     fieldItem.appendChild(copyBtn);
                 }
 
+                // 产品名旁边添加下载合同按钮
+                if (field.key === 'productName') {
+                    const downloadBtn = document.createElement('button');
+                    downloadBtn.className = 'download-btn';
+                    downloadBtn.textContent = '下载合同';
+                    if (!data.linkedPolicy || !data.linkedPolicy.pdfUrl) {
+                        downloadBtn.disabled = true;
+                        downloadBtn.title = data.linkedPolicy ? '无下载链接' : '未匹配到保单下载数据';
+                    } else {
+                        downloadBtn.addEventListener('click', () => {
+                            downloadPolicyPdf(data.linkedPolicy);
+                        });
+                    }
+                    fieldItem.appendChild(downloadBtn);
+                }
+
                 container.appendChild(fieldItem);
             });
-
-            // 新增：保单下载相关操作按钮组（单独占一行）
-            const actionFieldItem = document.createElement('div');
-            actionFieldItem.className = 'field-item action-field-item';
-
-            const actionLabelEl = document.createElement('div');
-            actionLabelEl.className = 'field-label';
-            actionLabelEl.textContent = '保单操作';
-
-            const actionValueEl = document.createElement('div');
-            actionValueEl.className = 'field-value';
-
-            const actionBtnGroup = document.createElement('div');
-            actionBtnGroup.className = 'policy-actions';
-
-            // 下载合同按钮
-            const downloadBtn = document.createElement('button');
-            downloadBtn.className = 'download-btn';
-            downloadBtn.textContent = '下载合同';
-            if (!data.linkedPolicy || !data.linkedPolicy.pdfUrl) {
-                downloadBtn.disabled = true;
-                downloadBtn.title = data.linkedPolicy ? '无下载链接' : '未匹配到保单下载数据';
-            } else {
-                downloadBtn.addEventListener('click', () => {
-                    downloadPolicyPdf(data.linkedPolicy);
-                });
-            }
-
-            actionBtnGroup.appendChild(downloadBtn);
-            actionValueEl.appendChild(actionBtnGroup);
-            actionFieldItem.appendChild(actionLabelEl);
-            actionFieldItem.appendChild(actionValueEl);
-            container.appendChild(actionFieldItem);
         }
 
         // ====================== 保单下载核心功能（核心修复：字段路径+名称） ======================
