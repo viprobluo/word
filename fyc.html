@@ -1094,15 +1094,21 @@
             }
 
             // 下载合同按钮（放在总收入旁边）
-            if (linkedPolicy && linkedPolicy.pdfUrl) {
-                const downloadBtn = document.createElement('button');
-                downloadBtn.className = 'download-btn';
-                downloadBtn.textContent = '下载合同';
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'download-btn';
+            downloadBtn.textContent = '下载合同';
+            if (!linkedPolicy) {
+                downloadBtn.disabled = true;
+                downloadBtn.title = '未匹配到保单下载数据';
+            } else if (!linkedPolicy.pdfUrl) {
+                downloadBtn.disabled = true;
+                downloadBtn.title = '无下载链接';
+            } else {
                 downloadBtn.addEventListener('click', () => {
                     downloadPolicyPdf(linkedPolicy);
                 });
-                headerRight.appendChild(downloadBtn);
             }
+            headerRight.appendChild(downloadBtn);
 
             const toggleBtn = document.createElement('button');
             toggleBtn.className = 'toggle-btn';
