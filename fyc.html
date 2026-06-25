@@ -472,7 +472,9 @@
             paymentMethod: ['paytype'],
             applyDate: ['receivedate'],
             channelCode: ['channelcode'],
-            policyYear: ['policyyear']
+            policyYear: ['policyyear'],
+            bankName: ['bankname'],
+            bankAccount: ['bankaccount.value', 'bankaccount']
         };
 
         // DOM加载完成后初始化
@@ -739,6 +741,8 @@
                 { label: '保障期间', key: 'insurancePeriod', noCopy: true, isNumeric: false },
                 { label: '缴费期间', key: 'paymentPeriod', noCopy: true, isNumeric: false },
                 { label: '缴费方式', key: 'paymentMethod', noCopy: true, isNumeric: false },
+                { label: '扣款银行', key: 'bankName', isNumeric: false },
+                { label: '银行卡号', key: 'bankAccount', isNumeric: false },
             ];
 
             if (data.continuousNoWaiting) {
