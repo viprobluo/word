@@ -681,7 +681,7 @@
                     resultEl.appendChild(policyContainer);
                 });
 
-                showMessage(`成功解析 ${rows.length} 条保单数据`, true, resultEl, true, true);
+                showToast(`成功解析 ${rows.length} 条保单数据`);
                 if (noWaitingPeriodProducts.size > 0) {
                     const unconfiguredProducts = Array.from(noWaitingPeriodProducts).join('、');
                     showMessage(`⚠️ 以下产品未配置等待期，请补充：${unconfiguredProducts}`, 'warning', resultEl, false, true);
@@ -976,10 +976,10 @@
             try {
                 if (navigator.clipboard) {
                     navigator.clipboard.writeText(text).then(() => {
-                        showToast(successMsg || '复制成功');
-                    }).catch(() => fallbackCopy(text));
+                        if (successMsg) showToast(successMsg);
+                    }).catch(() => fallbackCopy(text, successMsg));
                 } else {
-                    fallbackCopy(text);
+                    fallbackCopy(text, successMsg);
                 }
             } catch (e) {
                 showToast('复制失败，请手动复制');
@@ -987,7 +987,7 @@
         }
 
         // 复制降级方案
-        function fallbackCopy(text) {
+        function fallbackCopy(text, successMsg) {
             const textarea = document.createElement('textarea');
             textarea.value = text;
             textarea.style.position = 'fixed';
@@ -996,7 +996,7 @@
             textarea.select();
             try {
                 document.execCommand('copy');
-                showToast('复制成功');
+                if (successMsg) showToast(successMsg);
             } catch (e) {
                 showToast('复制失败，请手动复制');
             } finally {
@@ -1006,7 +1006,7 @@
 
         // 下载文件
         function downloadFile(url, fileName) {
-            copyToClipboard(fileName, '文件名已复制');
+            copyToClipboard(fileName);
             const a = document.createElement('a');
             a.href = url;
             a.target = '_blank';
