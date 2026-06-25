@@ -507,13 +507,14 @@ function processData(raw) {
         const cleanContent = p.content.replace(/\n/g, '');
         const title = cleanContent.slice(0, 20) || '无标题';
         const link = `https://m.okjike.com/originalPosts/${p.id}`;
-        const titleLink = `❧ （${p.likeCount}）${title}\n${link}`;
+        const topNum = String(index + 1).padStart(3, '0');
+        const titleLink = `TOP ${topNum} （${p.likeCount}）${title}\n${link}`;
         titleLinkArray.push(titleLink);
 
         const safeContent = p.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
         htmlResult += `<div class="entry" data-index="${index}">
-    <div class="title-row">❧ （${p.likeCount}）${title}</div>
+    <div class="title-row">TOP ${topNum} （${p.likeCount}）${title}</div>
     <div class="link-row"><a href="${link}" target="_blank">${link}</a></div>
     <div class="actions">
         <button class="btn-sm copy-single" onclick="copySingle(${index})">📋复制本条</button>
