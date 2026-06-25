@@ -641,7 +641,7 @@
 
                     const policyTitle = `${policyData.insuredName || '未知'}-${policyData.productName || '未知产品'}`;
 
-                    const policyContainer = createPolicyContainer(policyTitle, policyData.totalIncome);
+                    const policyContainer = createPolicyContainer(policyTitle, policyData.totalIncome, false, policyData.linkedPolicy);
                     const contentEl = policyContainer.querySelector('.policy-content');
 
                     // 获取产品等待期
@@ -787,22 +787,6 @@
                         copyToClipboard(displayValue, `${field.label}复制成功`);
                     });
                     fieldItem.appendChild(copyBtn);
-                }
-
-                // 产品名旁边添加下载合同按钮
-                if (field.key === 'productName') {
-                    const downloadBtn = document.createElement('button');
-                    downloadBtn.className = 'download-btn';
-                    downloadBtn.textContent = '下载合同';
-                    if (!data.linkedPolicy || !data.linkedPolicy.pdfUrl) {
-                        downloadBtn.disabled = true;
-                        downloadBtn.title = data.linkedPolicy ? '无下载链接' : '未匹配到保单下载数据';
-                    } else {
-                        downloadBtn.addEventListener('click', () => {
-                            downloadPolicyPdf(data.linkedPolicy);
-                        });
-                    }
-                    fieldItem.appendChild(downloadBtn);
                 }
 
                 container.appendChild(fieldItem);
@@ -1084,7 +1068,7 @@
         }
 
         // 创建带折叠功能的保单容器（默认折叠）
-        function createPolicyContainer(titleText, totalIncome, isEmpty = false) {
+        function createPolicyContainer(titleText, totalIncome, isEmpty = false, linkedPolicy = null) {
             const container = document.createElement('div');
             container.className = 'policy-container';
 
@@ -1107,6 +1091,17 @@
                 totalIncomeEl.style.fontSize = '14px';
                 totalIncomeEl.textContent = `总收入：${totalIncome}`;
                 headerRight.appendChild(totalIncomeEl);
+            }
+
+            // 下载合同按钮（放在总收入旁边）
+            if (linkedPolicy && linkedPolicy.pdfUrl) {
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'download-btn';
+                downloadBtn.textContent = '下载合同';
+                downloadBtn.addEventListener('click', () => {
+                    downloadPolicyPdf(linkedPolicy);
+                });
+                headerRight.appendChild(downloadBtn);
             }
 
             const toggleBtn = document.createElement('button');
