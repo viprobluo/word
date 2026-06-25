@@ -641,6 +641,10 @@
 
                     const policyTitle = `${policyData.insuredName || '未知'}-${policyData.productName || '未知产品'}`;
 
+                    // 关联保单下载数据（核心：通过格式化后的保单号匹配）
+                    const linkedPolicyData = getLinkedPolicyData(policyData.policyNo);
+                    policyData.linkedPolicy = linkedPolicyData;
+
                     const policyContainer = createPolicyContainer(policyTitle, policyData.totalIncome, false, policyData.linkedPolicy);
                     const contentEl = policyContainer.querySelector('.policy-content');
 
@@ -667,10 +671,6 @@
                         policyData.generalHistoryWaitingDays = `${generalHistoryDays}天`;
                         policyData.generalHistoryWaitingEndDate = calculateWaitingEndDate(policyData.effectiveDate, generalHistoryDays);
                     }
-
-                    // 关联保单下载数据（核心：通过格式化后的保单号匹配）
-                    const linkedPolicyData = getLinkedPolicyData(policyData.policyNo);
-                    policyData.linkedPolicy = linkedPolicyData;
 
                     // 渲染字段（包含新增的下载/复制按钮）
                     renderPolicyFields(policyData, contentEl);
