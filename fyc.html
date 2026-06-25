@@ -667,7 +667,7 @@
                     resultEl.appendChild(policyContainer);
                 });
 
-                showMessage(`成功解析 ${rows.length} 条保单数据`, true, resultEl);
+                showMessage(`成功解析 ${rows.length} 条保单数据`, true, resultEl, true);
                 if (noWaitingPeriodProducts.size > 0) {
                     const unconfiguredProducts = Array.from(noWaitingPeriodProducts).join('、');
                     showMessage(`⚠️ 以下产品未配置等待期，请补充：${unconfiguredProducts}`, 'warning', resultEl);
@@ -678,8 +678,6 @@
                     const unmatched = globalPolicyDownloadData.filter(p => !fycPolicyNos.includes(p.policyNo));
                     if (unmatched.length > 0) {
                         showMessage(`⚠️ 有${unmatched.length}条保单下载数据未匹配到FYC数据`, 'warning', resultEl);
-                    } else {
-                        showMessage(`✅ 所有保单下载数据已成功匹配到FYC数据`, true, resultEl);
                     }
                 }
 
@@ -1064,7 +1062,7 @@
         }
 
         // 显示提示消息
-        function showMessage(text, type, container) {
+        function showMessage(text, type, container, autoHide = false) {
             const messageEl = document.createElement('div');
             if (type === true) {
                 messageEl.className = 'message success';
@@ -1075,6 +1073,13 @@
             }
             messageEl.textContent = text;
             container.insertBefore(messageEl, container.firstChild);
+            if (autoHide) {
+                setTimeout(() => {
+                    if (messageEl.parentNode) {
+                        messageEl.parentNode.removeChild(messageEl);
+                    }
+                }, 3000);
+            }
         }
 
         // 显示Toast提示
