@@ -133,6 +133,11 @@
             min-height: 100px;
         }
 
+        .top-message-area {
+            margin-top: 10px;
+            min-height: 0;
+        }
+
         .message {
             padding: 10px;
             margin-bottom: 15px;
@@ -409,6 +414,7 @@
                 <button id="processBtn">处理数据</button>
                 <button id="clearBtn">清空内容</button>
             </div>
+            <div class="top-message-area" id="fycTopMessage"></div>
             <div class="result-section" id="fycResult"></div>
         </div>
     </div>
@@ -570,7 +576,9 @@
         function processFYCData() {
             const jsonInput = document.getElementById('jsonInput').value.trim();
             const resultEl = document.getElementById('fycResult');
+            const topMsgArea = document.getElementById('fycTopMessage');
             resultEl.innerHTML = '';
+            if (topMsgArea) topMsgArea.innerHTML = '';
 
             if (!jsonInput) {
                 showMessage('请输入JSON数据', false, resultEl);
@@ -611,13 +619,14 @@
                     // 判断是否连续投保（保单年度 > 1 即为连续投保/续保）
                     policyData.isContinuous = !!(policyData.policyYear && parseInt(policyData.policyYear) > 1);
 
-                    // 格式化数字字段
+                    // 格式化数字字段（只保留有效数字，去掉末尾的0）
                     const numericFields = ['premium', 'policyServiceFee', 'promotionFee', 'promotionReward', 'performance'];
                     numericFields.forEach(field => {
                         if (policyData[field] !== '' && policyData[field] !== undefined && !isNaN(parseFloat(policyData[field]))) {
-                            policyData[field] = parseFloat(policyData[field]).toFixed(3);
+                            const num = parseFloat(policyData[field]);
+                            policyData[field] = num.toFixed(3).replace(/(\d+\.\d*?)0+$/, '$1').replace(/\.$/, '');
                         } else if (policyData[field] === undefined) {
-                            policyData[field] = '0.000';
+                            policyData[field] = '0';
                         }
                     });
 
@@ -626,7 +635,8 @@
                         const total = (parseFloat(policyData.policyServiceFee) || 0)
                             + (parseFloat(policyData.promotionFee) || 0)
                             + (parseFloat(policyData.promotionReward) || 0);
-                        policyData.totalIncome = total.toFixed(3);
+                        const totalStr = total.toFixed(3).replace(/(\d+\.\d*?)0+$/, '$1').replace(/\.$/, '');
+                        policyData.totalIncome = totalStr;
                     }
 
                     const policyTitle = `${policyData.insuredName || '未知'}-${policyData.productName || '未知产品'}`;
@@ -667,17 +677,17 @@
                     resultEl.appendChild(policyContainer);
                 });
 
-                showMessage(`成功解析 ${rows.length} 条保单数据`, true, resultEl, true);
+                showMessage(`成功解析 ${rows.length} 条保单数据`, true, resultEl, true, true);
                 if (noWaitingPeriodProducts.size > 0) {
                     const unconfiguredProducts = Array.from(noWaitingPeriodProducts).join('、');
-                    showMessage(`⚠️ 以下产品未配置等待期，请补充：${unconfiguredProducts}`, 'warning', resultEl);
+                    showMessage(`⚠️ 以下产品未配置等待期，请补充：${unconfiguredProducts}`, 'warning', resultEl, false, true);
                 }
 
                 // 提示未关联到下载数据的保单（使用格式化后的保单号匹配）
                 if (globalPolicyDownloadData.length > 0) {
                     const unmatched = globalPolicyDownloadData.filter(p => !fycPolicyNos.includes(p.policyNo));
                     if (unmatched.length > 0) {
-                        showMessage(`⚠️ 有${unmatched.length}条保单下载数据未匹配到FYC数据`, 'warning', resultEl);
+                        showMessage(`⚠️ 有${unmatched.length}条保单下载数据未匹配到FYC数据`, 'warning', resultEl, false, true);
                     }
                 }
 
@@ -887,8 +897,6 @@
 
             policyDataList.forEach(policy => {
                 const validDate = formatDate(policy.validDate);
-                const copyFileName = getPolicyFileName(policy);
-
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${policy.appntName}</td>
@@ -897,19 +905,10 @@
                     <td>${validDate}</td>
                     <td>${policy.policyNo || '未知'}</td>
                     <td>
-                        <button class="copy-btn" data-copy-text="${copyFileName}">复制文件名</button>
                         <button class="download-btn" ${policy.pdfUrl ? '' : 'disabled'} data-pdf-url="${policy.pdfUrl}">下载合同</button>
                     </td>
                 `;
                 tableBody.appendChild(tr);
-            });
-
-            // 绑定表格按钮事件
-            document.querySelectorAll('.copy-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const copyText = btn.getAttribute('data-copy-text');
-                    copyToClipboard(copyText || '未知文件名');
-                });
             });
 
             document.querySelectorAll('.download-btn').forEach(btn => {
@@ -1062,7 +1061,7 @@
         }
 
         // 显示提示消息
-        function showMessage(text, type, container, autoHide = false) {
+        function showMessage(text, type, container, autoHide = false, showInTop = false) {
             const messageEl = document.createElement('div');
             if (type === true) {
                 messageEl.className = 'message success';
@@ -1072,7 +1071,16 @@
                 messageEl.className = 'message warning';
             }
             messageEl.textContent = text;
-            container.insertBefore(messageEl, container.firstChild);
+            if (showInTop && type !== false) {
+                const topArea = document.getElementById('fycTopMessage');
+                if (topArea) {
+                    topArea.appendChild(messageEl);
+                } else {
+                    container.insertBefore(messageEl, container.firstChild);
+                }
+            } else {
+                container.insertBefore(messageEl, container.firstChild);
+            }
             if (autoHide) {
                 setTimeout(() => {
                     if (messageEl.parentNode) {
