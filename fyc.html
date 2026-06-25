@@ -117,6 +117,14 @@
             cursor: not-allowed;
         }
 
+        #clearBtn, #pdfClearBtn, .clear-btn {
+            background-color: #ff4d4f;
+        }
+
+        #clearBtn:hover, #pdfClearBtn:hover, .clear-btn:hover {
+            background-color: #ff7875;
+        }
+
         .result-section {
             margin-top: 20px;
             padding: 15px;
@@ -373,6 +381,7 @@
                 <h4>请输入保单JSON数据（工作台→保单→保单→Network→pageList）：</h4>
                 <textarea class="json-textarea" id="pdfJsonTextarea" placeholder="请粘贴完整的保单JSON数据到这里..."></textarea>
                 <button class="parse-btn" id="pdfParseBtn">解析保单</button>
+                <button class="clear-btn" id="pdfClearBtn">清空内容</button>
                 <div class="error-tip" id="pdfErrorTip">JSON格式错误，请检查数据后重新提交！</div>
             </div>
             <h3 style="color: #333; margin-bottom: 16px;">保单列表</h3>
@@ -458,7 +467,27 @@
         document.addEventListener('DOMContentLoaded', () => {
             initTabSwitch();
             initEventListeners();
+            restoreFromLocalStorage();
         });
+
+        // 从本地存储恢复数据
+        function restoreFromLocalStorage() {
+            const fycData = localStorage.getItem('fyc_raw_data');
+            if (fycData) {
+                document.getElementById('jsonInput').value = fycData;
+                try {
+                    processFYCData();
+                } catch (e) {}
+            }
+
+            const policyData = localStorage.getItem('policy_download_raw_data');
+            if (policyData) {
+                document.getElementById('pdfJsonTextarea').value = policyData;
+                try {
+                    parsePolicyDownloadData();
+                } catch (e) {}
+            }
+        }
 
         // 初始化标签切换
         function initTabSwitch() {
@@ -479,14 +508,54 @@
         // 初始化事件监听
         function initEventListeners() {
             // FYC相关事件
-            document.getElementById('processBtn').addEventListener('click', processFYCData);
+            document.getElementById('jsonInput').addEventListener('input', () => {
+                const jsonStr = document.getElementById('jsonInput').value.trim();
+                if (jsonStr) {
+                    localStorage.setItem('fyc_raw_data', jsonStr);
+                } else {
+                    localStorage.removeItem('fyc_raw_data');
+                }
+            });
+            document.getElementById('processBtn').addEventListener('click', () => {
+                const jsonStr = document.getElementById('jsonInput').value.trim();
+                if (jsonStr) {
+                    localStorage.setItem('fyc_raw_data', jsonStr);
+                }
+                processFYCData();
+            });
             document.getElementById('clearBtn').addEventListener('click', () => {
                 document.getElementById('jsonInput').value = '';
                 document.getElementById('fycResult').innerHTML = '';
+                localStorage.removeItem('fyc_raw_data');
+                showToast('已清空FYC数据');
             });
 
             // 保单下载相关事件
-            document.getElementById('pdfParseBtn').addEventListener('click', parsePolicyDownloadData);
+            document.getElementById('pdfJsonTextarea').addEventListener('input', () => {
+                const jsonStr = document.getElementById('pdfJsonTextarea').value.trim();
+                if (jsonStr) {
+                    localStorage.setItem('policy_download_raw_data', jsonStr);
+                } else {
+                    localStorage.removeItem('policy_download_raw_data');
+                }
+            });
+            document.getElementById('pdfParseBtn').addEventListener('click', () => {
+                const jsonStr = document.getElementById('pdfJsonTextarea').value.trim();
+                if (jsonStr) {
+                    localStorage.setItem('policy_download_raw_data', jsonStr);
+                }
+                parsePolicyDownloadData();
+            });
+            document.getElementById('pdfClearBtn').addEventListener('click', () => {
+                document.getElementById('pdfJsonTextarea').value = '';
+                document.getElementById('policyTableBody').innerHTML = '';
+                document.getElementById('policyTable').style.display = 'none';
+                document.getElementById('pdfEmptyTip').style.display = 'block';
+                document.getElementById('pdfErrorTip').style.display = 'none';
+                globalPolicyDownloadData = [];
+                localStorage.removeItem('policy_download_raw_data');
+                showToast('已清空保单下载数据');
+            });
         }
 
         // ====================== 核心修复：保单号格式化函数 ======================
