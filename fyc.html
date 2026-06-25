@@ -666,8 +666,13 @@
                         policyData.waitingEndDate = '连续投保，无等待期';
                         policyData.continuousNoWaiting = true;
                     } else {
-                        policyData.waitingEndDate = calculateWaitingEndDate(policyData.effectiveDate, waitingDays);
-                        policyData.waitingPeriodDays = waitingDays >= 0 ? `${waitingDays}天` : '未配置';
+                        if (waitingDays === 0) {
+                            policyData.waitingPeriodDays = '无';
+                            policyData.waitingEndDate = '无';
+                        } else {
+                            policyData.waitingEndDate = calculateWaitingEndDate(policyData.effectiveDate, waitingDays);
+                            policyData.waitingPeriodDays = waitingDays > 0 ? `${waitingDays}天` : '未配置';
+                        }
                         policyData.continuousNoWaiting = false;
                     }
 
@@ -738,10 +743,19 @@
                 { label: '业绩', key: 'performance', isNumeric: true },
                 { label: '保障期间', key: 'insurancePeriod', noCopy: true, isNumeric: false },
                 { label: '缴费期间', key: 'paymentPeriod', noCopy: true, isNumeric: false },
-                { label: '缴费方式', key: 'paymentMethod', noCopy: true, isNumeric: false },
-                { label: '扣款银行', key: 'bankName', isNumeric: false },
-                { label: '银行卡号', key: 'bankAccount', isNumeric: false },
             ];
+
+            if (data.bankName || data.bankAccount) {
+                fields.push(
+                    { label: '缴费方式', key: 'paymentMethod', noCopy: true, isNumeric: false },
+                    { label: '扣款银行', key: 'bankName', isNumeric: false },
+                    { label: '银行卡号', key: 'bankAccount', isNumeric: false }
+                );
+            } else {
+                fields.push(
+                    { label: '缴费方式', displayValue: '移动支付', noCopy: true, isNumeric: false }
+                );
+            }
 
             if (data.continuousNoWaiting) {
                 fields.push(
@@ -752,7 +766,7 @@
                     { label: '新发疾病等待期', key: 'newDiseaseWaitingDays', noCopy: false, combinedEndDate: data.newDiseaseWaitingEndDate, isNumeric: false },
                     { label: '一般既往史等待期', key: 'generalHistoryWaitingDays', noCopy: false, combinedEndDate: data.generalHistoryWaitingEndDate, isNumeric: false }
                 );
-            } else if (data.waitingPeriodDays !== '0天' && data.waitingPeriodDays !== '无等待期' && data.waitingPeriodDays !== undefined) {
+            } else if (data.waitingPeriodDays !== undefined && data.waitingPeriodDays !== '') {
                 fields.push(
                     { label: '等待期', key: 'waitingPeriodDays', noCopy: false, combinedEndDate: data.waitingEndDate, isNumeric: false }
                 );
@@ -774,8 +788,14 @@
                 }
 
                 let displayValue;
-                if (field.combinedEndDate !== undefined) {
-                    displayValue = `${data[field.key]}（${field.combinedEndDate}）`;
+                if (field.displayValue !== undefined) {
+                    displayValue = field.displayValue;
+                } else if (field.combinedEndDate !== undefined) {
+                    if (data[field.key] === '无' || data[field.key] === '未配置') {
+                        displayValue = data[field.key];
+                    } else {
+                        displayValue = `${data[field.key]}（${field.combinedEndDate}）`;
+                    }
                 } else {
                     displayValue = data[field.key] === '' && ['premium', 'policyServiceFee', 'promotionFee', 'promotionReward', 'performance'].includes(field.key)
                         ? '0'
