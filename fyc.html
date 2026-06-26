@@ -631,6 +631,87 @@
             padding: 10px 30px;
             font-size: 15px;
         }
+
+        .policy-manage-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .search-input {
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 240px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus {
+            border-color: #1890ff;
+        }
+
+        .status-select {
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+            background-color: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .status-select:focus {
+            border-color: #1890ff;
+        }
+
+        .ellipsis-cell {
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block;
+        }
+
+        .ellipsis-cell.bank-account {
+            max-width: 140px;
+        }
+
+        .beneficiary-cell {
+            cursor: pointer;
+        }
+
+        .beneficiary-pending {
+            color: #fa8c16;
+            font-weight: bold;
+        }
+
+        .beneficiary-fixed {
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .beneficiary-editable {
+            color: #1890ff;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .modal-form-item input[type="text"] {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .modal-form-item input[type="text"]:focus {
+            outline: none;
+            border-color: #1890ff;
+        }
     </style>
 </head>
 
@@ -671,7 +752,17 @@
         <div class="tab-content" id="policy-manage-tab">
             <div class="policy-manage-header">
                 <h3>保单列表</h3>
-                <div>
+                <div class="policy-manage-actions">
+                    <input type="text" id="policySearchInput" class="search-input" placeholder="搜索保单号/投保人/被保人">
+                    <select id="policyStatusFilter" class="status-select">
+                        <option value="all">全部</option>
+                        <option value="pending">待生效</option>
+                        <option value="waiting">等待期内</option>
+                        <option value="active">生效中</option>
+                        <option value="renewal">续保期</option>
+                        <option value="expired">已失效</option>
+                        <option value="overdue">已逾期</option>
+                    </select>
                     <button id="refreshBtn">刷新</button>
                     <button id="clearAllPoliciesBtn" class="btn-danger">清空所有</button>
                 </div>
@@ -683,17 +774,19 @@
                             <th>保单状态</th>
                             <th>投保人</th>
                             <th>被保人</th>
+                            <th>身故受益人</th>
                             <th>产品名称</th>
-                            <th>下单时间</th>
-                            <th>生效日期</th>
+                            <th>生效日</th>
+                            <th>续保日</th>
                             <th>连续投保</th>
                             <th>等待期</th>
-                            <th>下期续保日期</th>
                             <th>业绩</th>
                             <th>总收入</th>
+                            <th>保费</th>
                             <th>保障期间</th>
                             <th>缴费方式</th>
                             <th>保单号</th>
+                            <th>下单日</th>
                             <th>扣款银行</th>
                             <th>银行卡号</th>
                             <th>合同</th>
@@ -710,7 +803,7 @@
         </div>
     </div>
 
-    <div class="version-info">版本号：V3.3 | 更新时间：2026年6月26日</div>
+    <div class="version-info">版本号：V3.4 | 更新时间：2026年6月26日</div>
 
     <div class="toast" id="toast"></div>
     <div class="toast" id="copyToast">复制成功！</div>
@@ -753,11 +846,32 @@
         </div>
     </div>
 
+    <div class="modal-overlay hidden" id="editBeneficiaryModal">
+        <div class="modal-content">
+            <div class="modal-title">编辑身故受益人</div>
+            <div class="modal-body">
+                <div class="modal-form-item">
+                    <label>保单信息</label>
+                    <div id="editBeneficiaryPolicyInfo" style="font-size: 13px; color: #666; padding: 8px; background-color: #f5f5f5; border-radius: 4px;"></div>
+                </div>
+                <div class="modal-form-item">
+                    <label>受益人姓名</label>
+                    <input type="text" id="editBeneficiaryInput" placeholder="请输入受益人姓名">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn-cancel" id="editBeneficiaryCancelBtn">取消</button>
+                <button class="modal-btn-confirm" id="editBeneficiaryConfirmBtn">确定</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let globalPolicyDownloadData = [];
         let globalParsedPolicies = [];
         let db = null;
         let currentEditPolicyNo = null;
+        let currentEditBeneficiaryPolicyNo = null;
 
         const PRODUCT_WAITING_PERIOD = {
             "众民保·百万医疗险2025版": 30,
@@ -966,11 +1080,17 @@
             document.getElementById('refreshBtn').addEventListener('click', loadPoliciesToManage);
             document.getElementById('clearAllPoliciesBtn').addEventListener('click', handleClearAllPolicies);
 
+            document.getElementById('policySearchInput').addEventListener('input', loadPoliciesToManage);
+            document.getElementById('policyStatusFilter').addEventListener('change', loadPoliciesToManage);
+
             document.getElementById('editYearCancelBtn').addEventListener('click', closeEditYearModal);
             document.getElementById('editYearConfirmBtn').addEventListener('click', confirmEditYear);
 
             document.getElementById('editRenewalDateCancelBtn').addEventListener('click', closeEditRenewalDateModal);
             document.getElementById('editRenewalDateConfirmBtn').addEventListener('click', confirmEditRenewalDate);
+
+            document.getElementById('editBeneficiaryCancelBtn').addEventListener('click', closeEditBeneficiaryModal);
+            document.getElementById('editBeneficiaryConfirmBtn').addEventListener('click', confirmEditBeneficiary);
         }
 
         function clearAllInputs() {
@@ -1785,16 +1905,75 @@
             }
         }
 
+        function isAccidentInsurance(productName) {
+            if (!productName) return false;
+            return productName.includes('意外') || productName.includes('意外险');
+        }
+
+        function getBeneficiaryDisplay(policy) {
+            const productName = policy.productName || '';
+            if (isAccidentInsurance(productName)) {
+                return '<span class="beneficiary-fixed">法定</span>';
+            }
+            const beneficiary = policy.beneficiary || '';
+            if (beneficiary) {
+                return `<span class="beneficiary-editable" data-policy-no="${policy.policyNo}">${beneficiary}</span>`;
+            }
+            return `<span class="beneficiary-pending beneficiary-cell" data-policy-no="${policy.policyNo}">待维护</span>`;
+        }
+
+        function getBankDisplay(policy) {
+            const hasBankInfo = policy.bankName || policy.bankAccount;
+            if (hasBankInfo) {
+                return {
+                    bankName: policy.bankName || '-',
+                    bankAccount: policy.bankAccount || '-'
+                };
+            }
+            return {
+                bankName: '移动支付',
+                bankAccount: ''
+            };
+        }
+
+        function filterPolicies(policies) {
+            const searchKeyword = document.getElementById('policySearchInput').value.trim().toLowerCase();
+            const statusFilter = document.getElementById('policyStatusFilter').value;
+
+            let filtered = policies;
+
+            if (searchKeyword) {
+                filtered = filtered.filter(policy => {
+                    const policyNo = (policy.policyNo || '').toLowerCase();
+                    const holdername = (policy.holdername || '').toLowerCase();
+                    const insuredName = (policy.insuredName || '').toLowerCase();
+                    return policyNo.includes(searchKeyword)
+                        || holdername.includes(searchKeyword)
+                        || insuredName.includes(searchKeyword);
+                });
+            }
+
+            if (statusFilter !== 'all') {
+                filtered = filtered.filter(policy => {
+                    const statusInfo = getPolicyStatus(policy);
+                    return statusInfo.statusKey === statusFilter;
+                });
+            }
+
+            return filtered;
+        }
+
         async function loadPoliciesToManage() {
             try {
                 const policies = await getAllPolicies();
+                const filteredPolicies = filterPolicies(policies);
                 const tableBody = document.getElementById('managePolicyTableBody');
                 const emptyState = document.getElementById('manageEmptyState');
                 const table = document.getElementById('managePolicyTable');
 
                 tableBody.innerHTML = '';
 
-                if (policies.length === 0) {
+                if (filteredPolicies.length === 0) {
                     emptyState.style.display = 'block';
                     table.style.display = 'none';
                     return;
@@ -1803,7 +1982,7 @@
                 emptyState.style.display = 'none';
                 table.style.display = 'table';
 
-                policies.forEach(policy => {
+                filteredPolicies.forEach(policy => {
                     const tr = document.createElement('tr');
                     const statusInfo = getPolicyStatus(policy);
 
@@ -1817,13 +1996,26 @@
                         ? `<span class="renewal-date-editable" data-policy-no="${policy.policyNo}" style="color: #1890ff; cursor: pointer; text-decoration: underline;">${renewalDateStr}</span>`
                         : renewalDateStr;
 
+                    const beneficiaryDisplay = getBeneficiaryDisplay(policy);
+                    const bankInfo = getBankDisplay(policy);
+                    const premium = policy.premium || '0';
+
+                    const policyNoDisplay = policy.policyNo
+                        ? `<span class="ellipsis-cell" title="${policy.policyNo}">${policy.policyNo}</span>`
+                        : '-';
+
+                    const bankAccountDisplay = bankInfo.bankAccount
+                        ? `<span class="ellipsis-cell bank-account" title="${bankInfo.bankAccount}">${bankInfo.bankAccount}</span>`
+                        : '-';
+
                     tr.innerHTML = `
                         <td><span class="policy-status ${statusInfo.statusKey}">${statusInfo.status}</span></td>
                         <td>${policy.holdername || '-'}</td>
                         <td>${policy.insuredName || '-'}</td>
+                        <td>${beneficiaryDisplay}</td>
                         <td>${policy.productName || '-'}</td>
-                        <td>${policy.orderTime || '-'}</td>
                         <td>${policy.effectiveDate || '-'}</td>
+                        <td>${renewalDisplay}</td>
                         <td>
                             <div class="policy-year-cell">
                                 <span class="policy-year-value">${yearDisplay}</span>
@@ -1831,14 +2023,15 @@
                             </div>
                         </td>
                         <td>${waitingDisplay}</td>
-                        <td>${renewalDisplay}</td>
                         <td>${policy.performance || '0'}</td>
                         <td>${policy.totalIncome || '0'}</td>
+                        <td>${premium}</td>
                         <td>${policy.insurancePeriod || '-'}</td>
                         <td>${paymentDisplay}</td>
-                        <td>${policy.policyNo || '-'}</td>
-                        <td>${policy.bankName || '-'}</td>
-                        <td>${policy.bankAccount || '-'}</td>
+                        <td>${policyNoDisplay}</td>
+                        <td>${policy.orderTime || '-'}</td>
+                        <td>${bankInfo.bankName}</td>
+                        <td>${bankAccountDisplay}</td>
                         <td>
                             <button class="download-btn action-btn ${policy.pdfUrl ? '' : 'disabled'}" 
                                     ${policy.pdfUrl ? '' : 'disabled'}
@@ -1880,6 +2073,13 @@
                         if (pdfUrl) {
                             downloadFile(pdfUrl, `${pdfName}.pdf`);
                         }
+                    });
+                });
+
+                tableBody.querySelectorAll('.beneficiary-cell, .beneficiary-editable').forEach(el => {
+                    el.addEventListener('click', (e) => {
+                        const policyNo = e.target.getAttribute('data-policy-no');
+                        openEditBeneficiaryModal(policyNo);
                     });
                 });
 
@@ -2084,6 +2284,54 @@
                 await updatePolicy(policy);
                 showToast('更新成功');
                 closeEditRenewalDateModal();
+                loadPoliciesToManage();
+            } catch (e) {
+                console.error('更新失败:', e);
+                showToast('更新失败');
+            }
+        }
+
+        function openEditBeneficiaryModal(policyNo) {
+            currentEditBeneficiaryPolicyNo = policyNo;
+            getPolicyByNo(policyNo).then(policy => {
+                if (policy) {
+                    document.getElementById('editBeneficiaryPolicyInfo').textContent = `${policy.insuredName} - ${policy.productName}`;
+                    document.getElementById('editBeneficiaryInput').value = policy.beneficiary || '';
+                }
+                document.getElementById('editBeneficiaryModal').classList.remove('hidden');
+            }).catch(e => {
+                showToast('获取保单信息失败');
+            });
+        }
+
+        function closeEditBeneficiaryModal() {
+            document.getElementById('editBeneficiaryModal').classList.add('hidden');
+            currentEditBeneficiaryPolicyNo = null;
+        }
+
+        async function confirmEditBeneficiary() {
+            const input = document.getElementById('editBeneficiaryInput');
+            const beneficiary = input.value.trim();
+
+            if (!currentEditBeneficiaryPolicyNo) {
+                closeEditBeneficiaryModal();
+                return;
+            }
+
+            try {
+                const policy = await getPolicyByNo(currentEditBeneficiaryPolicyNo);
+                if (!policy) {
+                    showToast('保单不存在');
+                    closeEditBeneficiaryModal();
+                    return;
+                }
+
+                policy.beneficiary = beneficiary;
+                policy.updateTime = new Date().toISOString();
+
+                await updatePolicy(policy);
+                showToast('更新成功');
+                closeEditBeneficiaryModal();
                 loadPoliciesToManage();
             } catch (e) {
                 console.error('更新失败:', e);
