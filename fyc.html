@@ -605,6 +605,11 @@
             color: #ffffff;
         }
 
+        .policy-status.expired {
+            background-color: #8c8c8c;
+            color: #ffffff;
+        }
+
         .policy-status.unknown {
             background-color: #f5f5f5;
             color: #8c8c8c;
@@ -684,7 +689,7 @@
                             <th>连续投保</th>
                             <th>等待期</th>
                             <th>下期续保日期</th>
-                            <th>保费业绩</th>
+                            <th>业绩</th>
                             <th>总收入</th>
                             <th>保障期间</th>
                             <th>缴费方式</th>
@@ -705,7 +710,7 @@
         </div>
     </div>
 
-    <div class="version-info">版本号：V3.2 | 更新时间：2026年6月26日</div>
+    <div class="version-info">版本号：V3.3 | 更新时间：2026年6月26日</div>
 
     <div class="toast" id="toast"></div>
     <div class="toast" id="copyToast">复制成功！</div>
@@ -723,6 +728,27 @@
             <div class="modal-footer">
                 <button class="modal-btn-cancel" id="editYearCancelBtn">取消</button>
                 <button class="modal-btn-confirm" id="editYearConfirmBtn">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="editRenewalDateModal">
+        <div class="modal-content">
+            <div class="modal-title">编辑下期续保日期</div>
+            <div class="modal-body">
+                <div class="modal-form-item">
+                    <label>保单信息</label>
+                    <div id="editRenewalPolicyInfo" style="font-size: 13px; color: #666; padding: 8px; background-color: #f5f5f5; border-radius: 4px;"></div>
+                </div>
+                <div class="modal-form-item">
+                    <label>下期续保日期</label>
+                    <input type="date" id="editRenewalDateInput">
+                    <div class="modal-tip">长期险可手动调整续保日期</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn-cancel" id="editRenewalDateCancelBtn">取消</button>
+                <button class="modal-btn-confirm" id="editRenewalDateConfirmBtn">确定</button>
             </div>
         </div>
     </div>
@@ -942,6 +968,9 @@
 
             document.getElementById('editYearCancelBtn').addEventListener('click', closeEditYearModal);
             document.getElementById('editYearConfirmBtn').addEventListener('click', confirmEditYear);
+
+            document.getElementById('editRenewalDateCancelBtn').addEventListener('click', closeEditRenewalDateModal);
+            document.getElementById('editRenewalDateConfirmBtn').addEventListener('click', confirmEditRenewalDate);
         }
 
         function clearAllInputs() {
@@ -1419,6 +1448,10 @@
         }
 
         function getNextRenewalDate(policy) {
+            if (policy.customRenewalDate) {
+                const d = parseDate(policy.customRenewalDate);
+                if (d) return d;
+            }
             const effectiveDate = parseDate(policy.effectiveDate);
             if (!effectiveDate) return null;
             const year = effectiveDate.getFullYear() + (parseInt(policy.policyYear) || 1);
@@ -1429,6 +1462,23 @@
                 renewalDate.setDate(0);
             }
             return renewalDate;
+        }
+
+        function isLongTermPolicy(policy) {
+            const paymentPeriod = policy.paymentPeriod || '';
+            const insurancePeriod = policy.insurancePeriod || '';
+            const match = paymentPeriod.match(/(\d+)\s*年/);
+            if (match && parseInt(match[1]) > 1) {
+                return true;
+            }
+            const insMatch = insurancePeriod.match(/(\d+)\s*年/);
+            if (insMatch && parseInt(insMatch[1]) > 1) {
+                return true;
+            }
+            if (/终身|长期|保至/.test(insurancePeriod)) {
+                return true;
+            }
+            return false;
         }
 
         function getPolicyStatus(policy) {
@@ -1447,52 +1497,88 @@
             const policyYear = parseInt(policy.policyYear) || 1;
             const isContinuous = policy.isContinuous || policyYear > 1;
             const hasNoWaiting = policy.waitingPeriodDays === '无' || policy.waitingPeriodDays === '未配置' || policy.waitingPeriodDays === '连续投保无等待期';
+            const longTerm = isLongTermPolicy(policy);
+            const renewalDate = getNextRenewalDate(policy);
+            const renewalDateStr = renewalDate ? formatDateCN(renewalDate) : '';
 
-            if (isContinuous || hasNoWaiting) {
-                const renewalDate = getNextRenewalDate(policy);
+            if (longTerm) {
+                if (isContinuous || hasNoWaiting) {
+                    if (renewalDate) {
+                        const diffDays = Math.ceil((renewalDate - today) / (1000 * 60 * 60 * 24));
+                        if (diffDays <= 30 && diffDays >= 0) {
+                            return { status: '续保期', statusKey: 'renewal', renewalDate: renewalDateStr, longTerm: true };
+                        }
+                    }
+                    return { status: '生效中', statusKey: 'active', renewalDate: renewalDateStr, longTerm: true };
+                }
+
+                const waitingEndDate = getWaitingEndDateFromPolicy(policy);
+                if (!waitingEndDate) {
+                    if (renewalDate) {
+                        const diffDays = Math.ceil((renewalDate - today) / (1000 * 60 * 60 * 24));
+                        if (diffDays <= 30 && diffDays >= 0) {
+                            return { status: '续保期', statusKey: 'renewal', renewalDate: renewalDateStr, longTerm: true };
+                        }
+                    }
+                    return { status: '生效中', statusKey: 'active', renewalDate: renewalDateStr, longTerm: true };
+                }
+
+                if (today <= waitingEndDate) {
+                    return { status: '等待期内', statusKey: 'waiting', longTerm: true };
+                }
+
                 if (renewalDate) {
                     const diffDays = Math.ceil((renewalDate - today) / (1000 * 60 * 60 * 24));
                     if (diffDays <= 30 && diffDays >= 0) {
-                        return { status: '续保期', statusKey: 'renewal', renewalDate: formatDateCN(renewalDate) };
-                    }
-                    if (diffDays < 0) {
-                        return { status: '已逾期', statusKey: 'overdue', renewalDate: formatDateCN(renewalDate) };
+                        return { status: '续保期', statusKey: 'renewal', renewalDate: renewalDateStr, longTerm: true };
                     }
                 }
-                return { status: '生效中', statusKey: 'active', renewalDate: renewalDate ? formatDateCN(renewalDate) : '' };
+
+                return { status: '生效中', statusKey: 'active', renewalDate: renewalDateStr, longTerm: true };
+            }
+
+            if (isContinuous || hasNoWaiting) {
+                if (renewalDate) {
+                    const diffDays = Math.ceil((renewalDate - today) / (1000 * 60 * 60 * 24));
+                    if (diffDays <= 30 && diffDays >= 0) {
+                        return { status: '续保期', statusKey: 'renewal', renewalDate: renewalDateStr };
+                    }
+                    if (diffDays < 0) {
+                        return { status: '已失效', statusKey: 'expired', renewalDate: renewalDateStr };
+                    }
+                }
+                return { status: '生效中', statusKey: 'active', renewalDate: renewalDateStr };
             }
 
             const waitingEndDate = getWaitingEndDateFromPolicy(policy);
             if (!waitingEndDate) {
-                const renewalDate = getNextRenewalDate(policy);
                 if (renewalDate) {
                     const diffDays = Math.ceil((renewalDate - today) / (1000 * 60 * 60 * 24));
                     if (diffDays <= 30 && diffDays >= 0) {
-                        return { status: '续保期', statusKey: 'renewal', renewalDate: formatDateCN(renewalDate) };
+                        return { status: '续保期', statusKey: 'renewal', renewalDate: renewalDateStr };
                     }
                     if (diffDays < 0) {
-                        return { status: '已逾期', statusKey: 'overdue', renewalDate: formatDateCN(renewalDate) };
+                        return { status: '已失效', statusKey: 'expired', renewalDate: renewalDateStr };
                     }
                 }
-                return { status: '生效中', statusKey: 'active', renewalDate: renewalDate ? formatDateCN(renewalDate) : '' };
+                return { status: '生效中', statusKey: 'active', renewalDate: renewalDateStr };
             }
 
             if (today <= waitingEndDate) {
                 return { status: '等待期内', statusKey: 'waiting' };
             }
 
-            const renewalDate = getNextRenewalDate(policy);
             if (renewalDate) {
                 const diffDays = Math.ceil((renewalDate - today) / (1000 * 60 * 60 * 24));
                 if (diffDays <= 30 && diffDays >= 0) {
-                    return { status: '续保期', statusKey: 'renewal', renewalDate: formatDateCN(renewalDate) };
+                    return { status: '续保期', statusKey: 'renewal', renewalDate: renewalDateStr };
                 }
                 if (diffDays < 0) {
-                    return { status: '已逾期', statusKey: 'overdue', renewalDate: formatDateCN(renewalDate) };
+                    return { status: '已失效', statusKey: 'expired', renewalDate: renewalDateStr };
                 }
             }
 
-            return { status: '生效中', statusKey: 'active', renewalDate: renewalDate ? formatDateCN(renewalDate) : '' };
+            return { status: '生效中', statusKey: 'active', renewalDate: renewalDateStr };
         }
 
         function copyToClipboard(text, successMsg) {
@@ -1726,6 +1812,10 @@
                     const yearDisplay = getYearDisplay(policy);
                     const renewalDate = getNextRenewalDate(policy);
                     const renewalDateStr = renewalDate ? formatDateCN(renewalDate) : '-';
+                    const longTerm = isLongTermPolicy(policy);
+                    const renewalDisplay = longTerm
+                        ? `<span class="renewal-date-editable" data-policy-no="${policy.policyNo}" style="color: #1890ff; cursor: pointer; text-decoration: underline;">${renewalDateStr}</span>`
+                        : renewalDateStr;
 
                     tr.innerHTML = `
                         <td><span class="policy-status ${statusInfo.statusKey}">${statusInfo.status}</span></td>
@@ -1741,7 +1831,7 @@
                             </div>
                         </td>
                         <td>${waitingDisplay}</td>
-                        <td>${renewalDateStr}</td>
+                        <td>${renewalDisplay}</td>
                         <td>${policy.performance || '0'}</td>
                         <td>${policy.totalIncome || '0'}</td>
                         <td>${policy.insurancePeriod || '-'}</td>
@@ -1773,6 +1863,13 @@
                     btn.addEventListener('click', (e) => {
                         const policyNo = e.target.getAttribute('data-policy-no');
                         openEditYearModal(policyNo);
+                    });
+                });
+
+                tableBody.querySelectorAll('.renewal-date-editable').forEach(el => {
+                    el.addEventListener('click', (e) => {
+                        const policyNo = e.target.getAttribute('data-policy-no');
+                        openEditRenewalDateModal(policyNo);
                     });
                 });
 
@@ -1926,6 +2023,67 @@
                 await updatePolicy(policy);
                 showToast('更新成功');
                 closeEditYearModal();
+                loadPoliciesToManage();
+            } catch (e) {
+                console.error('更新失败:', e);
+                showToast('更新失败');
+            }
+        }
+
+        let currentEditRenewalPolicyNo = null;
+
+        function openEditRenewalDateModal(policyNo) {
+            currentEditRenewalPolicyNo = policyNo;
+            getPolicyByNo(policyNo).then(policy => {
+                if (policy) {
+                    document.getElementById('editRenewalPolicyInfo').textContent = `${policy.insuredName} - ${policy.productName}`;
+                    const renewalDate = getNextRenewalDate(policy);
+                    if (renewalDate) {
+                        const year = renewalDate.getFullYear();
+                        const month = (renewalDate.getMonth() + 1).toString().padStart(2, '0');
+                        const day = renewalDate.getDate().toString().padStart(2, '0');
+                        document.getElementById('editRenewalDateInput').value = `${year}-${month}-${day}`;
+                    }
+                }
+                document.getElementById('editRenewalDateModal').classList.remove('hidden');
+            }).catch(e => {
+                showToast('获取保单信息失败');
+            });
+        }
+
+        function closeEditRenewalDateModal() {
+            document.getElementById('editRenewalDateModal').classList.add('hidden');
+            currentEditRenewalPolicyNo = null;
+        }
+
+        async function confirmEditRenewalDate() {
+            const dateInput = document.getElementById('editRenewalDateInput');
+            const dateValue = dateInput.value;
+
+            if (!dateValue) {
+                showToast('请选择日期');
+                return;
+            }
+
+            if (!currentEditRenewalPolicyNo) {
+                closeEditRenewalDateModal();
+                return;
+            }
+
+            try {
+                const policy = await getPolicyByNo(currentEditRenewalPolicyNo);
+                if (!policy) {
+                    showToast('保单不存在');
+                    closeEditRenewalDateModal();
+                    return;
+                }
+
+                policy.customRenewalDate = dateValue;
+                policy.updateTime = new Date().toISOString();
+
+                await updatePolicy(policy);
+                showToast('更新成功');
+                closeEditRenewalDateModal();
                 loadPoliciesToManage();
             } catch (e) {
                 console.error('更新失败:', e);
