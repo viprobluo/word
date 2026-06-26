@@ -808,9 +808,9 @@
                             <th>生效日</th>
                             <th>续保日</th>
                             <th>连续投保</th>
+                            <th>保费</th>
                             <th>业绩</th>
                             <th>总收入</th>
-                            <th>保费</th>
                             <th>保障期间</th>
                             <th>缴费方式</th>
                             <th>保单号</th>
@@ -831,7 +831,7 @@
         </div>
     </div>
 
-    <div class="version-info">版本号：V3.7.0 | 更新时间：2026年6月26日</div>
+    <div class="version-info">版本号：V3.7.1 | 更新时间：2026年6月26日</div>
 
     <div class="toast" id="toast"></div>
     <div class="toast" id="copyToast">复制成功！</div>
@@ -885,6 +885,9 @@
                 <div class="modal-form-item">
                     <label>受益人姓名</label>
                     <input type="text" id="editBeneficiaryInput" placeholder="请输入受益人姓名">
+                    <div style="margin-top: 8px;">
+                        <button type="button" id="beneficiaryQuickLegalBtn" style="padding: 4px 12px; font-size: 12px; background-color: #a0d911; color: white; border: none; border-radius: 4px; cursor: pointer;">法定</button>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -1175,6 +1178,9 @@
 
             document.getElementById('editBeneficiaryCancelBtn').addEventListener('click', closeEditBeneficiaryModal);
             document.getElementById('editBeneficiaryConfirmBtn').addEventListener('click', confirmEditBeneficiary);
+            document.getElementById('beneficiaryQuickLegalBtn').addEventListener('click', () => {
+                document.getElementById('editBeneficiaryInput').value = '法定';
+            });
         }
 
         function clearAllInputs() {
@@ -2227,9 +2233,9 @@
                                 <button class="edit-year-btn" data-policy-no="${policy.policyNo}">编辑</button>
                             </div>
                         </td>
+                        <td>${premium}</td>
                         <td>${policy.performance || '0'}</td>
                         <td>${policy.totalIncome || '0'}</td>
-                        <td>${premium}</td>
                         <td>${policy.insurancePeriod || '-'}</td>
                         <td>${paymentDisplay}</td>
                         <td>${policyNoDisplay}</td>
