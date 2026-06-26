@@ -27,6 +27,15 @@
             font-size: 24px;
             font-weight: bold;
             border-bottom: 2px solid #e0e0e0;
+            position: relative;
+        }
+
+        .current-date {
+            display: block;
+            font-size: 14px;
+            color: #666;
+            font-weight: normal;
+            margin-top: 8px;
         }
 
         .container {
@@ -736,7 +745,10 @@
 </head>
 
 <body>
-    <div class="header-title">MY数据处理</div>
+    <div class="header-title">
+        MY数据处理
+        <span class="current-date" id="currentDate"></span>
+    </div>
 
     <div class="tab-container">
         <div class="tabs">
@@ -822,7 +834,7 @@
         </div>
     </div>
 
-    <div class="version-info">版本号：V3.6.0 | 更新时间：2026年6月26日 00:00:00</div>
+    <div class="version-info">版本号：V3.6.1 | 更新时间：2026年6月26日</div>
 
     <div class="toast" id="toast"></div>
     <div class="toast" id="copyToast">复制成功！</div>
@@ -936,7 +948,17 @@
             initTabSwitch();
             initEventListeners();
             restoreFromLocalStorage();
+            updateCurrentDate();
         });
+
+        function updateCurrentDate() {
+            const now = getBeijingNow();
+            const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+            const el = document.getElementById('currentDate');
+            if (el) {
+                el.textContent = dateStr;
+            }
+        }
 
         function initDB() {
             const request = indexedDB.open('PolicyDB', 1);
@@ -1470,9 +1492,15 @@
 
         function timestampToDate(timestamp) {
             if (!timestamp || isNaN(timestamp)) return '无效日期';
-            const date = new Date(parseInt(timestamp));
+            let ts = parseInt(timestamp);
+            if (ts < 10000000000) {
+                ts *= 1000;
+            }
+            const date = new Date(ts);
             if (isNaN(date.getTime())) return '日期解析失败';
-            return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+            const utc = date.getTime() + date.getTimezoneOffset() * 60000;
+            const beijingDate = new Date(utc + 8 * 3600 * 1000);
+            return `${beijingDate.getFullYear()}年${beijingDate.getMonth() + 1}月${beijingDate.getDate()}日`;
         }
 
         function getProductWaitingDays(productName) {
@@ -2039,12 +2067,15 @@
                         ? `<span class="ellipsis-cell" title="${policy.policyNo}">${policy.policyNo}</span>`
                         : '-';
 
+                    const bankTipText = bankInfo.bankAccount
+                        ? `${bankInfo.bankName}\n${bankInfo.bankAccount}`
+                        : (bankInfo.bankName || '-');
                     let bankCellDisplay = bankInfo.bankName || '-';
                     if (bankInfo.bankAccount) {
                         bankCellDisplay = `
                             <div class="bank-cell">
                                 <div class="bank-name">${bankInfo.bankName}</div>
-                                <div class="bank-account-num" title="${bankInfo.bankAccount}">${bankInfo.bankAccount}</div>
+                                <div class="bank-account-num">${bankInfo.bankAccount}</div>
                             </div>
                         `;
                     }
@@ -2071,7 +2102,7 @@
                         <td>${paymentDisplay}</td>
                         <td>${policyNoDisplay}</td>
                         <td>${policy.orderTime || '-'}</td>
-                        <td>${bankCellDisplay}</td>
+                        <td title="${bankTipText}">${bankCellDisplay}</td>
                         <td>
                             <button class="download-btn action-btn ${policy.pdfUrl ? '' : 'disabled'}" 
                                     ${policy.pdfUrl ? '' : 'disabled'}
