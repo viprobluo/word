@@ -920,6 +920,48 @@
             "中荷互联网岁岁享3.0护理保险": 90,
         };
 
+        const POLICY_INTERPRETATION_TEMPLATES = {
+            "众民保·中高端医疗险2026": (data) => {
+                const newDiseaseEndDate = data.newDiseaseWaitingEndDate || '';
+                const generalHistoryEndDate = data.generalHistoryWaitingEndDate || '';
+                const orderDate = data.orderTime || '';
+                let nextYearRenewalDate = '';
+                const d = parseDate(orderDate);
+                if (d) {
+                    d.setFullYear(d.getFullYear() + 1);
+                    nextYearRenewalDate = formatDateCN(d);
+                }
+                return `${data.productName || ''}
+
+投保人：${data.holdername || ''}
+被保人：${data.insuredName || ''}
+
+▍医疗险 有社保版本
+
+1、无健康告知，承担一般既往史，除外合同约定的 5 大既往史
+
+（父母体况重点关注高血压并发症，如果投保之前有并发症，那么高血压及高血压并发症不赔付，详见 5 大严重既往史除外说明）
+
+2、0 免赔，医保报销后，剩下部分 2 万内 60%，2 万以上 100%
+
+指定疾病首年赔付比例 2 万以内 30%；2 万以上 50%（连续投保后，赔付比例不再折扣，即 2 中所述正常比例）
+
+指定疾病：良性肿瘤(含子宫肌瘤)、肺结核、息肉、增生、囊肿、结石、痔疮、肛瘘
+
+3、二级以上公立医院普通部，本保单约定的私立医院普通部+约定重大疾病可扩展特需部、国际部、VIP 部
+
+4、质子重离子医院：中国大陆所有
+
+5、新发疾病等待期 30 天：${newDiseaseEndDate}（等待期内出险不理赔）
+
+一般既往史等待期：90 天 ${generalHistoryEndDate}（等待期内出险不理赔）
+
+6、明年续保：${nextYearRenewalDate}（连续投保无等待期）
+
+以上内容仅供参考，具体以合同条款为准`;
+            }
+        };
+
         const FIELD_MAPPING = {
             policyNo: ['items.policycode', 'policycode'],
             prePolicyCode: ['prepolicycode'],
@@ -1391,9 +1433,21 @@
                 );
             }
 
+            const interpretation = getPolicyInterpretation(data);
+            if (interpretation) {
+                fields.push({
+                    label: '保单解读',
+                    customValue: interpretation,
+                    customCopyText: interpretation,
+                    isInterpretation: true,
+                    isFullWidth: true,
+                    isNumeric: false
+                });
+            }
+
             fields.forEach(field => {
                 const fieldItem = document.createElement('div');
-                fieldItem.className = 'field-item' + (field.isHighlight ? ' highlight' : '');
+                fieldItem.className = 'field-item' + (field.isHighlight ? ' highlight' : '') + (field.isFullWidth ? ' action-field-item' : '');
 
                 const valueEl = document.createElement('div');
                 valueEl.className = 'field-value';
@@ -1407,7 +1461,9 @@
                 }
 
                 let displayValue;
-                if (field.displayValue !== undefined) {
+                if (field.isInterpretation && field.customValue) {
+                    displayValue = field.customValue;
+                } else if (field.displayValue !== undefined) {
                     displayValue = field.displayValue;
                 } else if (field.combinedEndDate !== undefined) {
                     if (data[field.key] === '无' || data[field.key] === '未配置') {
@@ -1420,7 +1476,11 @@
                         ? '0'
                         : (data[field.key] || '');
                 }
-                valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong>${displayValue}${field.note ? `<div style="color: #999; font-size: 12px; margin-top: 4px;">${field.note}</div>` : ''}`;
+                if (field.isInterpretation) {
+                    valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong><div style="white-space: pre-wrap; margin-top: 8px; line-height: 1.6; color: #333;">${displayValue}</div>`;
+                } else {
+                    valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong>${displayValue}${field.note ? `<div style="color: #999; font-size: 12px; margin-top: 4px;">${field.note}</div>` : ''}`;
+                }
 
                 fieldItem.appendChild(valueEl);
 
@@ -1591,6 +1651,24 @@
         function formatDateCN(date) {
             if (!date || isNaN(date.getTime())) return '';
             return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+        }
+
+        function getPolicyInterpretation(policyData) {
+            if (!policyData || !policyData.productName) return null;
+            let matchedTemplate = null;
+            let matchedKey = null;
+            for (const [productKeyword, templateFn] of Object.entries(POLICY_INTERPRETATION_TEMPLATES)) {
+                if (policyData.productName.includes(productKeyword)) {
+                    if (!matchedKey || productKeyword.length > matchedKey.length) {
+                        matchedKey = productKeyword;
+                        matchedTemplate = templateFn;
+                    }
+                }
+            }
+            if (matchedTemplate && typeof matchedTemplate === 'function') {
+                return matchedTemplate(policyData);
+            }
+            return null;
         }
 
         function getWaitingEndDateFromPolicy(policy) {
