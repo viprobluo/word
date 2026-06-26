@@ -676,7 +676,10 @@
         }
 
         .ellipsis-cell.bank-account {
-            max-width: 140px;
+            max-width: 30px;
+            text-overflow: clip;
+            overflow: hidden;
+            white-space: nowrap;
         }
 
         .beneficiary-cell {
@@ -695,6 +698,12 @@
 
         .beneficiary-editable {
             color: #1890ff;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .beneficiary-legal-red {
+            color: #f5222d;
             cursor: pointer;
             text-decoration: underline;
         }
@@ -763,8 +772,8 @@
                         <option value="expired">已失效</option>
                         <option value="overdue">已逾期</option>
                     </select>
+                    <button id="clearFilterBtn">清空筛选</button>
                     <button id="refreshBtn">刷新</button>
-                    <button id="clearAllPoliciesBtn" class="btn-danger">清空所有</button>
                 </div>
             </div>
             <div class="policy-table-container">
@@ -803,7 +812,7 @@
         </div>
     </div>
 
-    <div class="version-info">版本号：V3.4 | 更新时间：2026年6月26日</div>
+    <div class="version-info">版本号：V3.5 | 更新时间：2026年6月26日</div>
 
     <div class="toast" id="toast"></div>
     <div class="toast" id="copyToast">复制成功！</div>
@@ -1077,8 +1086,12 @@
             document.getElementById('parseBtn').addEventListener('click', parseAllData);
             document.getElementById('clearAllBtn').addEventListener('click', clearAllInputs);
 
+            document.getElementById('clearFilterBtn').addEventListener('click', () => {
+                document.getElementById('policySearchInput').value = '';
+                document.getElementById('policyStatusFilter').value = 'all';
+                loadPoliciesToManage();
+            });
             document.getElementById('refreshBtn').addEventListener('click', loadPoliciesToManage);
-            document.getElementById('clearAllPoliciesBtn').addEventListener('click', handleClearAllPolicies);
 
             document.getElementById('policySearchInput').addEventListener('input', loadPoliciesToManage);
             document.getElementById('policyStatusFilter').addEventListener('change', loadPoliciesToManage);
@@ -1910,12 +1923,24 @@
             return productName.includes('意外') || productName.includes('意外险');
         }
 
+        function isMedicalInsurance(productName) {
+            if (!productName) return false;
+            return /医疗/.test(productName);
+        }
+
         function getBeneficiaryDisplay(policy) {
             const productName = policy.productName || '';
-            if (isAccidentInsurance(productName)) {
-                return '<span class="beneficiary-fixed">法定</span>';
-            }
             const beneficiary = policy.beneficiary || '';
+            const isMedical = isMedicalInsurance(productName);
+            if (isMedical) {
+                if (beneficiary === '法定' || beneficiary === '') {
+                    return '<span class="beneficiary-fixed">法定</span>';
+                }
+                return `<span class="beneficiary-fixed">${beneficiary}</span>`;
+            }
+            if (beneficiary === '法定') {
+                return `<span class="beneficiary-legal-red" data-policy-no="${policy.policyNo}">${beneficiary}</span>`;
+            }
             if (beneficiary) {
                 return `<span class="beneficiary-editable" data-policy-no="${policy.policyNo}">${beneficiary}</span>`;
             }
@@ -2076,7 +2101,7 @@
                     });
                 });
 
-                tableBody.querySelectorAll('.beneficiary-cell, .beneficiary-editable').forEach(el => {
+                tableBody.querySelectorAll('.beneficiary-cell, .beneficiary-editable, .beneficiary-legal-red').forEach(el => {
                     el.addEventListener('click', (e) => {
                         const policyNo = e.target.getAttribute('data-policy-no');
                         openEditBeneficiaryModal(policyNo);
