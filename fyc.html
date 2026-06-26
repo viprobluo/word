@@ -675,10 +675,21 @@
             display: block;
         }
 
-        .ellipsis-cell.bank-account {
-            max-width: 30px;
-            text-overflow: clip;
+        .bank-cell {
+            line-height: 1.4;
+        }
+
+        .bank-cell .bank-name {
+            font-size: 13px;
+            color: #333;
+        }
+
+        .bank-cell .bank-account-num {
+            font-size: 12px;
+            color: #666;
+            max-width: 80px;
             overflow: hidden;
+            text-overflow: ellipsis;
             white-space: nowrap;
         }
 
@@ -797,7 +808,6 @@
                             <th>保单号</th>
                             <th>下单日</th>
                             <th>扣款银行</th>
-                            <th>银行卡号</th>
                             <th>合同</th>
                             <th>操作</th>
                         </tr>
@@ -812,7 +822,7 @@
         </div>
     </div>
 
-    <div class="version-info">版本号：V3.5 | 更新时间：2026年6月26日</div>
+    <div class="version-info">版本号：V3.6.0 | 更新时间：2026年6月26日 00:00:00</div>
 
     <div class="toast" id="toast"></div>
     <div class="toast" id="copyToast">复制成功！</div>
@@ -2029,9 +2039,15 @@
                         ? `<span class="ellipsis-cell" title="${policy.policyNo}">${policy.policyNo}</span>`
                         : '-';
 
-                    const bankAccountDisplay = bankInfo.bankAccount
-                        ? `<span class="ellipsis-cell bank-account" title="${bankInfo.bankAccount}">${bankInfo.bankAccount}</span>`
-                        : '-';
+                    let bankCellDisplay = bankInfo.bankName || '-';
+                    if (bankInfo.bankAccount) {
+                        bankCellDisplay = `
+                            <div class="bank-cell">
+                                <div class="bank-name">${bankInfo.bankName}</div>
+                                <div class="bank-account-num" title="${bankInfo.bankAccount}">${bankInfo.bankAccount}</div>
+                            </div>
+                        `;
+                    }
 
                     tr.innerHTML = `
                         <td><span class="policy-status ${statusInfo.statusKey}">${statusInfo.status}</span></td>
@@ -2055,8 +2071,7 @@
                         <td>${paymentDisplay}</td>
                         <td>${policyNoDisplay}</td>
                         <td>${policy.orderTime || '-'}</td>
-                        <td>${bankInfo.bankName}</td>
-                        <td>${bankAccountDisplay}</td>
+                        <td>${bankCellDisplay}</td>
                         <td>
                             <button class="download-btn action-btn ${policy.pdfUrl ? '' : 'disabled'}" 
                                     ${policy.pdfUrl ? '' : 'disabled'}
