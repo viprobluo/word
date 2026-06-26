@@ -696,10 +696,6 @@
         .bank-cell .bank-account-num {
             font-size: 12px;
             color: #666;
-            max-width: 80px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
 
         .beneficiary-cell {
@@ -723,9 +719,10 @@
         }
 
         .beneficiary-legal-red {
-            color: #f5222d;
+            color: #a0d911;
             cursor: pointer;
             text-decoration: underline;
+            font-weight: bold;
         }
 
         .modal-form-item input[type="text"] {
@@ -811,7 +808,6 @@
                             <th>生效日</th>
                             <th>续保日</th>
                             <th>连续投保</th>
-                            <th>等待期</th>
                             <th>业绩</th>
                             <th>总收入</th>
                             <th>保费</th>
@@ -819,6 +815,7 @@
                             <th>缴费方式</th>
                             <th>保单号</th>
                             <th>下单日</th>
+                            <th>等待期</th>
                             <th>扣款银行</th>
                             <th>合同</th>
                             <th>操作</th>
@@ -834,7 +831,7 @@
         </div>
     </div>
 
-    <div class="version-info">版本号：V3.6.1 | 更新时间：2026年6月26日</div>
+    <div class="version-info">版本号：V3.7.0 | 更新时间：2026年6月26日</div>
 
     <div class="toast" id="toast"></div>
     <div class="toast" id="copyToast">复制成功！</div>
@@ -1238,13 +1235,43 @@
                     return;
                 }
 
+                const policyMap = new Map();
+                for (const row of rows) {
+                    if (!row) continue;
+                    const tempPolicy = extractPolicyFields(row);
+                    const policyNo = formatPolicyNo(tempPolicy.policyNo);
+                    if (!policyNo) continue;
+
+                    if (policyMap.has(policyNo)) {
+                        const existingRow = policyMap.get(policyNo);
+                        const existingData = extractPolicyFields(existingRow);
+                        const existingNames = (existingData.insuredName || '').split(/[、,，]/).map(n => n.trim()).filter(Boolean);
+                        const newNames = (tempPolicy.insuredName || '').split(/[、,，]/).map(n => n.trim()).filter(Boolean);
+                        const mergedNames = [...new Set([...existingNames, ...newNames])];
+                        const mergedNameStr = mergedNames.join('、');
+                        if (existingRow.inseredname !== undefined) {
+                            existingRow.inseredname = mergedNameStr;
+                        }
+                        if (existingRow.items && existingRow.items.inseredname !== undefined) {
+                            existingRow.items.inseredname = mergedNameStr;
+                        }
+                    } else {
+                        policyMap.set(policyNo, row);
+                    }
+                }
+
+                const mergedRows = [];
+                for (const [policyNo, originalRow] of policyMap) {
+                    mergedRows.push(originalRow);
+                }
+
                 const noWaitingPeriodProducts = new Set();
                 const fycPolicyNos = [];
 
                 const savedPolicyNos = await getAllSavedPolicyNos();
 
-                for (let index = 0; index < rows.length; index++) {
-                    const row = rows[index];
+                for (let index = 0; index < mergedRows.length; index++) {
+                    const row = mergedRows[index];
                     if (!row) {
                         const emptyContainer = createPolicyContainer(`保单 ${index + 1}`, undefined, true);
                         emptyContainer.querySelector('.policy-content').innerHTML = '<div class="message error">该保单无有效数据</div>';
@@ -1492,7 +1519,8 @@
 
                 fieldItem.appendChild(valueEl);
 
-                if (!field.noCopy) {
+                const showCopyBtn = !field.noCopy && !(field.isInterpretation && !field.hasInterpretation);
+                if (showCopyBtn) {
                     const copyBtn = document.createElement('button');
                     copyBtn.className = 'copy-btn';
                     copyBtn.textContent = '复制';
@@ -1659,6 +1687,13 @@
         function formatDateCN(date) {
             if (!date || isNaN(date.getTime())) return '';
             return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+        }
+
+        function getBankAccountTail(bankAccount) {
+            if (!bankAccount) return '';
+            const str = bankAccount.toString();
+            if (str.length <= 4) return str;
+            return str.slice(-4);
         }
 
         function getPolicyInterpretation(policyData) {
@@ -2022,7 +2057,21 @@
             try {
                 const existing = await getPolicyByNo(policyData.policyNo);
                 if (existing) {
-                    showToast('该保单已存在');
+                    const existingNames = (existing.insuredName || '').split(/[、,，]/).map(n => n.trim()).filter(Boolean);
+                    const newNames = (policyData.insuredName || '').split(/[、,，]/).map(n => n.trim()).filter(Boolean);
+                    const mergedNames = [...new Set([...existingNames, ...newNames])];
+                    if (mergedNames.length > existingNames.length) {
+                        existing.insuredName = mergedNames.join('、');
+                        existing.originalFYCData = policyData.originalFYCData;
+                        existing.linkedPolicyData = policyData.linkedPolicyData;
+                        existing.linkedPolicy = policyData.linkedPolicy;
+                        if (policyData.pdfUrl) existing.pdfUrl = policyData.pdfUrl;
+                        if (policyData.pdfFileName) existing.pdfFileName = policyData.pdfFileName;
+                        await updatePolicy(existing);
+                        showToast('被保人信息已更新');
+                    } else {
+                        showToast('该保单已存在');
+                    }
                     saveBtn.textContent = '已存入';
                     saveBtn.disabled = true;
                     return;
@@ -2153,15 +2202,13 @@
                         ? `<span class="ellipsis-cell" title="${policy.policyNo}">${policy.policyNo}</span>`
                         : '-';
 
-                    const bankTipText = bankInfo.bankAccount
-                        ? `${bankInfo.bankName}\n${bankInfo.bankAccount}`
-                        : (bankInfo.bankName || '-');
                     let bankCellDisplay = bankInfo.bankName || '-';
                     if (bankInfo.bankAccount) {
+                        const tailNum = getBankAccountTail(bankInfo.bankAccount);
                         bankCellDisplay = `
                             <div class="bank-cell">
                                 <div class="bank-name">${bankInfo.bankName}</div>
-                                <div class="bank-account-num">${bankInfo.bankAccount}</div>
+                                <div class="bank-account-num">尾号${tailNum}</div>
                             </div>
                         `;
                     }
@@ -2180,7 +2227,6 @@
                                 <button class="edit-year-btn" data-policy-no="${policy.policyNo}">编辑</button>
                             </div>
                         </td>
-                        <td>${waitingDisplay}</td>
                         <td>${policy.performance || '0'}</td>
                         <td>${policy.totalIncome || '0'}</td>
                         <td>${premium}</td>
@@ -2188,7 +2234,8 @@
                         <td>${paymentDisplay}</td>
                         <td>${policyNoDisplay}</td>
                         <td>${policy.orderTime || '-'}</td>
-                        <td title="${bankTipText}">${bankCellDisplay}</td>
+                        <td>${waitingDisplay}</td>
+                        <td>${bankCellDisplay}</td>
                         <td>
                             <button class="download-btn action-btn ${policy.pdfUrl ? '' : 'disabled'}" 
                                     ${policy.pdfUrl ? '' : 'disabled'}
