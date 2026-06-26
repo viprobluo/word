@@ -1434,16 +1434,16 @@
             }
 
             const interpretation = getPolicyInterpretation(data);
-            if (interpretation) {
-                fields.push({
-                    label: '保单解读',
-                    customValue: interpretation,
-                    customCopyText: interpretation,
-                    isInterpretation: true,
-                    isFullWidth: true,
-                    isNumeric: false
-                });
-            }
+            const hasInterpretation = interpretation && interpretation.length > 50;
+            fields.push({
+                label: '保单解读',
+                customValue: interpretation || '',
+                customCopyText: interpretation || '保单解读未配置',
+                isInterpretation: true,
+                isFullWidth: true,
+                hasInterpretation: hasInterpretation,
+                isNumeric: false
+            });
 
             fields.forEach(field => {
                 const fieldItem = document.createElement('div');
@@ -1477,13 +1477,14 @@
                         : (data[field.key] || '');
                 }
                 if (field.isInterpretation) {
-                    const hasInterpretation = field.customValue && field.customValue.length > 50;
-                    if (hasInterpretation) {
-                        valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong><span style="color: #1890ff; cursor: pointer;" onclick="this.style.display='none'; this.nextElementSibling.style.display='block';">点击查看解读内容（可复制）</span><div style="white-space: pre-wrap; margin-top: 8px; line-height: 1.6; color: #333; display: none;">${displayValue}</div>`;
+                    if (field.hasInterpretation) {
+                        valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong><span style="color: #52c41a;">已维护</span>`;
+                        fieldItem.style.backgroundColor = '#f6ffed';
+                        fieldItem.style.border = '1px solid #b7eb8f';
                     } else {
-                        valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong><span style="color: #fa8c16; font-weight: bold;">未配置</span>`;
-                        fieldItem.style.backgroundColor = '#fffbe6';
-                        fieldItem.style.border = '1px solid #ffe58f';
+                        valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong><span style="color: #f5222d; font-weight: bold;">请维护</span>`;
+                        fieldItem.style.backgroundColor = '#fff2f0';
+                        fieldItem.style.border = '1px solid #ffccc7';
                     }
                 } else {
                     valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong>${displayValue}${field.note ? `<div style="color: #999; font-size: 12px; margin-top: 4px;">${field.note}</div>` : ''}`;
