@@ -1747,14 +1747,6 @@
                 filtered.forEach(product => {
                     const tr = document.createElement('tr');
                     const typeLabel = PRODUCT_TYPE_MAP[product.productType] || '其他';
-                    let waitingDisplay = '未配置';
-                    if (product.waitingType === 'none') {
-                        waitingDisplay = '无等待期';
-                    } else if (product.waitingType === 'single') {
-                        waitingDisplay = `${product.waitingDays || 0}天`;
-                    } else if (product.waitingType === 'dual') {
-                        waitingDisplay = `<div>新发${product.newDiseaseDays || 0}天</div><div>既往${product.generalHistoryDays || 0}天</div>`;
-                    }
                     const hasInterpretation = product.interpretationTemplate && product.interpretationTemplate.trim().length > 0;
                     const channelLabel = getProductChannel(product);
                     const productKey = product.productKey || product.productName || '';
