@@ -967,7 +967,6 @@
                             <th>总单量</th>
                             <th>总收入</th>
                             <th>总业绩</th>
-                            <th>操作</th>
                         </tr>
                     </thead>
                     <tbody id="productTableBody"></tbody>
@@ -1047,7 +1046,7 @@
         </div>
     </div>
 
-    <div class="version-info">版本号：V4.5.0 | 更新时间：2026年6月28日</div>
+    <div class="version-info">版本号：V4.6.0 | 更新时间：2026年6月28日</div>
 
     <div class="toast" id="toast"></div>
     <div class="toast" id="copyToast">复制成功！</div>
@@ -1784,9 +1783,6 @@
                         <td style="color: #1890ff; font-weight: bold;">${stats.count}</td>
                         <td style="color: #f5222d;">${formatNumber(stats.totalIncome)}</td>
                         <td style="color: #fa8c16;">${formatNumber(stats.performance)}</td>
-                        <td>
-                            <button class="action-btn product-edit-btn" data-product-key="${productKey}" style="padding: 4px 12px; font-size: 12px;">编辑</button>
-                        </td>
                     `;
                     tableBody.appendChild(tr);
                 });
@@ -2585,15 +2581,16 @@
                 );
             }
 
+            const productConfig = await getProductConfig(data.productName);
+            const productHasTemplate = productConfig && productConfig.interpretationTemplate && productConfig.interpretationTemplate.trim().length > 0;
             const interpretation = await getPolicyInterpretation(data);
-            const hasInterpretation = interpretation && interpretation.length > 50;
             fields.push({
                 label: '保单解读',
                 customValue: interpretation || '',
                 customCopyText: interpretation || '保单解读未配置',
                 isInterpretation: true,
                 isFullWidth: true,
-                hasInterpretation: hasInterpretation,
+                hasInterpretation: productHasTemplate,
                 isNumeric: false
             });
 
