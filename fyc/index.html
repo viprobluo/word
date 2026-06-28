@@ -209,8 +209,8 @@
             background-color: #fff;
             border-radius: 4px;
             display: flex;
-            align-items: center;
-            gap: 4px;
+            align-items: flex-start;
+            gap: 8px;
             font-size: 13px;
         }
 
@@ -283,15 +283,30 @@
             padding: 10px 15px;
             background-color: #f8f8f8;
             display: flex;
+            flex-direction: column;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .policy-header-main {
+            display: flex;
             justify-content: space-between;
             align-items: center;
-            cursor: pointer;
+        }
+
+        .policy-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
         .policy-title {
             font-size: 15px;
             font-weight: bold;
             color: #333;
+            word-break: break-all;
+            white-space: normal;
+            line-height: 1.4;
         }
 
         .toggle-btn {
@@ -356,7 +371,8 @@
         }
 
         .save-btn:disabled {
-            background-color: #b7eb8f;
+            background-color: #d9d9d9;
+            color: #8c8c8c;
             cursor: not-allowed;
         }
 
@@ -412,6 +428,84 @@
             color: #333;
             position: sticky;
             top: 0;
+        }
+
+        .policy-table .sticky-col-1 {
+            position: sticky;
+            left: 0;
+            z-index: 2;
+            background-color: #f8f8f8;
+        }
+
+        .policy-table .sticky-col-2 {
+            position: sticky;
+            left: 80px;
+            z-index: 2;
+            background-color: #f8f8f8;
+        }
+
+        .policy-table .sticky-col-3 {
+            position: sticky;
+            left: 160px;
+            z-index: 2;
+            background-color: #f8f8f8;
+        }
+
+        .policy-table .sticky-col-4 {
+            position: sticky;
+            left: 240px;
+            z-index: 2;
+            background-color: #f8f8f8;
+        }
+
+        .policy-table .sticky-col-5 {
+            position: sticky;
+            left: 360px;
+            z-index: 2;
+            background-color: #f8f8f8;
+        }
+
+        .policy-table tbody td.sticky-col-1 {
+            position: sticky;
+            left: 0;
+            z-index: 1;
+            background-color: #fff;
+        }
+
+        .policy-table tbody td.sticky-col-2 {
+            position: sticky;
+            left: 80px;
+            z-index: 1;
+            background-color: #fff;
+        }
+
+        .policy-table tbody td.sticky-col-3 {
+            position: sticky;
+            left: 160px;
+            z-index: 1;
+            background-color: #fff;
+        }
+
+        .policy-table tbody td.sticky-col-4 {
+            position: sticky;
+            left: 240px;
+            z-index: 1;
+            background-color: #fff;
+        }
+
+        .policy-table tbody td.sticky-col-5 {
+            position: sticky;
+            left: 360px;
+            z-index: 1;
+            background-color: #fff;
+        }
+
+        .policy-table tbody tr:hover td.sticky-col-1,
+        .policy-table tbody tr:hover td.sticky-col-2,
+        .policy-table tbody tr:hover td.sticky-col-3,
+        .policy-table tbody tr:hover td.sticky-col-4,
+        .policy-table tbody tr:hover td.sticky-col-5 {
+            background-color: #f5f5f5;
         }
 
         .policy-table tr:hover {
@@ -748,10 +842,17 @@
     </div>
 
     <div class="tab-container">
-        <div class="tabs">
-            <button class="tab active" data-tab="order-info-tab">订单信息</button>
-            <button class="tab" data-tab="policy-manage-tab">保单管理</button>
-            <button class="tab" data-tab="product-manage-tab">产品管理</button>
+        <div class="tabs" style="justify-content: space-between;">
+            <div style="display: flex;">
+                <button class="tab active" data-tab="order-info-tab">订单信息</button>
+                <button class="tab" data-tab="policy-manage-tab">保单管理</button>
+                <button class="tab" data-tab="product-manage-tab">产品管理</button>
+            </div>
+            <div style="display: flex; align-items: center; padding-right: 10px; gap: 8px;">
+                <button id="exportDataBtn" style="margin: 0; padding: 6px 12px; font-size: 13px;">导出数据</button>
+                <button id="importDataBtn" style="margin: 0; padding: 6px 12px; font-size: 13px; background-color: #52c41a;">导入数据</button>
+                <input type="file" id="importFileInput" accept=".json" style="display: none;">
+            </div>
         </div>
 
         <div class="tab-content active" id="order-info-tab">
@@ -781,7 +882,7 @@
 
         <div class="tab-content" id="policy-manage-tab">
             <div class="policy-manage-header">
-                <h3>保单列表</h3>
+                <h3>保单列表 <span id="policyStatusStats" style="font-size: 13px; font-weight: normal; color: #666; margin-left: 10px;"></span></h3>
                 <div class="policy-manage-actions">
                     <input type="text" id="policySearchInput" class="search-input" placeholder="搜索保单号/投保人/被保人">
                     <select id="policyStatusFilter" class="status-select">
@@ -801,11 +902,11 @@
                 <table class="policy-table" id="managePolicyTable">
                     <thead>
                         <tr>
-                            <th>保单状态</th>
-                            <th>投保人</th>
-                            <th>被保人</th>
-                            <th>身故受益人</th>
-                            <th>产品名称</th>
+                            <th class="sticky-col-1">保单状态</th>
+                            <th class="sticky-col-2">投保人</th>
+                            <th class="sticky-col-3">被保人</th>
+                            <th class="sticky-col-4">产品</th>
+                            <th class="sticky-col-5">身故受益人</th>
                             <th>生效日</th>
                             <th>续保日</th>
                             <th>连续投保</th>
@@ -814,11 +915,10 @@
                             <th>总收入</th>
                             <th>保障期间</th>
                             <th>缴费方式</th>
-                            <th>保单号</th>
+                            <th>保单尾号</th>
                             <th>下单日</th>
                             <th>等待期</th>
                             <th>扣款银行</th>
-                            <th>合同</th>
                             <th>操作</th>
                         </tr>
                     </thead>
@@ -861,7 +961,7 @@
         </div>
     </div>
 
-    <div class="version-info">版本号：V3.7.1 | 更新时间：2026年6月26日</div>
+    <div class="version-info">版本号：V4.0.0 | 更新时间：2026年6月28日</div>
 
     <div class="toast" id="toast"></div>
     <div class="toast" id="copyToast">复制成功！</div>
@@ -1089,7 +1189,9 @@
 
         function updateCurrentDate() {
             const now = getBeijingNow();
-            const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+            const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            const weekDay = weekDays[now.getDay()];
+            const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${weekDay}`;
             const el = document.getElementById('currentDate');
             if (el) {
                 el.textContent = dateStr;
@@ -1309,6 +1411,376 @@
             productCacheTime = 0;
         }
 
+        let currentEditProductKey = null;
+
+        const PRODUCT_TYPE_MAP = {
+            medical: '医疗险',
+            accident: '意外险',
+            critical: '重疾险',
+            life: '寿险',
+            annuity: '年金险',
+            other: '其他'
+        };
+
+        async function initDefaultProducts() {
+            try {
+                const existing = await getAllProducts();
+                if (existing && existing.length > 0) return;
+                const defaultProducts = [
+                    {
+                        productKey: '众民保·百万医疗险2025版',
+                        productName: '众民保·百万医疗险2025版',
+                        productType: 'medical',
+                        waitingType: 'single',
+                        waitingDays: 30,
+                        interpretationTemplate: ''
+                    },
+                    {
+                        productKey: '众安尊享e生中高端医疗保险2025版',
+                        productName: '众安尊享e生中高端医疗保险2025版',
+                        productType: 'medical',
+                        waitingType: 'single',
+                        waitingDays: 30,
+                        interpretationTemplate: ''
+                    },
+                    {
+                        productKey: '京东安联安行万里亚洲境外旅行险（互联网）',
+                        productName: '京东安联安行万里亚洲境外旅行险（互联网）',
+                        productType: 'accident',
+                        waitingType: 'none',
+                        waitingDays: 0,
+                        interpretationTemplate: ''
+                    },
+                    {
+                        productKey: '平安小玩童7号少儿意外险（互联网）',
+                        productName: '平安小玩童7号少儿意外险（互联网）',
+                        productType: 'accident',
+                        waitingType: 'none',
+                        waitingDays: 0,
+                        interpretationTemplate: ''
+                    },
+                    {
+                        productKey: '众民保·重疾险',
+                        productName: '众民保·重疾险',
+                        productType: 'critical',
+                        waitingType: 'single',
+                        waitingDays: 90,
+                        interpretationTemplate: ''
+                    },
+                    {
+                        productKey: '平安健康岁月长安特定疾病保险',
+                        productName: '平安健康岁月长安特定疾病保险',
+                        productType: 'critical',
+                        waitingType: 'single',
+                        waitingDays: 180,
+                        interpretationTemplate: ''
+                    },
+                    {
+                        productKey: '众民保·中高端医疗险',
+                        productName: '众民保·中高端医疗险',
+                        productType: 'medical',
+                        waitingType: 'single',
+                        waitingDays: 30,
+                        interpretationTemplate: ''
+                    },
+                    {
+                        productKey: '众民保·中高端医疗险2026',
+                        productName: '众民保·中高端医疗险2026',
+                        productType: 'medical',
+                        waitingType: 'dual',
+                        newDiseaseDays: 30,
+                        generalHistoryDays: 90,
+                        interpretationTemplate: `{productName}
+
+投保人：{holdername}
+被保人：{insuredName}
+
+▍医疗险 有社保版本
+
+1、无健康告知，承担一般既往史，除外合同约定的 5 大既往史
+
+（父母体况重点关注高血压并发症，如果投保之前有并发症，那么高血压及高血压并发症不赔付，详见 5 大严重既往史除外说明）
+
+2、0 免赔，医保报销后，剩下部分 2 万内 60%，2 万以上 100%
+
+指定疾病首年赔付比例 2 万以内 30%；2 万以上 50%（连续投保后，赔付比例不再折扣，即 2 中所述正常比例）
+
+指定疾病：良性肿瘤(含子宫肌瘤)、肺结核、息肉、增生、囊肿、结石、痔疮、肛瘘
+
+3、二级以上公立医院普通部，本保单约定的私立医院普通部+约定重大疾病可扩展特需部、国际部、VIP 部
+
+4、质子重离子医院：中国大陆所有
+
+5、新发疾病等待期 30 天：{newDiseaseEndDate}（等待期内出险不理赔）
+
+一般既往史等待期：90 天 {generalHistoryEndDate}（等待期内出险不理赔）
+
+6、明年续保：{nextYearRenewalDate}（连续投保无等待期）
+
+以上内容仅供参考，具体以合同条款为准`
+                    },
+                    {
+                        productKey: '安盛天平守护百万综合意外伤害保险',
+                        productName: '安盛天平守护百万综合意外伤害保险',
+                        productType: 'accident',
+                        waitingType: 'none',
+                        waitingDays: 0,
+                        interpretationTemplate: ''
+                    },
+                    {
+                        productKey: '金钟罩',
+                        productName: '金钟罩',
+                        productType: 'accident',
+                        waitingType: 'none',
+                        waitingDays: 0,
+                        interpretationTemplate: ''
+                    },
+                    {
+                        productKey: '复星联合达尔文12号重大疾病保险',
+                        productName: '复星联合达尔文12号重大疾病保险',
+                        productType: 'critical',
+                        waitingType: 'single',
+                        waitingDays: 180,
+                        interpretationTemplate: ''
+                    },
+                    {
+                        productKey: '中英人寿福临门两全保险C款（互联网）',
+                        productName: '中英人寿福临门两全保险C款（互联网）',
+                        productType: 'annuity',
+                        waitingType: 'none',
+                        waitingDays: 0,
+                        interpretationTemplate: ''
+                    },
+                    {
+                        productKey: '中荷互联网岁岁享3.0护理保险',
+                        productName: '中荷互联网岁岁享3.0护理保险',
+                        productType: 'other',
+                        waitingType: 'single',
+                        waitingDays: 90,
+                        interpretationTemplate: ''
+                    }
+                ];
+                for (const p of defaultProducts) {
+                    try {
+                        await addProduct(p);
+                    } catch (e) {
+                        console.log('产品已存在，跳过:', p.productKey);
+                    }
+                }
+                refreshProductCache();
+                console.log('默认产品初始化完成');
+            } catch (e) {
+                console.error('默认产品初始化失败:', e);
+            }
+        }
+
+        async function loadProductsToManage() {
+            const tableBody = document.getElementById('productTableBody');
+            const emptyState = document.getElementById('productEmptyState');
+            const table = document.getElementById('productTable');
+            if (!tableBody || !emptyState || !table) return;
+
+            const searchKeyword = document.getElementById('productSearchInput').value.trim().toLowerCase();
+
+            try {
+                const products = await getAllProducts();
+                let filtered = products;
+                if (searchKeyword) {
+                    filtered = products.filter(p =>
+                        (p.productKey && p.productKey.toLowerCase().includes(searchKeyword)) ||
+                        (p.productName && p.productName.toLowerCase().includes(searchKeyword))
+                    );
+                }
+
+                tableBody.innerHTML = '';
+                if (filtered.length === 0) {
+                    emptyState.style.display = 'block';
+                    table.style.display = 'none';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+                table.style.display = 'table';
+
+                filtered.forEach(product => {
+                    const tr = document.createElement('tr');
+                    const typeLabel = PRODUCT_TYPE_MAP[product.productType] || '其他';
+                    let waitingDisplay = '未配置';
+                    if (product.waitingType === 'none') {
+                        waitingDisplay = '无等待期';
+                    } else if (product.waitingType === 'single') {
+                        waitingDisplay = `${product.waitingDays || 0}天`;
+                    } else if (product.waitingType === 'dual') {
+                        waitingDisplay = `新发${product.newDiseaseDays || 0}天/既往${product.generalHistoryDays || 0}天`;
+                    }
+                    const hasInterpretation = product.interpretationTemplate && product.interpretationTemplate.trim().length > 0;
+
+                    tr.innerHTML = `
+                        <td>${product.productKey || '-'}</td>
+                        <td>${product.productName || '-'}</td>
+                        <td>${typeLabel}</td>
+                        <td>${waitingDisplay}</td>
+                        <td>${hasInterpretation ? '<span style="color: #52c41a;">已配置</span>' : '<span style="color: #999;">未配置</span>'}</td>
+                        <td>
+                            <button class="edit-year-btn product-edit-btn" data-product-key="${product.productKey}">编辑</button>
+                            <button class="delete-btn product-delete-btn" data-product-key="${product.productKey}">删除</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+
+                tableBody.querySelectorAll('.product-edit-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const key = e.target.getAttribute('data-product-key');
+                        openProductModal(key);
+                    });
+                });
+                tableBody.querySelectorAll('.product-delete-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const key = e.target.getAttribute('data-product-key');
+                        handleDeleteProduct(key);
+                    });
+                });
+            } catch (e) {
+                console.error('加载产品列表失败:', e);
+                showToast('加载产品列表失败');
+            }
+        }
+
+        async function openProductModal(productKey) {
+            currentEditProductKey = productKey || null;
+            const modal = document.getElementById('editProductModal');
+            const title = document.getElementById('editProductModalTitle');
+
+            document.getElementById('productKeyInput').value = '';
+            document.getElementById('productNameInput').value = '';
+            document.getElementById('productTypeSelect').value = 'other';
+            document.getElementById('waitingTypeSelect').value = 'none';
+            document.getElementById('singleWaitingDays').value = '30';
+            document.getElementById('newDiseaseDays').value = '30';
+            document.getElementById('generalHistoryDays').value = '90';
+            document.getElementById('productInterpretationTemplate').value = '';
+            document.getElementById('productKeyInput').disabled = false;
+
+            handleWaitingTypeChange();
+
+            if (productKey) {
+                title.textContent = '编辑产品';
+                try {
+                    const product = await getProductByKey(productKey);
+                    if (product) {
+                        document.getElementById('productKeyInput').value = product.productKey || '';
+                        document.getElementById('productNameInput').value = product.productName || '';
+                        document.getElementById('productTypeSelect').value = product.productType || 'other';
+                        document.getElementById('waitingTypeSelect').value = product.waitingType || 'none';
+                        document.getElementById('singleWaitingDays').value = product.waitingDays || 0;
+                        document.getElementById('newDiseaseDays').value = product.newDiseaseDays || 30;
+                        document.getElementById('generalHistoryDays').value = product.generalHistoryDays || 90;
+                        document.getElementById('productInterpretationTemplate').value = product.interpretationTemplate || '';
+                        document.getElementById('productKeyInput').disabled = true;
+                        handleWaitingTypeChange();
+                    }
+                } catch (e) {
+                    console.error('获取产品信息失败:', e);
+                    showToast('获取产品信息失败');
+                }
+            } else {
+                title.textContent = '新增产品';
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeProductModal() {
+            document.getElementById('editProductModal').classList.add('hidden');
+            currentEditProductKey = null;
+        }
+
+        function handleWaitingTypeChange() {
+            const type = document.getElementById('waitingTypeSelect').value;
+            document.getElementById('singleWaitingSection').style.display = type === 'single' ? 'block' : 'none';
+            document.getElementById('dualWaitingSection').style.display = type === 'dual' ? 'block' : 'none';
+        }
+
+        async function confirmEditProduct() {
+            const productKey = document.getElementById('productKeyInput').value.trim();
+            const productName = document.getElementById('productNameInput').value.trim();
+            const productType = document.getElementById('productTypeSelect').value;
+            const waitingType = document.getElementById('waitingTypeSelect').value;
+
+            if (!productKey) {
+                showToast('请输入产品关键词');
+                return;
+            }
+
+            const productData = {
+                productKey: productKey,
+                productName: productName || productKey,
+                productType: productType,
+                waitingType: waitingType,
+                interpretationTemplate: document.getElementById('productInterpretationTemplate').value || ''
+            };
+
+            if (waitingType === 'single') {
+                productData.waitingDays = parseInt(document.getElementById('singleWaitingDays').value) || 0;
+            } else if (waitingType === 'dual') {
+                productData.newDiseaseDays = parseInt(document.getElementById('newDiseaseDays').value) || 0;
+                productData.generalHistoryDays = parseInt(document.getElementById('generalHistoryDays').value) || 0;
+                productData.waitingDays = productData.generalHistoryDays;
+            } else {
+                productData.waitingDays = 0;
+            }
+
+            try {
+                if (currentEditProductKey) {
+                    const existing = await getProductByKey(currentEditProductKey);
+                    if (existing) {
+                        productData.createTime = existing.createTime;
+                    }
+                    await updateProduct(productData);
+                    showToast('产品更新成功');
+                } else {
+                    await addProduct(productData);
+                    showToast('产品新增成功');
+                }
+                refreshProductCache();
+                loadProductsToManage();
+                closeProductModal();
+            } catch (e) {
+                console.error('保存产品失败:', e);
+                showToast('保存失败：' + e.message);
+            }
+        }
+
+        async function handleDeleteProduct(productKey) {
+            if (!confirm('确定要删除这个产品配置吗？')) return;
+            try {
+                await deleteProduct(productKey);
+                refreshProductCache();
+                loadProductsToManage();
+                showToast('产品删除成功');
+            } catch (e) {
+                console.error('删除产品失败:', e);
+                showToast('删除失败');
+            }
+        }
+
+        async function getProductConfig(productName) {
+            if (!productName) return null;
+            const products = await getProductCache();
+            let matched = null;
+            let matchedKeyLen = 0;
+            for (const p of products) {
+                if (productName.includes(p.productKey)) {
+                    if (p.productKey.length > matchedKeyLen) {
+                        matched = p;
+                        matchedKeyLen = p.productKey.length;
+                    }
+                }
+            }
+            return matched;
+        }
+
         function restoreFromLocalStorage() {
             const fycData = localStorage.getItem('fyc_raw_data');
             if (fycData) {
@@ -1331,6 +1803,9 @@
                     document.getElementById(targetTab).classList.add('active');
                     if (targetTab === 'policy-manage-tab') {
                         loadPoliciesToManage();
+                    }
+                    if (targetTab === 'product-manage-tab') {
+                        loadProductsToManage();
                     }
                 });
             });
@@ -1379,6 +1854,16 @@
             document.getElementById('beneficiaryQuickLegalBtn').addEventListener('click', () => {
                 document.getElementById('editBeneficiaryInput').value = '法定';
             });
+
+            document.getElementById('addProductBtn').addEventListener('click', () => openProductModal());
+            document.getElementById('editProductCancelBtn').addEventListener('click', closeProductModal);
+            document.getElementById('editProductConfirmBtn').addEventListener('click', confirmEditProduct);
+            document.getElementById('productSearchInput').addEventListener('input', loadProductsToManage);
+            document.getElementById('waitingTypeSelect').addEventListener('change', handleWaitingTypeChange);
+
+            document.getElementById('exportDataBtn').addEventListener('click', exportAllData);
+            document.getElementById('importDataBtn').addEventListener('click', triggerImportFile);
+            document.getElementById('importFileInput').addEventListener('change', handleImportFile);
         }
 
         function clearAllInputs() {
@@ -1515,7 +2000,7 @@
                     const linkedPolicyData = getLinkedPolicyData(policyData.policyNo);
                     policyData.linkedPolicy = linkedPolicyData;
 
-                    const { waitingDays, isConfigured, isDual, newDiseaseDays, generalHistoryDays } = getProductWaitingDays(policyData.productName);
+                    const { waitingDays, isConfigured, isDual, newDiseaseDays, generalHistoryDays } = await getProductWaitingDays(policyData.productName);
                     if (!isConfigured) {
                         noWaitingPeriodProducts.add(policyData.productName);
                     }
@@ -1562,7 +2047,7 @@
                         policyData
                     );
                     const contentEl = policyContainer.querySelector('.policy-content');
-                    renderPolicyFields(policyData, contentEl);
+                    await renderPolicyFields(policyData, contentEl);
                     resultEl.appendChild(policyContainer);
                 }
 
@@ -1618,7 +2103,7 @@
             return globalPolicyDownloadData.find(item => item.policyNo === policyNo) || null;
         }
 
-        function renderPolicyFields(data, container) {
+        async function renderPolicyFields(data, container) {
             const fields = [
                 { label: '保单号', key: 'policyNo', isNumeric: false },
                 { label: '产品名', key: 'productName', isNumeric: false },
@@ -1664,7 +2149,7 @@
                 );
             }
 
-            const interpretation = getPolicyInterpretation(data);
+            const interpretation = await getPolicyInterpretation(data);
             const hasInterpretation = interpretation && interpretation.length > 50;
             fields.push({
                 label: '保单解读',
@@ -1728,11 +2213,12 @@
                     const copyBtn = document.createElement('button');
                     copyBtn.className = 'copy-btn';
                     copyBtn.textContent = '复制';
+                    copyBtn.style.marginTop = '0';
                     copyBtn.addEventListener('click', () => {
                         const copyText = field.customCopyText || `${field.label}：${displayValue}`;
                         copyToClipboard(copyText, `${field.label}复制成功`);
                     });
-                    fieldItem.appendChild(copyBtn);
+                    valueEl.appendChild(copyBtn);
                 }
 
                 container.appendChild(fieldItem);
@@ -1803,8 +2289,26 @@
             return `${beijingDate.getFullYear()}年${beijingDate.getMonth() + 1}月${beijingDate.getDate()}日`;
         }
 
-        function getProductWaitingDays(productName) {
+        async function getProductWaitingDays(productName) {
             if (!productName) return { waitingDays: -1, isConfigured: false, isDual: false };
+
+            const productConfig = await getProductConfig(productName);
+            if (productConfig) {
+                if (productConfig.waitingType === 'dual') {
+                    return {
+                        waitingDays: productConfig.generalHistoryDays || 0,
+                        newDiseaseDays: productConfig.newDiseaseDays || 0,
+                        generalHistoryDays: productConfig.generalHistoryDays || 0,
+                        isConfigured: true,
+                        isDual: true
+                    };
+                }
+                if (productConfig.waitingType === 'none') {
+                    return { waitingDays: 0, isConfigured: true, isDual: false };
+                }
+                return { waitingDays: productConfig.waitingDays || 0, isConfigured: true, isDual: false };
+            }
+
             let matchedKeyword = null;
             let matchedDays = null;
             for (const [productKeyword, days] of Object.entries(PRODUCT_WAITING_PERIOD)) {
@@ -1900,8 +2404,30 @@
             return str.slice(-4);
         }
 
-        function getPolicyInterpretation(policyData) {
+        async function getPolicyInterpretation(policyData) {
             if (!policyData || !policyData.productName) return null;
+
+            const productConfig = await getProductConfig(policyData.productName);
+            if (productConfig && productConfig.interpretationTemplate && productConfig.interpretationTemplate.trim().length > 0) {
+                const template = productConfig.interpretationTemplate;
+                const newDiseaseEndDate = policyData.newDiseaseWaitingEndDate || '';
+                const generalHistoryEndDate = policyData.generalHistoryWaitingEndDate || '';
+                const orderDate = policyData.orderTime || '';
+                let nextYearRenewalDate = '';
+                const d = parseDate(orderDate);
+                if (d) {
+                    d.setFullYear(d.getFullYear() + 1);
+                    nextYearRenewalDate = formatDateCN(d);
+                }
+                return template
+                    .replace(/\{productName\}/g, policyData.productName || '')
+                    .replace(/\{holdername\}/g, policyData.holdername || '')
+                    .replace(/\{insuredName\}/g, policyData.insuredName || '')
+                    .replace(/\{newDiseaseEndDate\}/g, newDiseaseEndDate)
+                    .replace(/\{generalHistoryEndDate\}/g, generalHistoryEndDate)
+                    .replace(/\{nextYearRenewalDate\}/g, nextYearRenewalDate);
+            }
+
             let matchedTemplate = null;
             let matchedKey = null;
             for (const [productKeyword, templateFn] of Object.entries(POLICY_INTERPRETATION_TEMPLATES)) {
@@ -1998,6 +2524,13 @@
             const renewalDateStr = renewalDate ? formatDateCN(renewalDate) : '';
 
             if (longTerm) {
+                if (renewalDate) {
+                    const diffDays = Math.ceil((renewalDate - today) / (1000 * 60 * 60 * 24));
+                    if (diffDays < 0) {
+                        return { status: '待续保', statusKey: 'overdue', renewalDate: renewalDateStr, longTerm: true, needTop: true };
+                    }
+                }
+
                 if (isContinuous || hasNoWaiting) {
                     if (renewalDate) {
                         const diffDays = Math.ceil((renewalDate - today) / (1000 * 60 * 60 * 24));
@@ -2167,14 +2700,22 @@
             const header = document.createElement('div');
             header.className = 'policy-header';
 
+            const headerMain = document.createElement('div');
+            headerMain.className = 'policy-header-main';
+
             const title = document.createElement('div');
             title.className = 'policy-title';
             title.textContent = titleText;
 
-            const headerRight = document.createElement('div');
-            headerRight.style.display = 'flex';
-            headerRight.style.alignItems = 'center';
-            headerRight.style.gap = '12px';
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'toggle-btn';
+            toggleBtn.textContent = '展开';
+
+            headerMain.appendChild(title);
+            headerMain.appendChild(toggleBtn);
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'policy-header-actions';
 
             if (policyData) {
                 const saveBtn = document.createElement('button');
@@ -2189,7 +2730,7 @@
                         savePolicyToDB(policyData, saveBtn);
                     });
                 }
-                headerRight.appendChild(saveBtn);
+                actionsDiv.appendChild(saveBtn);
             }
 
             const downloadBtn = document.createElement('button');
@@ -2207,7 +2748,7 @@
                     downloadPolicyPdf(linkedPolicy);
                 });
             }
-            headerRight.appendChild(downloadBtn);
+            actionsDiv.appendChild(downloadBtn);
 
             if (totalIncome !== undefined && totalIncome !== null) {
                 const totalIncomeEl = document.createElement('div');
@@ -2215,7 +2756,7 @@
                 totalIncomeEl.style.fontWeight = 'bold';
                 totalIncomeEl.style.fontSize = '14px';
                 totalIncomeEl.textContent = `总收入：${totalIncome}`;
-                headerRight.appendChild(totalIncomeEl);
+                actionsDiv.appendChild(totalIncomeEl);
             }
 
             if (performance !== undefined && performance !== null) {
@@ -2224,28 +2765,23 @@
                 perfEl.style.fontWeight = 'bold';
                 perfEl.style.fontSize = '14px';
                 perfEl.textContent = `业绩：${performance}`;
-                headerRight.appendChild(perfEl);
+                actionsDiv.appendChild(perfEl);
             }
 
-            const toggleBtn = document.createElement('button');
-            toggleBtn.className = 'toggle-btn';
-            toggleBtn.textContent = '展开';
-
-            headerRight.appendChild(toggleBtn);
-
-            header.appendChild(title);
-            header.appendChild(headerRight);
+            header.appendChild(headerMain);
+            header.appendChild(actionsDiv);
 
             const content = document.createElement('div');
             content.className = 'policy-content collapsed';
 
-            toggleBtn.addEventListener('click', () => {
+            toggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 content.classList.toggle('collapsed');
                 toggleBtn.textContent = content.classList.contains('collapsed') ? '展开' : '折叠';
             });
 
             header.addEventListener('click', (e) => {
-                if (e.target !== toggleBtn && e.target.tagName !== 'BUTTON') {
+                if (e.target.tagName !== 'BUTTON') {
                     content.classList.toggle('collapsed');
                     toggleBtn.textContent = content.classList.contains('collapsed') ? '展开' : '折叠';
                 }
@@ -2310,10 +2846,7 @@
             const beneficiary = policy.beneficiary || '';
             const isMedical = isMedicalInsurance(productName);
             if (isMedical) {
-                if (beneficiary === '法定' || beneficiary === '') {
-                    return '<span class="beneficiary-fixed">法定</span>';
-                }
-                return `<span class="beneficiary-fixed">${beneficiary}</span>`;
+                return '<span class="beneficiary-fixed">无</span>';
             }
             if (beneficiary === '法定') {
                 return `<span class="beneficiary-legal-red" data-policy-no="${policy.policyNo}">${beneficiary}</span>`;
@@ -2365,6 +2898,39 @@
             return filtered;
         }
 
+        function getPolicyStatusStats(policies) {
+            const stats = {
+                pending: 0,
+                waiting: 0,
+                active: 0,
+                renewal: 0,
+                expired: 0,
+                overdue: 0,
+                unknown: 0
+            };
+            policies.forEach(policy => {
+                const statusInfo = getPolicyStatus(policy);
+                if (stats[statusInfo.statusKey] !== undefined) {
+                    stats[statusInfo.statusKey]++;
+                }
+            });
+            return stats;
+        }
+
+        function formatInsuredNames(insuredName) {
+            if (!insuredName) return '-';
+            const names = insuredName.split(/[、,，]/).map(n => n.trim()).filter(Boolean);
+            if (names.length <= 1) return insuredName;
+            return names.join('<br>');
+        }
+
+        function getPolicyTailNo(policyNo) {
+            if (!policyNo) return '-';
+            const str = policyNo.toString();
+            if (str.length <= 4) return str;
+            return str.slice(-4);
+        }
+
         async function loadPoliciesToManage() {
             try {
                 const policies = await getAllPolicies();
@@ -2372,10 +2938,30 @@
                 const tableBody = document.getElementById('managePolicyTableBody');
                 const emptyState = document.getElementById('manageEmptyState');
                 const table = document.getElementById('managePolicyTable');
+                const statsEl = document.getElementById('policyStatusStats');
+
+                const allStats = getPolicyStatusStats(policies);
+                if (statsEl) {
+                    const statsText = `待生效(${allStats.pending})、等待期内(${allStats.waiting})、生效中(${allStats.active})、续保期(${allStats.renewal})、已失效(${allStats.expired})、已逾期(${allStats.overdue})`;
+                    statsEl.textContent = statsText;
+                }
+
+                const sortedPolicies = filteredPolicies.sort((a, b) => {
+                    const statusA = getPolicyStatus(a);
+                    const statusB = getPolicyStatus(b);
+                    if (statusA.needTop && !statusB.needTop) return -1;
+                    if (!statusA.needTop && statusB.needTop) return 1;
+                    const dateA = parseDate(a.orderTime);
+                    const dateB = parseDate(b.orderTime);
+                    if (!dateA && !dateB) return 0;
+                    if (!dateA) return 1;
+                    if (!dateB) return -1;
+                    return dateB.getTime() - dateA.getTime();
+                });
 
                 tableBody.innerHTML = '';
 
-                if (filteredPolicies.length === 0) {
+                if (sortedPolicies.length === 0) {
                     emptyState.style.display = 'block';
                     table.style.display = 'none';
                     return;
@@ -2384,7 +2970,7 @@
                 emptyState.style.display = 'none';
                 table.style.display = 'table';
 
-                filteredPolicies.forEach(policy => {
+                sortedPolicies.forEach(policy => {
                     const tr = document.createElement('tr');
                     const statusInfo = getPolicyStatus(policy);
 
@@ -2402,9 +2988,8 @@
                     const bankInfo = getBankDisplay(policy);
                     const premium = policy.premium || '0';
 
-                    const policyNoDisplay = policy.policyNo
-                        ? `<span class="ellipsis-cell" title="${policy.policyNo}">${policy.policyNo}</span>`
-                        : '-';
+                    const policyTailNo = getPolicyTailNo(policy.policyNo);
+                    const insuredDisplay = formatInsuredNames(policy.insuredName);
 
                     let bankCellDisplay = bankInfo.bankName || '-';
                     if (bankInfo.bankAccount) {
@@ -2417,35 +3002,32 @@
                         `;
                     }
 
+                    const productName = policy.productName || '-';
+                    const hasPdf = policy.pdfUrl && policy.pdfUrl.length > 0;
+                    const productDisplay = hasPdf
+                        ? `<span class="product-download-link" data-pdf-url="${policy.pdfUrl || ''}" data-pdf-name="${policy.pdfFileName || ''}" style="color: #1890ff; cursor: pointer; text-decoration: underline;">${productName}</span>`
+                        : productName;
+
                     tr.innerHTML = `
-                        <td><span class="policy-status ${statusInfo.statusKey}">${statusInfo.status}</span></td>
-                        <td>${policy.holdername || '-'}</td>
-                        <td>${policy.insuredName || '-'}</td>
-                        <td>${beneficiaryDisplay}</td>
-                        <td>${policy.productName || '-'}</td>
+                        <td class="sticky-col-1"><span class="policy-status ${statusInfo.statusKey}">${statusInfo.status}</span></td>
+                        <td class="sticky-col-2">${policy.holdername || '-'}</td>
+                        <td class="sticky-col-3" style="white-space: normal; line-height: 1.4;">${insuredDisplay}</td>
+                        <td class="sticky-col-4" style="white-space: normal; line-height: 1.4;">${productDisplay}</td>
+                        <td class="sticky-col-5" style="white-space: normal; line-height: 1.4;">${beneficiaryDisplay}</td>
                         <td>${policy.effectiveDate || '-'}</td>
                         <td>${renewalDisplay}</td>
                         <td>
-                            <div class="policy-year-cell">
-                                <span class="policy-year-value">${yearDisplay}</span>
-                                <button class="edit-year-btn" data-policy-no="${policy.policyNo}">编辑</button>
-                            </div>
+                            <span class="policy-year-value year-editable" data-policy-no="${policy.policyNo}" style="color: #1890ff; cursor: pointer; text-decoration: underline; font-weight: bold;">${yearDisplay}</span>
                         </td>
                         <td>${premium}</td>
                         <td>${policy.performance || '0'}</td>
                         <td>${policy.totalIncome || '0'}</td>
                         <td>${policy.insurancePeriod || '-'}</td>
                         <td>${paymentDisplay}</td>
-                        <td>${policyNoDisplay}</td>
+                        <td style="font-family: monospace;">${policyTailNo}</td>
                         <td>${policy.orderTime || '-'}</td>
                         <td>${waitingDisplay}</td>
                         <td>${bankCellDisplay}</td>
-                        <td>
-                            <button class="download-btn action-btn ${policy.pdfUrl ? '' : 'disabled'}" 
-                                    ${policy.pdfUrl ? '' : 'disabled'}
-                                    data-pdf-url="${policy.pdfUrl || ''}"
-                                    data-pdf-name="${policy.pdfFileName || ''}">合同</button>
-                        </td>
                         <td>
                             <button class="delete-btn action-btn" data-policy-no="${policy.policyNo}">删除</button>
                         </td>
@@ -2460,8 +3042,8 @@
                     });
                 });
 
-                tableBody.querySelectorAll('.edit-year-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
+                tableBody.querySelectorAll('.year-editable').forEach(el => {
+                    el.addEventListener('click', (e) => {
                         const policyNo = e.target.getAttribute('data-policy-no');
                         openEditYearModal(policyNo);
                     });
@@ -2474,8 +3056,8 @@
                     });
                 });
 
-                tableBody.querySelectorAll('.download-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
+                tableBody.querySelectorAll('.product-download-link').forEach(el => {
+                    el.addEventListener('click', (e) => {
                         const pdfUrl = e.target.getAttribute('data-pdf-url');
                         const pdfName = e.target.getAttribute('data-pdf-name');
                         if (pdfUrl) {
@@ -2507,7 +3089,9 @@
 
             if (policy.waitingPeriodDays) {
                 if (policy.newDiseaseWaitingDays && policy.generalHistoryWaitingDays) {
-                    return `${policy.newDiseaseWaitingDays}/${policy.generalHistoryWaitingDays}`;
+                    const newDays = policy.newDiseaseWaitingDays.replace('天', '');
+                    const generalDays = policy.generalHistoryWaitingDays.replace('天', '');
+                    return `<div>新发${newDays}天</div><div>既往${generalDays}天</div>`;
                 }
                 return policy.waitingPeriodDays;
             }
@@ -2599,7 +3183,7 @@
                 policy.isContinuous = year > 1;
 
                 if (year > 1) {
-                    const { waitingDays, isConfigured, isDual } = getProductWaitingDays(policy.productName);
+                    const { waitingDays, isConfigured, isDual } = await getProductWaitingDays(policy.productName);
                     if (isConfigured && (waitingDays > 0 || isDual)) {
                         policy.waitingPeriodDays = '连续投保无等待期';
                         policy.waitingEndDate = '连续投保无等待期';
@@ -2744,6 +3328,104 @@
             } catch (e) {
                 console.error('更新失败:', e);
                 showToast('更新失败');
+            }
+        }
+
+        async function exportAllData() {
+            try {
+                const policies = await getAllPolicies();
+                const products = await getAllProducts();
+                const exportData = {
+                    version: '1.0',
+                    exportTime: new Date().toISOString(),
+                    policies: policies,
+                    products: products
+                };
+                const jsonStr = JSON.stringify(exportData, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const now = getBeijingNow();
+                const dateStr = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}`;
+                const timeStr = `${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
+                const fileName = `fyc数据备份_${dateStr}_${timeStr}.json`;
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('数据导出成功');
+            } catch (e) {
+                console.error('导出失败:', e);
+                showToast('导出失败：' + e.message);
+            }
+        }
+
+        function triggerImportFile() {
+            document.getElementById('importFileInput').click();
+        }
+
+        async function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!confirm('导入数据将覆盖现有数据，确定要继续吗？')) {
+                event.target.value = '';
+                return;
+            }
+
+            try {
+                const text = await file.text();
+                const importData = JSON.parse(text);
+
+                if (!importData.policies && !importData.products) {
+                    showToast('无效的备份文件格式');
+                    event.target.value = '';
+                    return;
+                }
+
+                if (importData.products && Array.isArray(importData.products)) {
+                    const transaction = db.transaction(['products'], 'readwrite');
+                    const objectStore = transaction.objectStore('products');
+                    await new Promise((resolve, reject) => {
+                        const clearRequest = objectStore.clear();
+                        clearRequest.onsuccess = resolve;
+                        clearRequest.onerror = () => reject(clearRequest.error);
+                    });
+                    for (const product of importData.products) {
+                        await new Promise((resolve, reject) => {
+                            const request = objectStore.add(product);
+                            request.onsuccess = resolve;
+                            request.onerror = () => reject(request.error);
+                        });
+                    }
+                    refreshProductCache();
+                }
+
+                if (importData.policies && Array.isArray(importData.policies)) {
+                    const transaction = db.transaction(['policies'], 'readwrite');
+                    const objectStore = transaction.objectStore('policies');
+                    await new Promise((resolve, reject) => {
+                        const clearRequest = objectStore.clear();
+                        clearRequest.onsuccess = resolve;
+                        clearRequest.onerror = () => reject(clearRequest.error);
+                    });
+                    for (const policy of importData.policies) {
+                        await new Promise((resolve, reject) => {
+                            const request = objectStore.add(policy);
+                            request.onsuccess = resolve;
+                            request.onerror = () => reject(request.error);
+                        });
+                    }
+                }
+
+                showToast('数据导入成功');
+                loadPoliciesToManage();
+                loadProductsToManage();
+            } catch (e) {
+                console.error('导入失败:', e);
+                showToast('导入失败：' + e.message);
+            } finally {
+                event.target.value = '';
             }
         }
     </script>
