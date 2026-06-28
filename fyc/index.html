@@ -974,13 +974,80 @@
                 </table>
                 <div class="empty-state" id="productEmptyState">
                     <div class="empty-state-icon">📦</div>
-                    <div>暂无产品配置，点击右上角"新增产品"添加</div>
+                    <div>暂无产品配置，在订单信息页解析数据后将自动添加产品</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="version-info">版本号：V4.4.0 | 更新时间：2026年6月28日</div>
+    <div class="modal-overlay hidden" id="waitingEditModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-title">编辑等待期</div>
+            <div class="modal-body">
+                <div class="modal-form-item">
+                    <label>等待期类型</label>
+                    <select id="waitingEditTypeSelect" style="width: 100%; padding: 8px; border: 1px solid #d9d9d9; border-radius: 4px;">
+                        <option value="none">无等待期</option>
+                        <option value="single">单一等待期</option>
+                        <option value="dual">双等待期（医疗险）</option>
+                    </select>
+                </div>
+                <div class="modal-form-item" id="waitingEditSingleSection">
+                    <label>等待期天数</label>
+                    <input type="number" id="waitingEditSingleDays" min="0" value="30" style="width: 100%; padding: 8px; border: 1px solid #d9d9d9; border-radius: 4px;">
+                </div>
+                <div class="modal-form-item" id="waitingEditDualSection" style="display: none;">
+                    <label>双等待期配置</label>
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; color: #666; margin-bottom: 4px;">新发疾病(天)</div>
+                            <input type="number" id="waitingEditNewDiseaseDays" min="0" value="30" style="width: 100%; padding: 8px; border: 1px solid #d9d9d9; border-radius: 4px;">
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; color: #666; margin-bottom: 4px;">一般既往史(天)</div>
+                            <input type="number" id="waitingEditGeneralHistoryDays" min="0" value="90" style="width: 100%; padding: 8px; border: 1px solid #d9d9d9; border-radius: 4px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn-cancel" id="waitingEditCancelBtn">取消</button>
+                <button class="modal-btn-confirm" id="waitingEditConfirmBtn">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="interpretationEditModal">
+        <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-title">编辑保单解读模板</div>
+            <div class="modal-body">
+                <div class="modal-form-item">
+                    <label>产品名称</label>
+                    <input type="text" id="interpretationProductName" readonly style="width: 100%; padding: 8px; border: 1px solid #d9d9d9; border-radius: 4px; background-color: #f5f5f5; color: #999;">
+                </div>
+                <div class="modal-form-item">
+                    <label>保单解读模板</label>
+                    <div class="interpretation-var-buttons" style="margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 6px;">
+                        <button type="button" class="var-insert-btn" data-var="{产品名称}" style="padding: 4px 10px; font-size: 12px; background-color: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer;">产品名称</button>
+                        <button type="button" class="var-insert-btn" data-var="{投保人}" style="padding: 4px 10px; font-size: 12px; background-color: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer;">投保人</button>
+                        <button type="button" class="var-insert-btn" data-var="{被保人}" style="padding: 4px 10px; font-size: 12px; background-color: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer;">被保人</button>
+                        <button type="button" class="var-insert-btn" data-var="{新发疾病等待期}" style="padding: 4px 10px; font-size: 12px; background-color: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer;">新发疾病等待期</button>
+                        <button type="button" class="var-insert-btn" data-var="{一般既往史等待期}" style="padding: 4px 10px; font-size: 12px; background-color: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer;">一般既往史等待期</button>
+                        <button type="button" class="var-insert-btn" data-var="{等待期}" style="padding: 4px 10px; font-size: 12px; background-color: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer;">等待期</button>
+                        <button type="button" class="var-insert-btn" data-var="{下年续保日}" style="padding: 4px 10px; font-size: 12px; background-color: #722ed1; color: white; border: none; border-radius: 4px; cursor: pointer;">下年续保日</button>
+                    </div>
+                    <textarea id="interpretationTemplateInput" rows="8" placeholder="在上方点击按钮插入变量，或直接输入文本"></textarea>
+                    <div class="modal-tip">点击上方按钮插入变量，等待期会自动替换为实际天数和日期</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn-cancel" id="interpretationEditCancelBtn">取消</button>
+                <button class="modal-btn-confirm" id="interpretationEditConfirmBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="version-info">版本号：V4.5.0 | 更新时间：2026年6月28日</div>
 
     <div class="toast" id="toast"></div>
     <div class="toast" id="copyToast">复制成功！</div>
@@ -1700,13 +1767,28 @@
                         statusHtml = `<span class="product-status-toggle" data-product-key="${productKey}" style="color: #52c41a; cursor: pointer;" title="点击切换为已下架">在售</span>`;
                     }
 
+                    let waitingDisplay;
+                    if (product.waitingType === 'none') {
+                        waitingDisplay = '<span class="waiting-edit-btn" data-key="' + productKey + '" style="color: #1890ff; cursor: pointer;">无等待期</span>';
+                    } else if (product.waitingType === 'single') {
+                        waitingDisplay = '<span class="waiting-edit-btn" data-key="' + productKey + '" style="color: #1890ff; cursor: pointer;">' + (product.waitingDays || 0) + '天</span>';
+                    } else if (product.waitingType === 'dual') {
+                        waitingDisplay = '<span class="waiting-edit-btn" data-key="' + productKey + '" style="color: #1890ff; cursor: pointer; white-space: nowrap;">新发' + (product.newDiseaseDays || 0) + '天<br>既往' + (product.generalHistoryDays || 0) + '天</span>';
+                    } else {
+                        waitingDisplay = '<span class="waiting-edit-btn" data-key="' + productKey + '" style="color: #f5222d; cursor: pointer;">未配置</span>';
+                    }
+
+                    const interpretationDisplay = hasInterpretation
+                        ? '<span class="interpretation-edit-btn" data-key="' + productKey + '" style="color: #52c41a; cursor: pointer;">已解读</span>'
+                        : '<span class="interpretation-edit-btn" data-key="' + productKey + '" style="color: #999; cursor: pointer;">未解读</span>';
+
                     tr.innerHTML = `
                         <td style="white-space: normal; line-height: 1.4; max-width: 250px;">${product.productName || '-'}</td>
                         <td>${typeLabel}</td>
                         <td>${channelLabel}</td>
                         <td>${statusHtml}</td>
-                        <td>${waitingDisplay}</td>
-                        <td>${hasInterpretation ? '<span style="color: #52c41a;">已解读</span>' : '<span style="color: #999;">未解读</span>'}</td>
+                        <td style="white-space: normal; line-height: 1.4;">${waitingDisplay}</td>
+                        <td>${interpretationDisplay}</td>
                         <td style="color: #1890ff; font-weight: bold;">${stats.count}</td>
                         <td style="color: #f5222d;">${formatNumber(stats.totalIncome)}</td>
                         <td style="color: #fa8c16;">${formatNumber(stats.performance)}</td>
@@ -1738,10 +1820,157 @@
                         }
                     });
                 });
+
+                tableBody.querySelectorAll('.waiting-edit-btn').forEach(el => {
+                    el.addEventListener('click', (e) => {
+                        const key = e.target.getAttribute('data-key');
+                        openWaitingEditModal(key);
+                    });
+                });
+
+                tableBody.querySelectorAll('.interpretation-edit-btn').forEach(el => {
+                    el.addEventListener('click', (e) => {
+                        const key = e.target.getAttribute('data-key');
+                        openInterpretationEditModal(key);
+                    });
+                });
             } catch (e) {
                 console.error('加载产品列表失败:', e);
                 showToast('加载产品列表失败');
             }
+        }
+
+        let currentWaitingEditKey = null;
+        let currentInterpretationEditKey = null;
+
+        async function openWaitingEditModal(productKey) {
+            currentWaitingEditKey = productKey;
+            const modal = document.getElementById('waitingEditModal');
+
+            document.getElementById('waitingEditTypeSelect').value = 'none';
+            document.getElementById('waitingEditSingleDays').value = 30;
+            document.getElementById('waitingEditNewDiseaseDays').value = 30;
+            document.getElementById('waitingEditGeneralHistoryDays').value = 90;
+            document.getElementById('waitingEditSingleSection').style.display = 'none';
+            document.getElementById('waitingEditDualSection').style.display = 'none';
+
+            if (productKey) {
+                try {
+                    const product = await getProductByKey(productKey);
+                    if (product) {
+                        document.getElementById('waitingEditTypeSelect').value = product.waitingType || 'none';
+                        document.getElementById('waitingEditSingleDays').value = product.waitingDays || 30;
+                        document.getElementById('waitingEditNewDiseaseDays').value = product.newDiseaseDays || 30;
+                        document.getElementById('waitingEditGeneralHistoryDays').value = product.generalHistoryDays || 90;
+                        updateWaitingEditSections();
+                    }
+                } catch (e) {
+                    console.error('获取产品信息失败:', e);
+                }
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function updateWaitingEditSections() {
+            const type = document.getElementById('waitingEditTypeSelect').value;
+            document.getElementById('waitingEditSingleSection').style.display = type === 'single' ? 'block' : 'none';
+            document.getElementById('waitingEditDualSection').style.display = type === 'dual' ? 'block' : 'none';
+        }
+
+        async function confirmWaitingEdit() {
+            if (!currentWaitingEditKey) {
+                closeWaitingEditModal();
+                return;
+            }
+
+            try {
+                const product = await getProductByKey(currentWaitingEditKey);
+                if (!product) {
+                    showToast('产品不存在');
+                    closeWaitingEditModal();
+                    return;
+                }
+
+                const waitingType = document.getElementById('waitingEditTypeSelect').value;
+                product.waitingType = waitingType;
+
+                if (waitingType === 'single') {
+                    product.waitingDays = parseInt(document.getElementById('waitingEditSingleDays').value) || 30;
+                } else if (waitingType === 'dual') {
+                    product.newDiseaseDays = parseInt(document.getElementById('waitingEditNewDiseaseDays').value) || 30;
+                    product.generalHistoryDays = parseInt(document.getElementById('waitingEditGeneralHistoryDays').value) || 90;
+                    product.waitingDays = product.generalHistoryDays;
+                } else {
+                    product.waitingDays = 0;
+                }
+
+                await updateProduct(product);
+                refreshProductCache();
+                loadProductsToManage();
+                showToast('等待期更新成功');
+                closeWaitingEditModal();
+            } catch (e) {
+                console.error('保存失败:', e);
+                showToast('保存失败');
+            }
+        }
+
+        function closeWaitingEditModal() {
+            document.getElementById('waitingEditModal').classList.add('hidden');
+            currentWaitingEditKey = null;
+        }
+
+        async function openInterpretationEditModal(productKey) {
+            currentInterpretationEditKey = productKey;
+            const modal = document.getElementById('interpretationEditModal');
+
+            document.getElementById('interpretationTemplateInput').value = '';
+
+            if (productKey) {
+                try {
+                    const product = await getProductByKey(productKey);
+                    if (product) {
+                        document.getElementById('interpretationProductName').value = product.productName || '';
+                        document.getElementById('interpretationTemplateInput').value = product.interpretationTemplate || '';
+                    }
+                } catch (e) {
+                    console.error('获取产品信息失败:', e);
+                }
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        async function confirmInterpretationEdit() {
+            if (!currentInterpretationEditKey) {
+                closeInterpretationEditModal();
+                return;
+            }
+
+            try {
+                const product = await getProductByKey(currentInterpretationEditKey);
+                if (!product) {
+                    showToast('产品不存在');
+                    closeInterpretationEditModal();
+                    return;
+                }
+
+                product.interpretationTemplate = document.getElementById('interpretationTemplateInput').value || '';
+                await updateProduct(product);
+                refreshProductCache();
+                loadProductsToManage();
+                showToast('保单解读模板更新成功');
+                closeInterpretationEditModal();
+            } catch (e) {
+                console.error('保存失败:', e);
+                showToast('保存失败');
+            }
+        }
+
+        function closeInterpretationEditModal() {
+            document.getElementById('interpretationEditModal').classList.add('hidden');
+            currentInterpretationEditKey = null;
         }
 
         async function openProductModal(productKey) {
@@ -1946,6 +2175,11 @@
 
             document.getElementById('editProductCancelBtn').addEventListener('click', closeProductModal);
             document.getElementById('editProductConfirmBtn').addEventListener('click', confirmEditProduct);
+            document.getElementById('waitingEditCancelBtn').addEventListener('click', closeWaitingEditModal);
+            document.getElementById('waitingEditConfirmBtn').addEventListener('click', confirmWaitingEdit);
+            document.getElementById('waitingEditTypeSelect').addEventListener('change', updateWaitingEditSections);
+            document.getElementById('interpretationEditCancelBtn').addEventListener('click', closeInterpretationEditModal);
+            document.getElementById('interpretationEditConfirmBtn').addEventListener('click', confirmInterpretationEdit);
             document.getElementById('productSearchInput').addEventListener('input', loadProductsToManage);
             document.getElementById('waitingTypeSelect').addEventListener('change', handleWaitingTypeChange);
             const productInterpretationFilter = document.getElementById('productInterpretationFilter');
@@ -2377,10 +2611,10 @@
                     const statusEl = headerEl.querySelector('.interpretation-status');
                     if (statusEl) {
                         if (hasInterpretation) {
-                            statusEl.textContent = '✓ 产品信息已维护';
+                            statusEl.textContent = '✓ 已解读';
                             statusEl.style.color = '#52c41a';
                         } else {
-                            statusEl.textContent = '⚠ 请维护产品信息';
+                            statusEl.textContent = '⚠ 未解读';
                             statusEl.style.color = '#fa8c16';
                         }
                     }
@@ -2420,11 +2654,11 @@
                 }
                 if (field.isInterpretation) {
                     if (field.hasInterpretation) {
-                        valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong><span style="color: #52c41a;">已维护</span>`;
+                        valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong><span style="color: #52c41a;">已解读</span>`;
                         fieldItem.style.backgroundColor = '#f6ffed';
                         fieldItem.style.border = '1px solid #b7eb8f';
                     } else {
-                        valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong><span style="color: #f5222d; font-weight: bold;">请维护</span>`;
+                        valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong><span style="color: #f5222d; font-weight: bold;">未解读</span>`;
                         fieldItem.style.backgroundColor = '#fff2f0';
                         fieldItem.style.border = '1px solid #ffccc7';
                     }
