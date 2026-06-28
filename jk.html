@@ -408,8 +408,33 @@ window.toggleBody = function(id, event) {
 };
 
 window.hideItem = function(id) {
+    // 保存当前marked的post id
+    const visiblePostsBefore = allPostsData.filter(p => !hiddenIds.has(p.id));
+    const markedIds = [];
+    visiblePostsBefore.forEach((p, i) => {
+        if (marked[i]) markedIds.push(p.id);
+    });
+
     hiddenIds.add(id);
+
+    // 重新渲染
+    const newVisiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
+    const newMarked = newVisiblePosts.map(p => markedIds.includes(p.id));
+
     renderVisiblePosts();
+    marked = newMarked;
+
+    // 更新按钮状态
+    newVisiblePosts.forEach((p, i) => {
+        if (marked[i]) {
+            const btn = document.querySelector(`.entry[data-id="${p.id}"] .copy-single`);
+            if (btn) {
+                btn.textContent = '✅ 已复制';
+                btn.classList.add('copied');
+            }
+        }
+    });
+
     showToast('已擦掉该条', 'success');
 };
 
@@ -573,7 +598,6 @@ function renderVisiblePosts() {
     });
 
     plainTitleLinkArray = titleLinkArray;
-    marked = new Array(plainTitleLinkArray.length).fill(false);
     outputEl.innerHTML = htmlResult;
 
     return visiblePosts.length;
