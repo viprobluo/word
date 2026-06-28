@@ -944,8 +944,8 @@
                     <input type="text" id="productSearchInput" class="search-input" placeholder="搜索产品名称">
                     <select id="productInterpretationFilter" class="status-select">
                         <option value="all">全部</option>
-                        <option value="configured">已配置解读</option>
-                        <option value="unconfigured">未配置解读</option>
+                        <option value="configured">已解读</option>
+                        <option value="unconfigured">未解读</option>
                     </select>
                     <select id="productStatusFilter" class="status-select">
                         <option value="all">全部</option>
@@ -961,7 +961,7 @@
                             <th>产品名称</th>
                             <th>类型</th>
                             <th>渠道</th>
-                            <th>状态</th>
+                            <th>销售状态</th>
                             <th>等待期</th>
                             <th>解读</th>
                             <th>总单量</th>
@@ -980,7 +980,7 @@
         </div>
     </div>
 
-    <div class="version-info">版本号：V4.3.0 | 更新时间：2026年6月28日</div>
+    <div class="version-info">版本号：V4.4.0 | 更新时间：2026年6月28日</div>
 
     <div class="toast" id="toast"></div>
     <div class="toast" id="copyToast">复制成功！</div>
@@ -1091,12 +1091,10 @@
                         <button type="button" class="var-insert-btn" data-var="{新发疾病等待期}" style="padding: 4px 10px; font-size: 12px; background-color: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer;">新发疾病等待期</button>
                         <button type="button" class="var-insert-btn" data-var="{一般既往史等待期}" style="padding: 4px 10px; font-size: 12px; background-color: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer;">一般既往史等待期</button>
                         <button type="button" class="var-insert-btn" data-var="{等待期}" style="padding: 4px 10px; font-size: 12px; background-color: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer;">等待期</button>
-                        <button type="button" class="var-insert-btn" data-var="{新发疾病等待期结束日}" style="padding: 4px 10px; font-size: 12px; background-color: #fa8c16; color: white; border: none; border-radius: 4px; cursor: pointer;">新发疾病等待期结束日</button>
-                        <button type="button" class="var-insert-btn" data-var="{一般既往史等待期结束日}" style="padding: 4px 10px; font-size: 12px; background-color: #fa8c16; color: white; border: none; border-radius: 4px; cursor: pointer;">一般既往史等待期结束日</button>
                         <button type="button" class="var-insert-btn" data-var="{下年续保日}" style="padding: 4px 10px; font-size: 12px; background-color: #722ed1; color: white; border: none; border-radius: 4px; cursor: pointer;">下年续保日</button>
                     </div>
                     <textarea id="productInterpretationTemplate" rows="8" placeholder="在上方点击按钮插入变量，或直接输入文本"></textarea>
-                    <div class="modal-tip">点击上方按钮插入动态变量，生成客户级别的保单解读文本</div>
+                    <div class="modal-tip">点击上方按钮插入变量，等待期会自动替换为实际天数和日期</div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -1708,7 +1706,7 @@
                         <td>${channelLabel}</td>
                         <td>${statusHtml}</td>
                         <td>${waitingDisplay}</td>
-                        <td>${hasInterpretation ? '<span style="color: #52c41a;">已配置</span>' : '<span style="color: #999;">未配置</span>'}</td>
+                        <td>${hasInterpretation ? '<span style="color: #52c41a;">已解读</span>' : '<span style="color: #999;">未解读</span>'}</td>
                         <td style="color: #1890ff; font-weight: bold;">${stats.count}</td>
                         <td style="color: #f5222d;">${formatNumber(stats.totalIncome)}</td>
                         <td style="color: #fa8c16;">${formatNumber(stats.performance)}</td>
@@ -2675,13 +2673,13 @@
                     waitingDays = '0';
                 }
 
-                return template
+                let result = template
                     .replace(/\{产品名称\}/g, policyData.productName || '')
                     .replace(/\{投保人\}/g, policyData.holdername || '')
                     .replace(/\{被保人\}/g, policyData.insuredName || '')
-                    .replace(/\{新发疾病等待期\}/g, newDiseaseDays)
-                    .replace(/\{一般既往史等待期\}/g, generalHistoryDays)
-                    .replace(/\{等待期\}/g, waitingDays)
+                    .replace(/\{新发疾病等待期\}/g, `${newDiseaseDays} 天：${newDiseaseEndDate}`)
+                    .replace(/\{一般既往史等待期\}/g, `${generalHistoryDays} 天：${generalHistoryEndDate}`)
+                    .replace(/\{等待期\}/g, `${waitingDays} 天`)
                     .replace(/\{新发疾病等待期结束日\}/g, newDiseaseEndDate)
                     .replace(/\{一般既往史等待期结束日\}/g, generalHistoryEndDate)
                     .replace(/\{下年续保日\}/g, nextYearRenewalDate)
@@ -2694,6 +2692,9 @@
                     .replace(/\{newDiseaseEndDate\}/g, newDiseaseEndDate)
                     .replace(/\{generalHistoryEndDate\}/g, generalHistoryEndDate)
                     .replace(/\{nextYearRenewalDate\}/g, nextYearRenewalDate);
+
+                result = result.replace(/天：天：/g, '天：').replace(/天：天$/g, '天');
+                return result;
             }
 
             let matchedTemplate = null;
