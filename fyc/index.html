@@ -406,6 +406,8 @@
 
         .policy-table-container {
             overflow-x: auto;
+            max-height: 70vh;
+            overflow-y: auto;
         }
 
         .policy-table {
@@ -435,34 +437,40 @@
             left: 0;
             z-index: 2;
             background-color: #f8f8f8;
+            min-width: 90px;
         }
 
         .policy-table .sticky-col-2 {
             position: sticky;
-            left: 80px;
+            left: 90px;
             z-index: 2;
             background-color: #f8f8f8;
+            min-width: 80px;
         }
 
         .policy-table .sticky-col-3 {
             position: sticky;
-            left: 160px;
+            left: 170px;
             z-index: 2;
             background-color: #f8f8f8;
+            min-width: 100px;
         }
 
         .policy-table .sticky-col-4 {
             position: sticky;
-            left: 240px;
+            left: 270px;
             z-index: 2;
             background-color: #f8f8f8;
+            min-width: 200px;
+            max-width: 200px;
         }
 
         .policy-table .sticky-col-5 {
             position: sticky;
-            left: 360px;
+            left: 470px;
             z-index: 2;
             background-color: #f8f8f8;
+            min-width: 100px;
         }
 
         .policy-table tbody td.sticky-col-1 {
@@ -474,28 +482,28 @@
 
         .policy-table tbody td.sticky-col-2 {
             position: sticky;
-            left: 80px;
+            left: 90px;
             z-index: 1;
             background-color: #fff;
         }
 
         .policy-table tbody td.sticky-col-3 {
             position: sticky;
-            left: 160px;
+            left: 170px;
             z-index: 1;
             background-color: #fff;
         }
 
         .policy-table tbody td.sticky-col-4 {
             position: sticky;
-            left: 240px;
+            left: 270px;
             z-index: 1;
             background-color: #fff;
         }
 
         .policy-table tbody td.sticky-col-5 {
             position: sticky;
-            left: 360px;
+            left: 470px;
             z-index: 1;
             background-color: #fff;
         }
@@ -935,7 +943,12 @@
             <div class="policy-manage-header">
                 <h3>产品配置列表</h3>
                 <div class="policy-manage-actions">
-                    <input type="text" id="productSearchInput" class="search-input" placeholder="搜索产品名称/关键词">
+                    <input type="text" id="productSearchInput" class="search-input" placeholder="搜索产品名称">
+                    <select id="productStatusFilter" class="status-select">
+                        <option value="all">全部状态</option>
+                        <option value="onSale">在售</option>
+                        <option value="offSale">已下架</option>
+                    </select>
                     <button id="addProductBtn" class="save-btn">新增产品</button>
                 </div>
             </div>
@@ -943,9 +956,10 @@
                 <table class="policy-table" id="productTable">
                     <thead>
                         <tr>
-                            <th>产品关键词</th>
                             <th>产品名称</th>
                             <th>产品类型</th>
+                            <th>销售渠道</th>
+                            <th>产品状态</th>
                             <th>等待期</th>
                             <th>保单解读</th>
                             <th>操作</th>
@@ -961,7 +975,7 @@
         </div>
     </div>
 
-    <div class="version-info">版本号：V4.0.0 | 更新时间：2026年6月28日</div>
+    <div class="version-info">版本号：V4.1.0 | 更新时间：2026年6月28日</div>
 
     <div class="toast" id="toast"></div>
     <div class="toast" id="copyToast">复制成功！</div>
@@ -1014,9 +1028,10 @@
                 </div>
                 <div class="modal-form-item">
                     <label>受益人姓名</label>
-                    <input type="text" id="editBeneficiaryInput" placeholder="请输入受益人姓名">
+                    <textarea id="editBeneficiaryInput" rows="4" placeholder="请输入受益人姓名，支持多行输入" style="width: 100%; padding: 8px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
                     <div style="margin-top: 8px;">
                         <button type="button" id="beneficiaryQuickLegalBtn" style="padding: 4px 12px; font-size: 12px; background-color: #a0d911; color: white; border: none; border-radius: 4px; cursor: pointer;">法定</button>
+                        <span style="margin-left: 10px; font-size: 12px; color: #999;">支持换行输入，多个受益人每行一个</span>
                     </div>
                 </div>
             </div>
@@ -1032,23 +1047,32 @@
             <div class="modal-title" id="editProductModalTitle">新增产品</div>
             <div class="modal-body">
                 <div class="modal-form-item">
-                    <label>产品关键词 <span style="color: #f5222d;">*</span></label>
-                    <input type="text" id="productKeyInput" placeholder="用于匹配保单产品名，如：众民保·中高端医疗险2026">
-                    <div class="modal-tip">最长匹配原则，关键词越长优先级越高</div>
-                </div>
-                <div class="modal-form-item">
-                    <label>产品名称</label>
-                    <input type="text" id="productNameInput" placeholder="显示用的产品名称">
+                    <label>产品名称 <span style="color: #f5222d;">*</span></label>
+                    <input type="text" id="productNameInput" placeholder="产品名称（同时作为匹配关键词）">
                 </div>
                 <div class="modal-form-item">
                     <label>产品类型</label>
                     <select id="productTypeSelect">
-                        <option value="other">其他</option>
                         <option value="medical">医疗险</option>
                         <option value="accident">意外险</option>
                         <option value="critical">重疾险</option>
                         <option value="life">寿险</option>
                         <option value="annuity">年金险</option>
+                        <option value="other">其他</option>
+                    </select>
+                </div>
+                <div class="modal-form-item">
+                    <label>销售渠道</label>
+                    <select id="productChannelSelect">
+                        <option value="internet">互联网</option>
+                        <option value="offline">线下</option>
+                    </select>
+                </div>
+                <div class="modal-form-item">
+                    <label>产品状态</label>
+                    <select id="productStatusSelect">
+                        <option value="onSale">在售</option>
+                        <option value="offSale">已下架</option>
                     </select>
                 </div>
                 <div class="modal-form-item">
@@ -1080,8 +1104,8 @@
                 </div>
                 <div class="modal-form-item">
                     <label>保单解读模板</label>
-                    <textarea id="productInterpretationTemplate" rows="8" placeholder="支持占位符：{productName}、{holdername}、{insuredName}、{newDiseaseEndDate}、{generalHistoryEndDate}、{nextYearRenewalDate}"></textarea>
-                    <div class="modal-tip">保单解读模板，为空则不显示保单解读</div>
+                    <textarea id="productInterpretationTemplate" rows="8" placeholder="支持占位符：{productName}、{holdername}、{insuredName}、{newDiseaseDays}、{generalHistoryDays}、{newDiseaseEndDate}、{generalHistoryEndDate}、{nextYearRenewalDate}"></textarea>
+                    <div class="modal-tip">保单解读模板，为空则不显示保单解读；等待期天数使用 {newDiseaseDays}、{generalHistoryDays} 等变量</div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -1574,6 +1598,24 @@
             }
         }
 
+        function getProductChannel(product) {
+            if (product.channel) {
+                return product.channel === 'internet' ? '互联网' : '线下';
+            }
+            const name = (product.productName || '') + (product.productKey || '');
+            if (/互联网|网销|线上/.test(name)) {
+                return '互联网';
+            }
+            return '线下';
+        }
+
+        function getProductStatusLabel(product) {
+            if (product.status === 'offSale') {
+                return '<span style="color: #999;">已下架</span>';
+            }
+            return '<span style="color: #52c41a;">在售</span>';
+        }
+
         async function loadProductsToManage() {
             const tableBody = document.getElementById('productTableBody');
             const emptyState = document.getElementById('productEmptyState');
@@ -1581,15 +1623,21 @@
             if (!tableBody || !emptyState || !table) return;
 
             const searchKeyword = document.getElementById('productSearchInput').value.trim().toLowerCase();
+            const statusFilter = document.getElementById('productStatusFilter') ? document.getElementById('productStatusFilter').value : 'all';
 
             try {
                 const products = await getAllProducts();
                 let filtered = products;
                 if (searchKeyword) {
-                    filtered = products.filter(p =>
-                        (p.productKey && p.productKey.toLowerCase().includes(searchKeyword)) ||
+                    filtered = filtered.filter(p =>
                         (p.productName && p.productName.toLowerCase().includes(searchKeyword))
                     );
+                }
+                if (statusFilter !== 'all') {
+                    filtered = filtered.filter(p => {
+                        const status = p.status || 'onSale';
+                        return status === statusFilter;
+                    });
                 }
 
                 tableBody.innerHTML = '';
@@ -1611,19 +1659,22 @@
                     } else if (product.waitingType === 'single') {
                         waitingDisplay = `${product.waitingDays || 0}天`;
                     } else if (product.waitingType === 'dual') {
-                        waitingDisplay = `新发${product.newDiseaseDays || 0}天/既往${product.generalHistoryDays || 0}天`;
+                        waitingDisplay = `<div>新发${product.newDiseaseDays || 0}天</div><div>既往${product.generalHistoryDays || 0}天</div>`;
                     }
                     const hasInterpretation = product.interpretationTemplate && product.interpretationTemplate.trim().length > 0;
+                    const channelLabel = getProductChannel(product);
+                    const statusLabel = getProductStatusLabel(product);
+                    const productKey = product.productKey || product.productName || '';
 
                     tr.innerHTML = `
-                        <td>${product.productKey || '-'}</td>
-                        <td>${product.productName || '-'}</td>
+                        <td style="white-space: normal; line-height: 1.4; max-width: 250px;">${product.productName || '-'}</td>
                         <td>${typeLabel}</td>
+                        <td>${channelLabel}</td>
+                        <td>${statusLabel}</td>
                         <td>${waitingDisplay}</td>
                         <td>${hasInterpretation ? '<span style="color: #52c41a;">已配置</span>' : '<span style="color: #999;">未配置</span>'}</td>
                         <td>
-                            <button class="edit-year-btn product-edit-btn" data-product-key="${product.productKey}">编辑</button>
-                            <button class="delete-btn product-delete-btn" data-product-key="${product.productKey}">删除</button>
+                            <button class="action-btn product-edit-btn" data-product-key="${productKey}" style="padding: 4px 12px; font-size: 12px;">编辑</button>
                         </td>
                     `;
                     tableBody.appendChild(tr);
@@ -1633,12 +1684,6 @@
                     btn.addEventListener('click', (e) => {
                         const key = e.target.getAttribute('data-product-key');
                         openProductModal(key);
-                    });
-                });
-                tableBody.querySelectorAll('.product-delete-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const key = e.target.getAttribute('data-product-key');
-                        handleDeleteProduct(key);
                     });
                 });
             } catch (e) {
@@ -1652,15 +1697,17 @@
             const modal = document.getElementById('editProductModal');
             const title = document.getElementById('editProductModalTitle');
 
-            document.getElementById('productKeyInput').value = '';
             document.getElementById('productNameInput').value = '';
-            document.getElementById('productTypeSelect').value = 'other';
+            document.getElementById('productTypeSelect').value = 'medical';
+            document.getElementById('productChannelSelect').value = 'internet';
+            document.getElementById('productStatusSelect').value = 'onSale';
             document.getElementById('waitingTypeSelect').value = 'none';
             document.getElementById('singleWaitingDays').value = '30';
             document.getElementById('newDiseaseDays').value = '30';
             document.getElementById('generalHistoryDays').value = '90';
             document.getElementById('productInterpretationTemplate').value = '';
-            document.getElementById('productKeyInput').disabled = false;
+            document.getElementById('productNameInput').disabled = false;
+            document.getElementById('productTypeSelect').disabled = false;
 
             handleWaitingTypeChange();
 
@@ -1669,15 +1716,17 @@
                 try {
                     const product = await getProductByKey(productKey);
                     if (product) {
-                        document.getElementById('productKeyInput').value = product.productKey || '';
                         document.getElementById('productNameInput').value = product.productName || '';
                         document.getElementById('productTypeSelect').value = product.productType || 'other';
+                        document.getElementById('productChannelSelect').value = product.channel || (getProductChannel(product) === '互联网' ? 'internet' : 'offline');
+                        document.getElementById('productStatusSelect').value = product.status || 'onSale';
                         document.getElementById('waitingTypeSelect').value = product.waitingType || 'none';
                         document.getElementById('singleWaitingDays').value = product.waitingDays || 0;
                         document.getElementById('newDiseaseDays').value = product.newDiseaseDays || 30;
                         document.getElementById('generalHistoryDays').value = product.generalHistoryDays || 90;
                         document.getElementById('productInterpretationTemplate').value = product.interpretationTemplate || '';
-                        document.getElementById('productKeyInput').disabled = true;
+                        document.getElementById('productNameInput').disabled = true;
+                        document.getElementById('productTypeSelect').disabled = true;
                         handleWaitingTypeChange();
                     }
                 } catch (e) {
@@ -1703,20 +1752,25 @@
         }
 
         async function confirmEditProduct() {
-            const productKey = document.getElementById('productKeyInput').value.trim();
             const productName = document.getElementById('productNameInput').value.trim();
             const productType = document.getElementById('productTypeSelect').value;
+            const channel = document.getElementById('productChannelSelect').value;
+            const status = document.getElementById('productStatusSelect').value;
             const waitingType = document.getElementById('waitingTypeSelect').value;
 
-            if (!productKey) {
-                showToast('请输入产品关键词');
+            if (!productName) {
+                showToast('请输入产品名称');
                 return;
             }
 
+            const productKey = currentEditProductKey || productName;
+
             const productData = {
                 productKey: productKey,
-                productName: productName || productKey,
+                productName: productName,
                 productType: productType,
+                channel: channel,
+                status: status,
                 waitingType: waitingType,
                 interpretationTemplate: document.getElementById('productInterpretationTemplate').value || ''
             };
@@ -1745,6 +1799,9 @@
                 }
                 refreshProductCache();
                 loadProductsToManage();
+                if (typeof loadPoliciesToManage === 'function') {
+                    loadPoliciesToManage();
+                }
                 closeProductModal();
             } catch (e) {
                 console.error('保存产品失败:', e);
@@ -1860,6 +1917,10 @@
             document.getElementById('editProductConfirmBtn').addEventListener('click', confirmEditProduct);
             document.getElementById('productSearchInput').addEventListener('input', loadProductsToManage);
             document.getElementById('waitingTypeSelect').addEventListener('change', handleWaitingTypeChange);
+            const productStatusFilter = document.getElementById('productStatusFilter');
+            if (productStatusFilter) {
+                productStatusFilter.addEventListener('change', loadProductsToManage);
+            }
 
             document.getElementById('exportDataBtn').addEventListener('click', exportAllData);
             document.getElementById('importDataBtn').addEventListener('click', triggerImportFile);
@@ -2161,6 +2222,22 @@
                 isNumeric: false
             });
 
+            if (container) {
+                const headerEl = container.closest('.policy-container');
+                if (headerEl) {
+                    const statusEl = headerEl.querySelector('.interpretation-status');
+                    if (statusEl) {
+                        if (hasInterpretation) {
+                            statusEl.textContent = '✓ 产品信息已维护';
+                            statusEl.style.color = '#52c41a';
+                        } else {
+                            statusEl.textContent = '⚠ 请维护产品信息';
+                            statusEl.style.color = '#fa8c16';
+                        }
+                    }
+                }
+            }
+
             fields.forEach(field => {
                 const fieldItem = document.createElement('div');
                 fieldItem.className = 'field-item' + (field.isHighlight ? ' highlight' : '') + (field.isFullWidth ? ' action-field-item' : '');
@@ -2214,6 +2291,7 @@
                     copyBtn.className = 'copy-btn';
                     copyBtn.textContent = '复制';
                     copyBtn.style.marginTop = '0';
+                    copyBtn.style.marginLeft = '8px';
                     copyBtn.addEventListener('click', () => {
                         const copyText = field.customCopyText || `${field.label}：${displayValue}`;
                         copyToClipboard(copyText, `${field.label}复制成功`);
@@ -2419,10 +2497,31 @@
                     d.setFullYear(d.getFullYear() + 1);
                     nextYearRenewalDate = formatDateCN(d);
                 }
+
+                let newDiseaseDays = '30';
+                let generalHistoryDays = '90';
+                let waitingDays = '30';
+                if (productConfig.waitingType === 'single') {
+                    waitingDays = (productConfig.waitingDays || 0).toString();
+                    newDiseaseDays = waitingDays;
+                    generalHistoryDays = waitingDays;
+                } else if (productConfig.waitingType === 'dual') {
+                    newDiseaseDays = (productConfig.newDiseaseDays || 30).toString();
+                    generalHistoryDays = (productConfig.generalHistoryDays || 90).toString();
+                    waitingDays = generalHistoryDays;
+                } else {
+                    newDiseaseDays = '0';
+                    generalHistoryDays = '0';
+                    waitingDays = '0';
+                }
+
                 return template
                     .replace(/\{productName\}/g, policyData.productName || '')
                     .replace(/\{holdername\}/g, policyData.holdername || '')
                     .replace(/\{insuredName\}/g, policyData.insuredName || '')
+                    .replace(/\{newDiseaseDays\}/g, newDiseaseDays)
+                    .replace(/\{generalHistoryDays\}/g, generalHistoryDays)
+                    .replace(/\{waitingDays\}/g, waitingDays)
                     .replace(/\{newDiseaseEndDate\}/g, newDiseaseEndDate)
                     .replace(/\{generalHistoryEndDate\}/g, generalHistoryEndDate)
                     .replace(/\{nextYearRenewalDate\}/g, nextYearRenewalDate);
@@ -2731,6 +2830,14 @@
                     });
                 }
                 actionsDiv.appendChild(saveBtn);
+
+                const interpretationStatus = document.createElement('span');
+                interpretationStatus.className = 'interpretation-status';
+                interpretationStatus.dataset.policyNo = policyData.policyNo || '';
+                interpretationStatus.style.fontSize = '12px';
+                interpretationStatus.style.color = '#999';
+                interpretationStatus.textContent = '加载中...';
+                actionsDiv.appendChild(interpretationStatus);
             }
 
             const downloadBtn = document.createElement('button');
@@ -2848,11 +2955,12 @@
             if (isMedical) {
                 return '<span class="beneficiary-fixed">无</span>';
             }
+            const beneficiaryHtml = beneficiary.replace(/\n/g, '<br>');
             if (beneficiary === '法定') {
-                return `<span class="beneficiary-legal-red" data-policy-no="${policy.policyNo}">${beneficiary}</span>`;
+                return `<span class="beneficiary-legal-red" data-policy-no="${policy.policyNo}">${beneficiaryHtml}</span>`;
             }
             if (beneficiary) {
-                return `<span class="beneficiary-editable" data-policy-no="${policy.policyNo}">${beneficiary}</span>`;
+                return `<span class="beneficiary-editable" data-policy-no="${policy.policyNo}">${beneficiaryHtml}</span>`;
             }
             return `<span class="beneficiary-pending beneficiary-cell" data-policy-no="${policy.policyNo}">待维护</span>`;
         }
@@ -2942,8 +3050,32 @@
 
                 const allStats = getPolicyStatusStats(policies);
                 if (statsEl) {
-                    const statsText = `待生效(${allStats.pending})、等待期内(${allStats.waiting})、生效中(${allStats.active})、续保期(${allStats.renewal})、已失效(${allStats.expired})、已逾期(${allStats.overdue})`;
-                    statsEl.textContent = statsText;
+                    const currentFilter = document.getElementById('policyStatusFilter').value;
+                    const statusItems = [
+                        { key: 'pending', label: '待生效', count: allStats.pending },
+                        { key: 'waiting', label: '等待期内', count: allStats.waiting },
+                        { key: 'active', label: '生效中', count: allStats.active },
+                        { key: 'renewal', label: '续保期', count: allStats.renewal },
+                        { key: 'expired', label: '已失效', count: allStats.expired },
+                        { key: 'overdue', label: '待续保', count: allStats.overdue }
+                    ];
+                    statsEl.innerHTML = statusItems.map(item => {
+                        const isActive = currentFilter === item.key;
+                        return `<span class="status-stat-item ${isActive ? 'active' : ''}" data-status="${item.key}" style="cursor: pointer; margin-right: 10px; padding: 2px 6px; border-radius: 4px; ${isActive ? 'background-color: #e6f7ff; color: #1890ff;' : ''}">${item.label}(${item.count})</span>`;
+                    }).join('');
+
+                    statsEl.querySelectorAll('.status-stat-item').forEach(el => {
+                        el.addEventListener('click', () => {
+                            const status = el.getAttribute('data-status');
+                            const select = document.getElementById('policyStatusFilter');
+                            if (select.value === status) {
+                                select.value = 'all';
+                            } else {
+                                select.value = status;
+                            }
+                            loadPoliciesToManage();
+                        });
+                    });
                 }
 
                 const sortedPolicies = filteredPolicies.sort((a, b) => {
