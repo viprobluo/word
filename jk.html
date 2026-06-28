@@ -140,12 +140,39 @@ h1 {
 .entry:hover {
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
+.entry .top-num-row {
+    font-weight: 600;
+    font-size: 14px;
+    color: #1a73e8;
+    letter-spacing: 0.2px;
+    margin-bottom: 4px;
+}
 .entry .title-row {
+    margin-bottom: 2px;
+}
+.entry .title-row .editable-title {
+    width: 100%;
+    border: none;
+    background: transparent;
     font-weight: 600;
     font-size: 16px;
     color: #0b1a2b;
-    letter-spacing: 0.2px;
-    margin-bottom: 2px;
+    outline: none;
+    padding: 2px 4px;
+    border-radius: 4px;
+    resize: none;
+    font-family: inherit;
+    line-height: 1.4;
+    overflow: hidden;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.entry .title-row .editable-title:hover {
+    background: #f0f4fb;
+}
+.entry .title-row .editable-title:focus {
+    background: #e6f0ff;
+    box-shadow: 0 0 0 2px rgba(74,124,255,0.2);
 }
 .entry .link-row {
     margin: 2px 0 6px 0;
@@ -261,11 +288,50 @@ h1 {
 #toast.show { opacity: 1; }
 #toast.success { background: #1e8e3e; }
 #toast.error { background: #d93025; }
+
+.info-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 18px;
+    padding: 12px 16px;
+    background: #f8faff;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    align-items: center;
+}
+.info-bar .nickname-area {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.info-bar .custom-title-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+.info-label {
+    font-weight: 500;
+    color: #2c3e50;
+    white-space: nowrap;
+}
+#nicknameDisplay {
+    color: #1a73e8;
+    font-weight: 600;
+}
 </style>
 </head>
 <body>
 <div class="container">
 <h1>📊 即刻数据提取排序工具</h1>
+
+<div class="info-bar" id="infoBar">
+    <div class="nickname-area" id="nicknameArea">
+        <span class="info-label">⭐️ 优秀即友推荐</span>
+        <span id="nicknameDisplay">@-</span>
+    </div>
+</div>
 
 <div class="drop-zone" id="dropZone">
     <p>📂 拖拽 <code>.txt</code> 文件到此处</p>
@@ -302,12 +368,16 @@ const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
 const fileInfo = document.getElementById('fileInfo');
 const toast = document.getElementById('toast');
+const nicknameDisplay = document.getElementById('nicknameDisplay');
 
 let rawData = '';
 let plainTitleLinkArray = [];
 let marked = [];
 let allPostsData = [];
 let hiddenIds = new Set();
+let userNickname = '';
+let editedTitles = {};  // 存储修改后的标题
+let titleLinkArray = [];
 
 // ============ Toast ============
 function showToast(msg, type = 'success', duration = 3000) {
@@ -494,11 +564,41 @@ function processData(raw) {
     let allPosts = [];
     let parsedCount = 0;
     let errorCount = 0;
+    userNickname = '';
 
     jsonParts.forEach((part) => {
         try {
             const json = JSON.parse(part);
             parsedCount++;
+
+            // 尝试提取用户昵称
+            if (!userNickname) {
+                // 尝试从 json.data[0].user 中提取
+                if (json.data && json.data[0] && json.data[0].user && json.data[0].user.screenName) {
+                    userNickname = json.data[0].user.screenName;
+                }
+                // 尝试从 json.data[0].userInfo 中提取
+                else if (json.data && json.data[0] && json.data[0].userInfo && json.data[0].userInfo.screenName) {
+                    userNickname = json.data[0].userInfo.screenName;
+                }
+                // 尝试从 json.user.screenName 中提取
+                else if (json.user && json.user.screenName) {
+                    userNickname = json.user.screenName;
+                }
+                // 尝试从 json.userInfo.screenName 中提取
+                else if (json.userInfo && json.userInfo.screenName) {
+                    userNickname = json.userInfo.screenName;
+                }
+                // 尝试从 json.screenName 中提取
+                else if (json.screenName) {
+                    userNickname = json.screenName;
+                }
+                // 尝试从 json.nickname 中提取
+                else if (json.nickname) {
+                    userNickname = json.nickname;
+                }
+            }
+
             if (json.data && Array.isArray(json.data)) {
                 json.data.forEach(item => {
                     if (item.id && item.likeCount !== undefined) {
@@ -532,10 +632,13 @@ function processData(raw) {
 
     allPostsData = filtered;
 
+    // 更新昵称显示
+    nicknameDisplay.textContent = userNickname ? '@' + userNickname : '@未找到';
+
     const visible = renderVisiblePosts();
 
     showToast(`✅ 共提取 ${allPosts.length} 条，过滤后保留 ${filtered.length} 条`, 'success', 4000);
-    
+
     return {
         total: allPosts.length,
         filtered: filtered.length,
@@ -547,20 +650,21 @@ function renderVisiblePosts() {
     const visiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
 
     let htmlResult = '';
-    let titleLinkArray = [];
 
     visiblePosts.forEach((p, index) => {
         const cleanContent = p.content.replace(/\n/g, '');
-        const title = cleanContent.slice(0, 20) || '无标题';
+        const originalTitle = cleanContent.slice(0, 18) || '无标题';
+        const title = editedTitles[p.id] || originalTitle;
         const link = `https://m.okjike.com/originalPosts/${p.id}`;
         const topNum = String(index + 1).padStart(3, '0');
-        const titleLink = `TOP ${topNum} （${p.likeCount}）${title}\n${link}`;
-        titleLinkArray.push(titleLink);
 
         const safeContent = p.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
         htmlResult += `<div class="entry" data-id="${p.id}" data-visible-index="${index}">
-    <div class="title-row">TOP ${topNum} （${p.likeCount}）${title}</div>
+    <div class="top-num-row">TOP ${topNum} （${p.likeCount}）</div>
+    <div class="title-row">
+        <textarea class="editable-title" data-id="${p.id}" onchange="updateEditedTitle('${p.id}', this.value)" rows="1" style="width:100%; border:none; background:transparent; font-weight:600; font-size:16px; color:#0b1a2b; outline:none; resize:none; font-family:inherit; line-height:1.4; padding:2px 4px; border-radius:4px; min-height:24px; overflow:hidden;">${title.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+    </div>
     <div class="link-row"><a href="${link}" target="_blank">${link}</a></div>
     <div class="actions">
         <button class="btn-sm copy-single" onclick="copySingle('${p.id}')">📋复制本条</button>
@@ -572,11 +676,59 @@ function renderVisiblePosts() {
 </div>\n\n`;
     });
 
-    plainTitleLinkArray = titleLinkArray;
+    // 重新生成复制用的数组
+    regenerateTitleLinkArray();
     marked = new Array(plainTitleLinkArray.length).fill(false);
     outputEl.innerHTML = htmlResult;
 
+    // 初始化 textarea 自动高度
+    setTimeout(() => {
+        document.querySelectorAll('.editable-title').forEach(ta => {
+            ta.style.height = 'auto';
+            ta.style.height = ta.scrollHeight + 'px';
+            ta.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = this.scrollHeight + 'px';
+            });
+        });
+    }, 0);
+
     return visiblePosts.length;
+}
+
+// 更新修改后的标题
+function updateEditedTitle(id, newTitle) {
+    const post = allPostsData.find(p => p.id === id);
+    if (post) {
+        const originalTitle = post.content.replace(/\n/g, '').slice(0, 18) || '无标题';
+        if (newTitle !== originalTitle) {
+            editedTitles[id] = newTitle;
+        } else {
+            delete editedTitles[id];
+        }
+        // 重新生成复制内容
+        regenerateTitleLinkArray();
+    }
+}
+
+// 重新生成标题链接数组（使用修改后的标题）
+function regenerateTitleLinkArray() {
+    const visiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
+    const newTitleLinkArray = [];
+
+    visiblePosts.forEach((p, visibleIndex) => {
+        const cleanContent = p.content.replace(/\n/g, '');
+        const originalTitle = cleanContent.slice(0, 18) || '无标题';
+        const title = editedTitles[p.id] || originalTitle;
+        const link = `https://m.okjike.com/originalPosts/${p.id}`;
+        const topNum = String(visibleIndex + 1).padStart(3, '0');
+        const titleLine = `TOP ${topNum} （${p.likeCount}）${title}`;
+
+        newTitleLinkArray.push(`${titleLine}\n${link}`);
+    });
+
+    plainTitleLinkArray = newTitleLinkArray;
+    titleLinkArray = newTitleLinkArray;
 }
 
 function autoProcess() {
@@ -618,7 +770,15 @@ copyBtn.addEventListener('click', async () => {
     marked.forEach((m, i) => { if (m) markedIndexes.push(i); });
     let copyIndexes = markedIndexes.length > 0 ? markedIndexes : plainTitleLinkArray.map((_, i) => i);
     const texts = copyIndexes.map(idx => plainTitleLinkArray[idx]);
-    const result = texts.join('\n\n');
+
+    // 组装三部分内容
+    const nickname = userNickname ? '@' + userNickname : '@未知';
+    const part1 = `⭐️优秀即友推荐 ${nickname}`;
+    const part2 = '▍2026 上半年高赞动态';
+    const part3 = texts.join('\n\n');
+
+    const result = `${part1}\n\n${part2}\n\n${part3}`;
+
     if (!result) {
         showToast('没有可复制的内容', 'error');
         return;
@@ -646,6 +806,10 @@ clearBtn.addEventListener('click', () => {
     hiddenIds.clear();
     minLikeInput.value = '100';
     fileInfo.textContent = '';
+    nicknameDisplay.textContent = '-';
+    userNickname = '';
+    editedTitles = {};
+    titleLinkArray = [];
     toast.classList.remove('show');
 });
 </script>
