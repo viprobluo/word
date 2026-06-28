@@ -2599,7 +2599,7 @@
                 if (headerEl) {
                     const statusEl = headerEl.querySelector('.interpretation-status');
                     if (statusEl) {
-                        if (hasInterpretation) {
+                        if (productHasTemplate) {
                             statusEl.textContent = '✓ 已解读';
                             statusEl.style.color = '#52c41a';
                         } else {
@@ -2642,7 +2642,7 @@
                         : (data[field.key] || '');
                 }
                 if (field.isInterpretation) {
-                    if (field.hasInterpretation) {
+                    if (productHasTemplate) {
                         valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong><span style="color: #52c41a;">已解读</span>`;
                         fieldItem.style.backgroundColor = '#f6ffed';
                         fieldItem.style.border = '1px solid #b7eb8f';
@@ -2657,7 +2657,7 @@
 
                 fieldItem.appendChild(valueEl);
 
-                const showCopyBtn = !field.noCopy && !(field.isInterpretation && !field.hasInterpretation);
+                const showCopyBtn = !field.noCopy && !(field.isInterpretation && !productHasTemplate);
                 if (showCopyBtn) {
                     const copyBtn = document.createElement('button');
                     copyBtn.className = 'copy-btn';
