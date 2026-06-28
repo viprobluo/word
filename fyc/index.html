@@ -751,6 +751,7 @@
         <div class="tabs">
             <button class="tab active" data-tab="order-info-tab">订单信息</button>
             <button class="tab" data-tab="policy-manage-tab">保单管理</button>
+            <button class="tab" data-tab="product-manage-tab">产品管理</button>
         </div>
 
         <div class="tab-content active" id="order-info-tab">
@@ -829,6 +830,35 @@
                 </div>
             </div>
         </div>
+
+        <div class="tab-content" id="product-manage-tab">
+            <div class="policy-manage-header">
+                <h3>产品配置列表</h3>
+                <div class="policy-manage-actions">
+                    <input type="text" id="productSearchInput" class="search-input" placeholder="搜索产品名称/关键词">
+                    <button id="addProductBtn" class="save-btn">新增产品</button>
+                </div>
+            </div>
+            <div class="policy-table-container">
+                <table class="policy-table" id="productTable">
+                    <thead>
+                        <tr>
+                            <th>产品关键词</th>
+                            <th>产品名称</th>
+                            <th>产品类型</th>
+                            <th>等待期</th>
+                            <th>保单解读</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productTableBody"></tbody>
+                </table>
+                <div class="empty-state" id="productEmptyState">
+                    <div class="empty-state-icon">📦</div>
+                    <div>暂无产品配置，点击右上角"新增产品"添加</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="version-info">版本号：V3.7.1 | 更新时间：2026年6月26日</div>
@@ -893,6 +923,70 @@
             <div class="modal-footer">
                 <button class="modal-btn-cancel" id="editBeneficiaryCancelBtn">取消</button>
                 <button class="modal-btn-confirm" id="editBeneficiaryConfirmBtn">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="editProductModal">
+        <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-title" id="editProductModalTitle">新增产品</div>
+            <div class="modal-body">
+                <div class="modal-form-item">
+                    <label>产品关键词 <span style="color: #f5222d;">*</span></label>
+                    <input type="text" id="productKeyInput" placeholder="用于匹配保单产品名，如：众民保·中高端医疗险2026">
+                    <div class="modal-tip">最长匹配原则，关键词越长优先级越高</div>
+                </div>
+                <div class="modal-form-item">
+                    <label>产品名称</label>
+                    <input type="text" id="productNameInput" placeholder="显示用的产品名称">
+                </div>
+                <div class="modal-form-item">
+                    <label>产品类型</label>
+                    <select id="productTypeSelect">
+                        <option value="other">其他</option>
+                        <option value="medical">医疗险</option>
+                        <option value="accident">意外险</option>
+                        <option value="critical">重疾险</option>
+                        <option value="life">寿险</option>
+                        <option value="annuity">年金险</option>
+                    </select>
+                </div>
+                <div class="modal-form-item">
+                    <label>等待期配置</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <select id="waitingTypeSelect" style="flex: 1;">
+                            <option value="none">无等待期</option>
+                            <option value="single">单一等待期</option>
+                            <option value="dual">双等待期（医疗险）</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-form-item" id="singleWaitingSection" style="display: none;">
+                    <label>等待期天数</label>
+                    <input type="number" id="singleWaitingDays" min="0" value="30" placeholder="等待期天数">
+                </div>
+                <div class="modal-form-item" id="dualWaitingSection" style="display: none;">
+                    <label>双等待期配置</label>
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; color: #666; margin-bottom: 4px;">新发疾病(天)</div>
+                            <input type="number" id="newDiseaseDays" min="0" value="30">
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; color: #666; margin-bottom: 4px;">一般既往史(天)</div>
+                            <input type="number" id="generalHistoryDays" min="0" value="90">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-form-item">
+                    <label>保单解读模板</label>
+                    <textarea id="productInterpretationTemplate" rows="8" placeholder="支持占位符：{productName}、{holdername}、{insuredName}、{newDiseaseEndDate}、{generalHistoryEndDate}、{nextYearRenewalDate}"></textarea>
+                    <div class="modal-tip">保单解读模板，为空则不显示保单解读</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn-cancel" id="editProductCancelBtn">取消</button>
+                <button class="modal-btn-confirm" id="editProductConfirmBtn">确定</button>
             </div>
         </div>
     </div>
@@ -1003,13 +1097,14 @@
         }
 
         function initDB() {
-            const request = indexedDB.open('PolicyDB', 1);
+            const request = indexedDB.open('PolicyDB', 2);
             request.onerror = (event) => {
                 console.error('数据库打开失败:', event);
             };
             request.onsuccess = (event) => {
                 db = event.target.result;
                 loadPoliciesToManage();
+                initDefaultProducts();
             };
             request.onupgradeneeded = (event) => {
                 db = event.target.result;
@@ -1019,6 +1114,12 @@
                     objectStore.createIndex('productName', 'productName', { unique: false });
                     objectStore.createIndex('holdername', 'holdername', { unique: false });
                     objectStore.createIndex('insuredName', 'insuredName', { unique: false });
+                }
+                if (!db.objectStoreNames.contains('products')) {
+                    const productStore = db.createObjectStore('products', { keyPath: 'productKey' });
+                    productStore.createIndex('productKey', 'productKey', { unique: true });
+                    productStore.createIndex('productName', 'productName', { unique: false });
+                    productStore.createIndex('productType', 'productType', { unique: false });
                 }
             };
         }
@@ -1109,6 +1210,103 @@
                 request.onsuccess = () => resolve();
                 request.onerror = () => reject(request.error);
             });
+        }
+
+        function getAllProducts() {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject(new Error('数据库未初始化'));
+                    return;
+                }
+                const transaction = db.transaction(['products'], 'readonly');
+                const objectStore = transaction.objectStore('products');
+                const request = objectStore.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getProductByKey(productKey) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject(new Error('数据库未初始化'));
+                    return;
+                }
+                const transaction = db.transaction(['products'], 'readonly');
+                const objectStore = transaction.objectStore('products');
+                const request = objectStore.get(productKey);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function addProduct(productData) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject(new Error('数据库未初始化'));
+                    return;
+                }
+                const transaction = db.transaction(['products'], 'readwrite');
+                const objectStore = transaction.objectStore('products');
+                const now = Date.now();
+                productData.createTime = now;
+                productData.updateTime = now;
+                const request = objectStore.add(productData);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function updateProduct(productData) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject(new Error('数据库未初始化'));
+                    return;
+                }
+                const transaction = db.transaction(['products'], 'readwrite');
+                const objectStore = transaction.objectStore('products');
+                productData.updateTime = Date.now();
+                const request = objectStore.put(productData);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function deleteProduct(productKey) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject(new Error('数据库未初始化'));
+                    return;
+                }
+                const transaction = db.transaction(['products'], 'readwrite');
+                const objectStore = transaction.objectStore('products');
+                const request = objectStore.delete(productKey);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        let productCache = null;
+        let productCacheTime = 0;
+
+        async function getProductCache() {
+            const now = Date.now();
+            if (productCache && now - productCacheTime < 5000) {
+                return productCache;
+            }
+            try {
+                const products = await getAllProducts();
+                productCache = products;
+                productCacheTime = now;
+                return products;
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function refreshProductCache() {
+            productCache = null;
+            productCacheTime = 0;
         }
 
         function restoreFromLocalStorage() {
