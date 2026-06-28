@@ -310,11 +310,17 @@
         }
 
         .toggle-btn {
-            padding: 2px 6px;
+            padding: 4px 10px;
             font-size: 12px;
-            background-color: #e0e0e0;
-            color: #666;
+            background-color: #1890ff;
+            color: white;
+            border: none;
             border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .toggle-btn:hover {
+            background-color: #40a9ff;
         }
 
         .policy-content {
@@ -893,15 +899,6 @@
                 <h3>保单列表 <span id="policyStatusStats" style="font-size: 13px; font-weight: normal; color: #666; margin-left: 10px;"></span></h3>
                 <div class="policy-manage-actions">
                     <input type="text" id="policySearchInput" class="search-input" placeholder="搜索保单号/投保人/被保人">
-                    <select id="policyStatusFilter" class="status-select">
-                        <option value="all">全部</option>
-                        <option value="pending">待生效</option>
-                        <option value="waiting">等待期内</option>
-                        <option value="active">生效中</option>
-                        <option value="renewal">续保期</option>
-                        <option value="expired">已失效</option>
-                        <option value="overdue">已逾期</option>
-                    </select>
                     <button id="clearFilterBtn">清空筛选</button>
                     <button id="refreshBtn">刷新</button>
                 </div>
@@ -944,12 +941,16 @@
                 <h3>产品配置列表</h3>
                 <div class="policy-manage-actions">
                     <input type="text" id="productSearchInput" class="search-input" placeholder="搜索产品名称">
+                    <select id="productInterpretationFilter" class="status-select">
+                        <option value="all">全部</option>
+                        <option value="configured">已配置解读</option>
+                        <option value="unconfigured">未配置解读</option>
+                    </select>
                     <select id="productStatusFilter" class="status-select">
-                        <option value="all">全部状态</option>
+                        <option value="all">全部</option>
                         <option value="onSale">在售</option>
                         <option value="offSale">已下架</option>
                     </select>
-                    <button id="addProductBtn" class="save-btn">新增产品</button>
                 </div>
             </div>
             <div class="policy-table-container">
@@ -957,11 +958,14 @@
                     <thead>
                         <tr>
                             <th>产品名称</th>
-                            <th>产品类型</th>
-                            <th>销售渠道</th>
-                            <th>产品状态</th>
+                            <th>类型</th>
+                            <th>渠道</th>
+                            <th>状态</th>
                             <th>等待期</th>
-                            <th>保单解读</th>
+                            <th>解读</th>
+                            <th>总单量</th>
+                            <th>总收入</th>
+                            <th>总业绩</th>
                             <th>操作</th>
                         </tr>
                     </thead>
@@ -975,7 +979,7 @@
         </div>
     </div>
 
-    <div class="version-info">版本号：V4.1.0 | 更新时间：2026年6月28日</div>
+    <div class="version-info">版本号：V4.2.0 | 更新时间：2026年6月28日</div>
 
     <div class="toast" id="toast"></div>
     <div class="toast" id="copyToast">复制成功！</div>
@@ -1028,10 +1032,10 @@
                 </div>
                 <div class="modal-form-item">
                     <label>受益人姓名</label>
-                    <textarea id="editBeneficiaryInput" rows="4" placeholder="请输入受益人姓名，支持多行输入" style="width: 100%; padding: 8px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
+                    <textarea id="editBeneficiaryInput" rows="3" placeholder="请输入受益人姓名，支持多行输入" style="width: 100%; padding: 8px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
                     <div style="margin-top: 8px;">
                         <button type="button" id="beneficiaryQuickLegalBtn" style="padding: 4px 12px; font-size: 12px; background-color: #a0d911; color: white; border: none; border-radius: 4px; cursor: pointer;">法定</button>
-                        <span style="margin-left: 10px; font-size: 12px; color: #999;">支持换行输入，多个受益人每行一个</span>
+                        <span style="margin-left: 10px; font-size: 12px; color: #999;">支持换行输入</span>
                     </div>
                 </div>
             </div>
@@ -1044,36 +1048,11 @@
 
     <div class="modal-overlay hidden" id="editProductModal">
         <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
-            <div class="modal-title" id="editProductModalTitle">新增产品</div>
+            <div class="modal-title" id="editProductModalTitle">编辑产品</div>
             <div class="modal-body">
                 <div class="modal-form-item">
-                    <label>产品名称 <span style="color: #f5222d;">*</span></label>
-                    <input type="text" id="productNameInput" placeholder="产品名称（同时作为匹配关键词）">
-                </div>
-                <div class="modal-form-item">
-                    <label>产品类型</label>
-                    <select id="productTypeSelect">
-                        <option value="medical">医疗险</option>
-                        <option value="accident">意外险</option>
-                        <option value="critical">重疾险</option>
-                        <option value="life">寿险</option>
-                        <option value="annuity">年金险</option>
-                        <option value="other">其他</option>
-                    </select>
-                </div>
-                <div class="modal-form-item">
-                    <label>销售渠道</label>
-                    <select id="productChannelSelect">
-                        <option value="internet">互联网</option>
-                        <option value="offline">线下</option>
-                    </select>
-                </div>
-                <div class="modal-form-item">
-                    <label>产品状态</label>
-                    <select id="productStatusSelect">
-                        <option value="onSale">在售</option>
-                        <option value="offSale">已下架</option>
-                    </select>
+                    <label>产品名称</label>
+                    <input type="text" id="productNameInput" placeholder="产品名称" readonly style="background-color: #f5f5f5; color: #999;">
                 </div>
                 <div class="modal-form-item">
                     <label>等待期配置</label>
@@ -1104,8 +1083,19 @@
                 </div>
                 <div class="modal-form-item">
                     <label>保单解读模板</label>
-                    <textarea id="productInterpretationTemplate" rows="8" placeholder="支持占位符：{productName}、{holdername}、{insuredName}、{newDiseaseDays}、{generalHistoryDays}、{newDiseaseEndDate}、{generalHistoryEndDate}、{nextYearRenewalDate}"></textarea>
-                    <div class="modal-tip">保单解读模板，为空则不显示保单解读；等待期天数使用 {newDiseaseDays}、{generalHistoryDays} 等变量</div>
+                    <div class="interpretation-var-buttons" style="margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 6px;">
+                        <button type="button" class="var-insert-btn" data-var="{产品名称}" style="padding: 4px 10px; font-size: 12px; background-color: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer;">产品名称</button>
+                        <button type="button" class="var-insert-btn" data-var="{投保人}" style="padding: 4px 10px; font-size: 12px; background-color: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer;">投保人</button>
+                        <button type="button" class="var-insert-btn" data-var="{被保人}" style="padding: 4px 10px; font-size: 12px; background-color: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer;">被保人</button>
+                        <button type="button" class="var-insert-btn" data-var="{新发疾病等待期}" style="padding: 4px 10px; font-size: 12px; background-color: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer;">新发疾病等待期</button>
+                        <button type="button" class="var-insert-btn" data-var="{一般既往史等待期}" style="padding: 4px 10px; font-size: 12px; background-color: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer;">一般既往史等待期</button>
+                        <button type="button" class="var-insert-btn" data-var="{等待期}" style="padding: 4px 10px; font-size: 12px; background-color: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer;">等待期</button>
+                        <button type="button" class="var-insert-btn" data-var="{新发疾病等待期结束日}" style="padding: 4px 10px; font-size: 12px; background-color: #fa8c16; color: white; border: none; border-radius: 4px; cursor: pointer;">新发疾病等待期结束日</button>
+                        <button type="button" class="var-insert-btn" data-var="{一般既往史等待期结束日}" style="padding: 4px 10px; font-size: 12px; background-color: #fa8c16; color: white; border: none; border-radius: 4px; cursor: pointer;">一般既往史等待期结束日</button>
+                        <button type="button" class="var-insert-btn" data-var="{下年续保日}" style="padding: 4px 10px; font-size: 12px; background-color: #722ed1; color: white; border: none; border-radius: 4px; cursor: pointer;">下年续保日</button>
+                    </div>
+                    <textarea id="productInterpretationTemplate" rows="8" placeholder="在上方点击按钮插入变量，或直接输入文本"></textarea>
+                    <div class="modal-tip">点击上方按钮插入动态变量，生成客户级别的保单解读文本</div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -1137,6 +1127,18 @@
             "中英人寿福临门两全保险C款（互联网）": 0,
             "中荷互联网岁岁享3.0护理保险": 90,
         };
+
+        function inferProductType(productName) {
+            const name = productName || '';
+            if (/医疗|险/.test(name)) {
+                if (/重疾|疾病/.test(name)) return 'critical';
+                return 'medical';
+            }
+            if (/意外/.test(name)) return 'accident';
+            if (/寿险|定寿|两全|终身/.test(name)) return 'life';
+            if (/年金|养老/.test(name)) return 'annuity';
+            return 'other';
+        }
 
         const POLICY_INTERPRETATION_TEMPLATES = {
             "众民保·中高端医疗险2026": (data) => {
@@ -1611,9 +1613,9 @@
 
         function getProductStatusLabel(product) {
             if (product.status === 'offSale') {
-                return '<span style="color: #999;">已下架</span>';
+                return '<span class="product-status-toggle" data-product-key="${productKey}" style="color: #999; cursor: pointer;" title="点击切换状态">已下架</span>';
             }
-            return '<span style="color: #52c41a;">在售</span>';
+            return '<span class="product-status-toggle" data-product-key="${productKey}" style="color: #52c41a; cursor: pointer;" title="点击切换状态">在售</span>';
         }
 
         async function loadProductsToManage() {
@@ -1623,15 +1625,24 @@
             if (!tableBody || !emptyState || !table) return;
 
             const searchKeyword = document.getElementById('productSearchInput').value.trim().toLowerCase();
+            const interpretationFilter = document.getElementById('productInterpretationFilter') ? document.getElementById('productInterpretationFilter').value : 'all';
             const statusFilter = document.getElementById('productStatusFilter') ? document.getElementById('productStatusFilter').value : 'all';
 
             try {
                 const products = await getAllProducts();
+                const policies = await getAllPolicies();
+
                 let filtered = products;
                 if (searchKeyword) {
                     filtered = filtered.filter(p =>
                         (p.productName && p.productName.toLowerCase().includes(searchKeyword))
                     );
+                }
+                if (interpretationFilter !== 'all') {
+                    filtered = filtered.filter(p => {
+                        const hasInterpretation = p.interpretationTemplate && p.interpretationTemplate.trim().length > 0;
+                        return interpretationFilter === 'configured' ? hasInterpretation : !hasInterpretation;
+                    });
                 }
                 if (statusFilter !== 'all') {
                     filtered = filtered.filter(p => {
@@ -1639,6 +1650,19 @@
                         return status === statusFilter;
                     });
                 }
+
+                filtered.sort((a, b) => (a.productName || '').localeCompare(b.productName || '', 'zh'));
+
+                const productStats = {};
+                policies.forEach(p => {
+                    const name = p.productName || '';
+                    if (!productStats[name]) {
+                        productStats[name] = { count: 0, totalIncome: 0, performance: 0 };
+                    }
+                    productStats[name].count++;
+                    productStats[name].totalIncome += parseFloat(p.totalIncome || 0);
+                    productStats[name].performance += parseFloat(p.performance || 0);
+                });
 
                 tableBody.innerHTML = '';
                 if (filtered.length === 0) {
@@ -1663,16 +1687,26 @@
                     }
                     const hasInterpretation = product.interpretationTemplate && product.interpretationTemplate.trim().length > 0;
                     const channelLabel = getProductChannel(product);
-                    const statusLabel = getProductStatusLabel(product);
                     const productKey = product.productKey || product.productName || '';
+                    const stats = productStats[productKey] || { count: 0, totalIncome: 0, performance: 0 };
+
+                    let statusHtml;
+                    if (product.status === 'offSale') {
+                        statusHtml = `<span class="product-status-toggle" data-product-key="${productKey}" style="color: #999; cursor: pointer;" title="点击切换为在售">已下架</span>`;
+                    } else {
+                        statusHtml = `<span class="product-status-toggle" data-product-key="${productKey}" style="color: #52c41a; cursor: pointer;" title="点击切换为已下架">在售</span>`;
+                    }
 
                     tr.innerHTML = `
                         <td style="white-space: normal; line-height: 1.4; max-width: 250px;">${product.productName || '-'}</td>
                         <td>${typeLabel}</td>
                         <td>${channelLabel}</td>
-                        <td>${statusLabel}</td>
+                        <td>${statusHtml}</td>
                         <td>${waitingDisplay}</td>
                         <td>${hasInterpretation ? '<span style="color: #52c41a;">已配置</span>' : '<span style="color: #999;">未配置</span>'}</td>
+                        <td style="color: #1890ff; font-weight: bold;">${stats.count}</td>
+                        <td style="color: #f5222d;">${stats.totalIncome.toFixed(2)}</td>
+                        <td style="color: #fa8c16;">${stats.performance.toFixed(2)}</td>
                         <td>
                             <button class="action-btn product-edit-btn" data-product-key="${productKey}" style="padding: 4px 12px; font-size: 12px;">编辑</button>
                         </td>
@@ -1686,6 +1720,21 @@
                         openProductModal(key);
                     });
                 });
+
+                tableBody.querySelectorAll('.product-status-toggle').forEach(el => {
+                    el.addEventListener('click', async (e) => {
+                        const key = e.target.getAttribute('data-product-key');
+                        const currentProduct = await getProductByKey(key);
+                        if (currentProduct) {
+                            const newStatus = currentProduct.status === 'offSale' ? 'onSale' : 'offSale';
+                            currentProduct.status = newStatus;
+                            await updateProduct(currentProduct);
+                            refreshProductCache();
+                            loadProductsToManage();
+                            showToast(newStatus === 'onSale' ? '已切换为在售' : '已切换为已下架');
+                        }
+                    });
+                });
             } catch (e) {
                 console.error('加载产品列表失败:', e);
                 showToast('加载产品列表失败');
@@ -1695,46 +1744,32 @@
         async function openProductModal(productKey) {
             currentEditProductKey = productKey || null;
             const modal = document.getElementById('editProductModal');
-            const title = document.getElementById('editProductModalTitle');
 
             document.getElementById('productNameInput').value = '';
-            document.getElementById('productTypeSelect').value = 'medical';
-            document.getElementById('productChannelSelect').value = 'internet';
-            document.getElementById('productStatusSelect').value = 'onSale';
             document.getElementById('waitingTypeSelect').value = 'none';
             document.getElementById('singleWaitingDays').value = '30';
             document.getElementById('newDiseaseDays').value = '30';
             document.getElementById('generalHistoryDays').value = '90';
             document.getElementById('productInterpretationTemplate').value = '';
-            document.getElementById('productNameInput').disabled = false;
-            document.getElementById('productTypeSelect').disabled = false;
 
             handleWaitingTypeChange();
 
             if (productKey) {
-                title.textContent = '编辑产品';
                 try {
                     const product = await getProductByKey(productKey);
                     if (product) {
                         document.getElementById('productNameInput').value = product.productName || '';
-                        document.getElementById('productTypeSelect').value = product.productType || 'other';
-                        document.getElementById('productChannelSelect').value = product.channel || (getProductChannel(product) === '互联网' ? 'internet' : 'offline');
-                        document.getElementById('productStatusSelect').value = product.status || 'onSale';
                         document.getElementById('waitingTypeSelect').value = product.waitingType || 'none';
                         document.getElementById('singleWaitingDays').value = product.waitingDays || 0;
                         document.getElementById('newDiseaseDays').value = product.newDiseaseDays || 30;
                         document.getElementById('generalHistoryDays').value = product.generalHistoryDays || 90;
                         document.getElementById('productInterpretationTemplate').value = product.interpretationTemplate || '';
-                        document.getElementById('productNameInput').disabled = true;
-                        document.getElementById('productTypeSelect').disabled = true;
                         handleWaitingTypeChange();
                     }
                 } catch (e) {
                     console.error('获取产品信息失败:', e);
                     showToast('获取产品信息失败');
                 }
-            } else {
-                title.textContent = '新增产品';
             }
 
             modal.classList.remove('hidden');
@@ -1753,9 +1788,6 @@
 
         async function confirmEditProduct() {
             const productName = document.getElementById('productNameInput').value.trim();
-            const productType = document.getElementById('productTypeSelect').value;
-            const channel = document.getElementById('productChannelSelect').value;
-            const status = document.getElementById('productStatusSelect').value;
             const waitingType = document.getElementById('waitingTypeSelect').value;
 
             if (!productName) {
@@ -1765,32 +1797,30 @@
 
             const productKey = currentEditProductKey || productName;
 
-            const productData = {
-                productKey: productKey,
-                productName: productName,
-                productType: productType,
-                channel: channel,
-                status: status,
-                waitingType: waitingType,
-                interpretationTemplate: document.getElementById('productInterpretationTemplate').value || ''
-            };
-
-            if (waitingType === 'single') {
-                productData.waitingDays = parseInt(document.getElementById('singleWaitingDays').value) || 0;
-            } else if (waitingType === 'dual') {
-                productData.newDiseaseDays = parseInt(document.getElementById('newDiseaseDays').value) || 0;
-                productData.generalHistoryDays = parseInt(document.getElementById('generalHistoryDays').value) || 0;
-                productData.waitingDays = productData.generalHistoryDays;
-            } else {
-                productData.waitingDays = 0;
-            }
-
             try {
-                if (currentEditProductKey) {
-                    const existing = await getProductByKey(currentEditProductKey);
-                    if (existing) {
-                        productData.createTime = existing.createTime;
-                    }
+                const existing = await getProductByKey(productKey);
+                const productData = {
+                    productKey: productKey,
+                    productName: productName,
+                    productType: existing ? existing.productType : inferProductType(productName),
+                    channel: existing ? existing.channel : 'internet',
+                    status: existing ? existing.status : 'onSale',
+                    waitingType: waitingType,
+                    interpretationTemplate: document.getElementById('productInterpretationTemplate').value || ''
+                };
+
+                if (waitingType === 'single') {
+                    productData.waitingDays = parseInt(document.getElementById('singleWaitingDays').value) || 0;
+                } else if (waitingType === 'dual') {
+                    productData.newDiseaseDays = parseInt(document.getElementById('newDiseaseDays').value) || 0;
+                    productData.generalHistoryDays = parseInt(document.getElementById('generalHistoryDays').value) || 0;
+                    productData.waitingDays = productData.generalHistoryDays;
+                } else {
+                    productData.waitingDays = 0;
+                }
+
+                if (existing) {
+                    productData.createTime = existing.createTime;
                     await updateProduct(productData);
                     showToast('产品更新成功');
                 } else {
@@ -1892,13 +1922,11 @@
 
             document.getElementById('clearFilterBtn').addEventListener('click', () => {
                 document.getElementById('policySearchInput').value = '';
-                document.getElementById('policyStatusFilter').value = 'all';
                 loadPoliciesToManage();
             });
             document.getElementById('refreshBtn').addEventListener('click', loadPoliciesToManage);
 
             document.getElementById('policySearchInput').addEventListener('input', loadPoliciesToManage);
-            document.getElementById('policyStatusFilter').addEventListener('change', loadPoliciesToManage);
 
             document.getElementById('editYearCancelBtn').addEventListener('click', closeEditYearModal);
             document.getElementById('editYearConfirmBtn').addEventListener('click', confirmEditYear);
@@ -1921,6 +1949,21 @@
             if (productStatusFilter) {
                 productStatusFilter.addEventListener('change', loadProductsToManage);
             }
+
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('var-insert-btn')) {
+                    const varStr = e.target.getAttribute('data-var');
+                    const textarea = document.getElementById('productInterpretationTemplate');
+                    if (textarea) {
+                        const start = textarea.selectionStart;
+                        const end = textarea.selectionEnd;
+                        const text = textarea.value;
+                        textarea.value = text.substring(0, start) + varStr + text.substring(end);
+                        textarea.focus();
+                        textarea.selectionStart = textarea.selectionEnd = start + varStr.length;
+                    }
+                }
+            });
 
             document.getElementById('exportDataBtn').addEventListener('click', exportAllData);
             document.getElementById('importDataBtn').addEventListener('click', triggerImportFile);
@@ -2064,6 +2107,27 @@
                     const { waitingDays, isConfigured, isDual, newDiseaseDays, generalHistoryDays } = await getProductWaitingDays(policyData.productName);
                     if (!isConfigured) {
                         noWaitingPeriodProducts.add(policyData.productName);
+                        try {
+                            const existingProduct = await getProductByKey(policyData.productName);
+                            if (!existingProduct) {
+                                const productType = inferProductType(policyData.productName);
+                                const productData = {
+                                    productKey: policyData.productName,
+                                    productName: policyData.productName,
+                                    productType: productType,
+                                    channel: 'internet',
+                                    status: 'onSale',
+                                    waitingType: 'single',
+                                    waitingDays: 30,
+                                    interpretationTemplate: ''
+                                };
+                                await addProduct(productData);
+                                refreshProductCache();
+                                console.log('自动添加产品:', policyData.productName);
+                            }
+                        } catch (e) {
+                            console.error('自动添加产品失败:', e);
+                        }
                     }
 
                     if (policyData.isContinuous && isConfigured && (waitingDays > 0 || isDual)) {
@@ -2516,6 +2580,15 @@
                 }
 
                 return template
+                    .replace(/\{产品名称\}/g, policyData.productName || '')
+                    .replace(/\{投保人\}/g, policyData.holdername || '')
+                    .replace(/\{被保人\}/g, policyData.insuredName || '')
+                    .replace(/\{新发疾病等待期\}/g, newDiseaseDays)
+                    .replace(/\{一般既往史等待期\}/g, generalHistoryDays)
+                    .replace(/\{等待期\}/g, waitingDays)
+                    .replace(/\{新发疾病等待期结束日\}/g, newDiseaseEndDate)
+                    .replace(/\{一般既往史等待期结束日\}/g, generalHistoryEndDate)
+                    .replace(/\{下年续保日\}/g, nextYearRenewalDate)
                     .replace(/\{productName\}/g, policyData.productName || '')
                     .replace(/\{holdername\}/g, policyData.holdername || '')
                     .replace(/\{insuredName\}/g, policyData.insuredName || '')
@@ -2981,7 +3054,6 @@
 
         function filterPolicies(policies) {
             const searchKeyword = document.getElementById('policySearchInput').value.trim().toLowerCase();
-            const statusFilter = document.getElementById('policyStatusFilter').value;
 
             let filtered = policies;
 
@@ -2993,13 +3065,6 @@
                     return policyNo.includes(searchKeyword)
                         || holdername.includes(searchKeyword)
                         || insuredName.includes(searchKeyword);
-                });
-            }
-
-            if (statusFilter !== 'all') {
-                filtered = filtered.filter(policy => {
-                    const statusInfo = getPolicyStatus(policy);
-                    return statusInfo.statusKey === statusFilter;
                 });
             }
 
@@ -3050,7 +3115,6 @@
 
                 const allStats = getPolicyStatusStats(policies);
                 if (statsEl) {
-                    const currentFilter = document.getElementById('policyStatusFilter').value;
                     const statusItems = [
                         { key: 'pending', label: '待生效', count: allStats.pending },
                         { key: 'waiting', label: '等待期内', count: allStats.waiting },
@@ -3060,22 +3124,8 @@
                         { key: 'overdue', label: '待续保', count: allStats.overdue }
                     ];
                     statsEl.innerHTML = statusItems.map(item => {
-                        const isActive = currentFilter === item.key;
-                        return `<span class="status-stat-item ${isActive ? 'active' : ''}" data-status="${item.key}" style="cursor: pointer; margin-right: 10px; padding: 2px 6px; border-radius: 4px; ${isActive ? 'background-color: #e6f7ff; color: #1890ff;' : ''}">${item.label}(${item.count})</span>`;
+                        return `<span class="status-stat-item" style="margin-right: 10px; padding: 2px 6px; border-radius: 4px; background-color: #f5f5f5; color: #666;">${item.label}(${item.count})</span>`;
                     }).join('');
-
-                    statsEl.querySelectorAll('.status-stat-item').forEach(el => {
-                        el.addEventListener('click', () => {
-                            const status = el.getAttribute('data-status');
-                            const select = document.getElementById('policyStatusFilter');
-                            if (select.value === status) {
-                                select.value = 'all';
-                            } else {
-                                select.value = status;
-                            }
-                            loadPoliciesToManage();
-                        });
-                    });
                 }
 
                 const sortedPolicies = filteredPolicies.sort((a, b) => {
