@@ -429,7 +429,7 @@ window.hideItem = function(id) {
         if (marked[i]) {
             const btn = document.querySelector(`.entry[data-id="${p.id}"] .copy-single`);
             if (btn) {
-                btn.textContent = '✅ 已复制';
+                btn.textContent = '✅ 有启发';
                 btn.classList.add('copied');
             }
         }
@@ -445,36 +445,23 @@ window.copySingle = function(id) {
         showToast('❌ 未找到该条', 'error');
         return;
     }
-    const text = plainTitleLinkArray[visibleIndex];
-    if (!text || !text.trim()) {
-        showToast('❌ 内容为空', 'error');
-        return;
-    }
-    const copyBtnEl = document.querySelector(`.entry[data-id="${id}"] .copy-single`);
-    try {
-        navigator.clipboard.writeText(text).then(() => {
-            showToast(`✅ 已复制第 ${visibleIndex+1} 条（标题+链接）`, 'success');
-            marked[visibleIndex] = true;
-            if (copyBtnEl) {
-                copyBtnEl.textContent = '✅ 已复制';
-                copyBtnEl.classList.add('copied');
-            }
-        }).catch(() => {
-            const temp = document.createElement('textarea');
-            temp.value = text;
-            document.body.appendChild(temp);
-            temp.select();
-            document.execCommand('copy');
-            document.body.removeChild(temp);
-            showToast(`✅ 已复制第 ${visibleIndex+1} 条（标题+链接）`, 'success');
-            marked[visibleIndex] = true;
-            if (copyBtnEl) {
-                copyBtnEl.textContent = '✅ 已复制';
-                copyBtnEl.classList.add('copied');
-            }
-        });
-    } catch (e) {
-        showToast('❌ 复制失败', 'error');
+    const btn = document.querySelector(`.entry[data-id="${id}"] .copy-single`);
+
+    // 切换标记状态
+    marked[visibleIndex] = !marked[visibleIndex];
+
+    if (marked[visibleIndex]) {
+        if (btn) {
+            btn.textContent = '✅ 有启发';
+            btn.classList.add('copied');
+        }
+        showToast(`💡 第 ${visibleIndex+1} 条标记为有启发`, 'success');
+    } else {
+        if (btn) {
+            btn.textContent = '💡 有启发';
+            btn.classList.remove('copied');
+        }
+        showToast(`已取消第 ${visibleIndex+1} 条启发标记`, 'success');
     }
 };
 
@@ -588,7 +575,7 @@ function renderVisiblePosts() {
     <div class="title-row">TOP ${topNum} （${p.likeCount}）${title}</div>
     <div class="link-row"><a href="${link}" target="_blank">${link}</a></div>
     <div class="actions">
-        <button class="btn-sm copy-single" onclick="copySingle('${p.id}')">📋复制本条</button>
+        <button class="btn-sm copy-single" onclick="copySingle('${p.id}')">💡 有启发</button>
         <button class="btn-sm toggle-body-btn" onclick="toggleBody('${p.id}')">展开</button>
         <button class="btn-sm hide-btn" onclick="hideItem('${p.id}')">✕</button>
         <span class="hint-text">双击正文折叠</span>
