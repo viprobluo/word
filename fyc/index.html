@@ -1503,6 +1503,7 @@
         }
 
         let currentEditProductKey = null;
+        let currentStatusFilter = 'all';
 
         const PRODUCT_TYPE_MAP = {
             medical: '医疗险',
@@ -2143,6 +2144,7 @@
 
             document.getElementById('clearFilterBtn').addEventListener('click', () => {
                 document.getElementById('policySearchInput').value = '';
+                currentStatusFilter = 'all';
                 loadPoliciesToManage();
             });
             document.getElementById('refreshBtn').addEventListener('click', loadPoliciesToManage);
@@ -3377,6 +3379,13 @@
 
             let filtered = policies;
 
+            if (currentStatusFilter !== 'all') {
+                filtered = filtered.filter(policy => {
+                    const statusInfo = getPolicyStatus(policy);
+                    return statusInfo.statusKey === currentStatusFilter;
+                });
+            }
+
             if (searchKeyword) {
                 filtered = filtered.filter(policy => {
                     const policyNo = (policy.policyNo || '').toLowerCase();
@@ -3436,6 +3445,7 @@
                 const allStats = getPolicyStatusStats(policies);
                 if (statsEl) {
                     const statusItems = [
+                        { key: 'all', label: '全部', count: policies.length },
                         { key: 'pending', label: '待生效', count: allStats.pending },
                         { key: 'waiting', label: '等待期内', count: allStats.waiting },
                         { key: 'active', label: '生效中', count: allStats.active },
@@ -3444,8 +3454,19 @@
                         { key: 'overdue', label: '待续保', count: allStats.overdue }
                     ];
                     statsEl.innerHTML = statusItems.map(item => {
-                        return `<span class="status-stat-item" style="margin-right: 10px; padding: 2px 6px; border-radius: 4px; background-color: #f5f5f5; color: #666;">${item.label}(${item.count})</span>`;
+                        const isActive = currentStatusFilter === item.key;
+                        const bgColor = isActive ? '#1890ff' : '#f5f5f5';
+                        const textColor = isActive ? '#fff' : '#666';
+                        return `<span class="status-stat-item" data-status="${item.key}" style="margin-right: 10px; padding: 2px 8px; border-radius: 4px; background-color: ${bgColor}; color: ${textColor}; cursor: pointer; user-select: none;">${item.label}(${item.count})</span>`;
                     }).join('');
+
+                    statsEl.querySelectorAll('.status-stat-item').forEach(el => {
+                        el.addEventListener('click', (e) => {
+                            const status = e.target.getAttribute('data-status');
+                            currentStatusFilter = status;
+                            loadPoliciesToManage();
+                        });
+                    });
                 }
 
                 const sortedPolicies = filteredPolicies.sort((a, b) => {
