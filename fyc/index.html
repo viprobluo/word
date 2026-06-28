@@ -882,6 +882,7 @@
             </div>
             <div class="parse-btn-section">
                 <button id="parseBtn">解析</button>
+                <button id="saveAllBtn" class="btn-success" style="background-color: #52c41a; margin-left: 10px;">一键存入</button>
                 <button id="clearAllBtn" class="btn-danger">清空内容</button>
             </div>
             <div class="error-tip" id="parseErrorTip">JSON格式错误，请检查数据后重新提交！</div>
@@ -979,7 +980,7 @@
         </div>
     </div>
 
-    <div class="version-info">版本号：V4.2.0 | 更新时间：2026年6月28日</div>
+    <div class="version-info">版本号：V4.3.0 | 更新时间：2026年6月28日</div>
 
     <div class="toast" id="toast"></div>
     <div class="toast" id="copyToast">复制成功！</div>
@@ -1032,7 +1033,7 @@
                 </div>
                 <div class="modal-form-item">
                     <label>受益人姓名</label>
-                    <textarea id="editBeneficiaryInput" rows="3" placeholder="请输入受益人姓名，支持多行输入" style="width: 100%; padding: 8px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
+                    <textarea id="editBeneficiaryInput" rows="1" placeholder="请输入受益人姓名，支持多行输入" style="width: 100%; padding: 8px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
                     <div style="margin-top: 8px;">
                         <button type="button" id="beneficiaryQuickLegalBtn" style="padding: 4px 12px; font-size: 12px; background-color: #a0d911; color: white; border: none; border-radius: 4px; cursor: pointer;">法定</button>
                         <span style="margin-left: 10px; font-size: 12px; color: #999;">支持换行输入</span>
@@ -1651,8 +1652,6 @@
                     });
                 }
 
-                filtered.sort((a, b) => (a.productName || '').localeCompare(b.productName || '', 'zh'));
-
                 const productStats = {};
                 policies.forEach(p => {
                     const name = p.productName || '';
@@ -1662,6 +1661,12 @@
                     productStats[name].count++;
                     productStats[name].totalIncome += parseFloat(p.totalIncome || 0);
                     productStats[name].performance += parseFloat(p.performance || 0);
+                });
+
+                filtered.sort((a, b) => {
+                    const statsA = productStats[a.productKey || a.productName || ''] || { count: 0 };
+                    const statsB = productStats[b.productKey || b.productName || ''] || { count: 0 };
+                    return statsB.count - statsA.count;
                 });
 
                 tableBody.innerHTML = '';
@@ -1705,8 +1710,8 @@
                         <td>${waitingDisplay}</td>
                         <td>${hasInterpretation ? '<span style="color: #52c41a;">已配置</span>' : '<span style="color: #999;">未配置</span>'}</td>
                         <td style="color: #1890ff; font-weight: bold;">${stats.count}</td>
-                        <td style="color: #f5222d;">${stats.totalIncome.toFixed(2)}</td>
-                        <td style="color: #fa8c16;">${stats.performance.toFixed(2)}</td>
+                        <td style="color: #f5222d;">${formatNumber(stats.totalIncome)}</td>
+                        <td style="color: #fa8c16;">${formatNumber(stats.performance)}</td>
                         <td>
                             <button class="action-btn product-edit-btn" data-product-key="${productKey}" style="padding: 4px 12px; font-size: 12px;">编辑</button>
                         </td>
@@ -1918,6 +1923,7 @@
             });
 
             document.getElementById('parseBtn').addEventListener('click', parseAllData);
+            document.getElementById('saveAllBtn').addEventListener('click', saveAllPolicies);
             document.getElementById('clearAllBtn').addEventListener('click', clearAllInputs);
 
             document.getElementById('clearFilterBtn').addEventListener('click', () => {
@@ -1940,11 +1946,14 @@
                 document.getElementById('editBeneficiaryInput').value = '法定';
             });
 
-            document.getElementById('addProductBtn').addEventListener('click', () => openProductModal());
             document.getElementById('editProductCancelBtn').addEventListener('click', closeProductModal);
             document.getElementById('editProductConfirmBtn').addEventListener('click', confirmEditProduct);
             document.getElementById('productSearchInput').addEventListener('input', loadProductsToManage);
             document.getElementById('waitingTypeSelect').addEventListener('change', handleWaitingTypeChange);
+            const productInterpretationFilter = document.getElementById('productInterpretationFilter');
+            if (productInterpretationFilter) {
+                productInterpretationFilter.addEventListener('change', loadProductsToManage);
+            }
             const productStatusFilter = document.getElementById('productStatusFilter');
             if (productStatusFilter) {
                 productStatusFilter.addEventListener('change', loadProductsToManage);
@@ -1986,6 +1995,84 @@
             localStorage.removeItem('policy_download_raw_data');
             localStorage.removeItem('fyc_raw_data');
             showToast('已清空所有数据');
+        }
+
+        async function saveAllPolicies() {
+            const policyJson = document.getElementById('policyJsonInput').value.trim();
+            const fycJson = document.getElementById('fycJsonInput').value.trim();
+
+            if (!policyJson && !fycJson) {
+                showToast('请先解析数据');
+                return;
+            }
+
+            if (globalParsedPolicies.length === 0) {
+                showToast('请先解析数据');
+                return;
+            }
+
+            const notSavedPolicies = globalParsedPolicies.filter(p => !p._isSaved);
+            if (notSavedPolicies.length === 0) {
+                showToast('所有保单已存入');
+                return;
+            }
+
+            let savedCount = 0;
+            for (const policyData of notSavedPolicies) {
+                try {
+                    await savePolicyToDBDirect(policyData);
+                    savedCount++;
+                } catch (e) {
+                    console.error('存入失败:', e);
+                }
+            }
+
+            showToast(`已存入 ${savedCount} 条保单`);
+
+            const allSavedBtns = document.querySelectorAll('.policy-container .save-btn');
+            allSavedBtns.forEach(btn => {
+                btn.textContent = '已存入';
+                btn.disabled = true;
+            });
+        }
+
+        async function savePolicyToDBDirect(policyData) {
+            const policy = {
+                policyNo: policyData.policyNo,
+                holdername: policyData.holdername,
+                insuredName: policyData.insuredName,
+                beneficiary: policyData.beneficiary || '',
+                productName: policyData.productName,
+                premium: policyData.premium,
+                performance: policyData.performance,
+                totalIncome: policyData.totalIncome,
+                effectiveDate: policyData.effectiveDate,
+                orderTime: policyData.orderTime,
+                policyYear: policyData.policyYear,
+                continuousNoWaiting: policyData.continuousNoWaiting,
+                waitingPeriodDays: policyData.waitingPeriodDays,
+                waitingEndDate: policyData.waitingEndDate,
+                newDiseaseWaitingDays: policyData.newDiseaseWaitingDays,
+                newDiseaseWaitingEndDate: policyData.newDiseaseWaitingEndDate,
+                generalHistoryWaitingDays: policyData.generalHistoryWaitingDays,
+                generalHistoryWaitingEndDate: policyData.generalHistoryWaitingEndDate,
+                paymentMethod: policyData.paymentMethod,
+                bankName: policyData.bankName,
+                bankAccount: policyData.bankAccount,
+                pdfUrl: policyData.pdfUrl || '',
+                pdfFileName: policyData.pdfFileName || '',
+                originalFYCData: policyData.originalFYCData,
+                createTime: new Date().toISOString(),
+                updateTime: new Date().toISOString()
+            };
+
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['policies'], 'readwrite');
+                const objectStore = transaction.objectStore('policies');
+                const request = objectStore.put(policy);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
         }
 
         async function parseAllData() {
@@ -2497,6 +2584,15 @@
             } catch (e) {
                 return '日期计算错误';
             }
+        }
+
+        function formatNumber(num) {
+            if (!num && num !== 0) return '0';
+            const n = parseFloat(num);
+            if (isNaN(n)) return '0';
+            if (n === 0) return '0';
+            const str = n.toFixed(3).replace(/(\d+\.\d*?)0+$/, '$1').replace(/\.$/, '');
+            return str;
         }
 
         function formatDate(dateStr) {
