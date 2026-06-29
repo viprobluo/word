@@ -807,6 +807,31 @@
             line-height: 1.4;
         }
 
+        .product-download-link {
+            color: #1890ff;
+            cursor: pointer;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: linear-gradient(135deg, #e6f4ff, #bae0ff);
+            border: 1px solid #91caff;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .product-download-link:hover {
+            background: linear-gradient(135deg, #1890ff, #096dd9);
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+        }
+
+        .product-download-link:active {
+            transform: translateY(0);
+        }
+
         .bank-cell .bank-name {
             font-size: 13px;
             color: #333;
@@ -3420,16 +3445,14 @@
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            const checkDate = (dateStr) => {
-                if (!dateStr) return false;
-                const date = parseDate(dateStr);
-                if (!date) return false;
-                date.setHours(0, 0, 0, 0);
-                return date.getTime() === today.getTime();
-            };
-
             // 检查生效日
-            if (checkDate(policy.effectiveDate)) return true;
+            if (policy.effectiveDate) {
+                const effectiveDate = parseDate(policy.effectiveDate);
+                if (effectiveDate) {
+                    effectiveDate.setHours(0, 0, 0, 0);
+                    if (effectiveDate.getTime() === today.getTime()) return true;
+                }
+            }
 
             // 检查等待期日
             if (policy.newDiseaseWaitingDays && policy.generalHistoryWaitingDays) {
@@ -3459,8 +3482,13 @@
                 }
             }
 
-            // 检查续保日
-            if (checkDate(policy.renewalDate)) return true;
+            // 检查续保日（使用计算后的续保日）
+            const renewalDate = getNextRenewalDate(policy);
+            if (renewalDate) {
+                const renewalDateCheck = new Date(renewalDate);
+                renewalDateCheck.setHours(0, 0, 0, 0);
+                if (renewalDateCheck.getTime() === today.getTime()) return true;
+            }
 
             return false;
         }
@@ -3541,15 +3569,22 @@
         }
 
         function highlightTodayRenewalDate(policy, renewalDisplay) {
-            if (isToday(policy.renewalDate)) {
-                if (renewalDisplay.includes('renewal-date-editable')) {
-                    // 已经包含可编辑span，需要添加高亮
-                    return renewalDisplay.replace(
-                        'style="',
-                        'style="background: linear-gradient(135deg, #fff2e8, #ffd4b8); border: 1px solid #ffbb80; border-radius: 4px; padding: 1px 4px; '
-                    );
+            const renewalDate = getNextRenewalDate(policy);
+            if (renewalDate) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const renewalDateCheck = new Date(renewalDate);
+                renewalDateCheck.setHours(0, 0, 0, 0);
+
+                if (renewalDateCheck.getTime() === today.getTime()) {
+                    if (renewalDisplay.includes('renewal-date-editable')) {
+                        return renewalDisplay.replace(
+                            'style="',
+                            'style="background: linear-gradient(135deg, #fff2e8, #ffd4b8); border: 1px solid #ffbb80; border-radius: 4px; padding: 1px 4px; '
+                        );
+                    }
+                    return `<span class="today-highlight">${renewalDisplay}</span>`;
                 }
-                return `<span class="today-highlight">${renewalDisplay}</span>`;
             }
             return renewalDisplay;
         }
@@ -3726,7 +3761,7 @@
                     const productName = policy.productName || '-';
                     const hasPdf = policy.pdfUrl && policy.pdfUrl.length > 0;
                     const productDisplay = hasPdf
-                        ? `<span class="product-download-link" data-pdf-url="${policy.pdfUrl || ''}" data-pdf-name="${policy.pdfFileName || ''}" style="color: #1890ff; cursor: pointer; text-decoration: underline;">${productName}</span>`
+                        ? `<span class="product-download-link" data-pdf-url="${policy.pdfUrl || ''}" data-pdf-name="${policy.pdfFileName || ''}" title="点击下载保单">${productName}</span>`
                         : productName;
 
                     const waitingDateDisplay = getWaitingDateDisplay(policy);
