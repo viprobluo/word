@@ -408,6 +408,14 @@
                 flex-shrink: 0;
             }
 
+            .button-container button[data-mobile] {
+                font-size: 0;
+            }
+            .button-container button[data-mobile]::before {
+                content: attr(data-mobile);
+                font-size: 12px;
+            }
+
             #editor-container {
                 width: 92%;
                 max-width: none;
@@ -477,12 +485,12 @@
     <div id="main">
         <div class="button-container">
             <button id="mobileDocBtn" title="文档列表">+</button>
-            <button id="scrollTopButton">置顶</button>
-            <button id="cleanMarkdown">排版</button>
-            <button id="xh">序号</button>
-            <button id="numBigButton">字体</button>
-            <button id="copyButton">复制</button>
-            <button id="clearButton">清空</button>
+            <button id="scrollTopButton" data-mobile="⬆️">置顶</button>
+            <button id="cleanMarkdown" data-mobile="🎉">排版</button>
+            <button id="xh" data-mobile="序">序号</button>
+            <button id="numBigButton" data-mobile="A">字体</button>
+            <button id="copyButton" data-mobile="C">复制</button>
+            <button id="clearButton" data-mobile="空">清空</button>
             <button id="cbzButton">错别字</button>
         </div>
 
