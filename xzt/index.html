@@ -344,10 +344,23 @@
         @media (max-width: 768px) {
             body {
                 flex-direction: column;
+                height: 100%;
+                overflow: hidden;
             }
 
             #sidebar {
                 display: none;
+            }
+
+            #main {
+                flex: 1;
+                height: 100%;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding-bottom: 50px;
+                box-sizing: border-box;
             }
 
             #mobileDocBtn {
@@ -355,40 +368,57 @@
             }
 
             .button-container {
-                max-width: 100%;
-                min-width: 0;
-                width: 100%;
-                padding: 6px 0 8px 0;
-                gap: 6px;
-                flex-wrap: wrap;
-                justify-content: center;
-                margin-top: 0;
-                background-color: #333;
-                box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
                 position: fixed;
                 bottom: 0;
                 left: 0;
+                right: 0;
+                width: 100%;
+                max-width: none;
+                min-width: 0;
+                padding: 6px 10px;
+                gap: 8px;
+                flex-wrap: nowrap;
+                justify-content: flex-start;
+                margin-top: 0;
+                background-color: #333;
+                box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
                 z-index: 10;
+                flex-shrink: 0;
+                height: 48px;
+                overflow-x: auto;
+                overflow-y: hidden;
+            }
+
+            .button-container::-webkit-scrollbar {
+                display: none;
             }
 
             .button-container button {
                 padding: 6px 12px;
                 font-size: 12px;
-                margin: 2px 2px;
+                margin: 0;
+                flex-shrink: 0;
             }
 
             #editor-container {
-                max-width: 100%;
-                min-width: 0;
                 width: 92%;
-                height: 100%;
-                padding-bottom: 70px;
+                max-width: none;
+                min-width: 0;
+                flex: 1;
                 margin: 0 auto;
+                display: flex;
+                flex-direction: column;
+                height: auto;
+                padding-bottom: 0;
             }
 
             #editor {
+                width: 100%;
+                height: auto;
                 font-size: 16px;
                 padding: 12px;
+                flex: 1;
+                min-height: 200px;
             }
 
             #read {
@@ -403,7 +433,6 @@
                 display: none;
             }
 
-            /* 隐藏PC端新建按钮，手机端用浮层里的 */
             #newDocBtn {
                 display: none;
             }
