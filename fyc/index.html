@@ -3602,6 +3602,11 @@
         }
 
         function highlightTodayRenewalDate(policy, renewalDisplay) {
+            // 只有长期险的续保日才可能高亮（非长期险的续保日显示"-"或无续保日）
+            if (!renewalDisplay.includes('renewal-date-editable')) {
+                return renewalDisplay;
+            }
+
             const renewalDate = getNextRenewalDate(policy);
             if (renewalDate) {
                 const today = new Date();
@@ -3610,14 +3615,10 @@
                 renewalDateCheck.setHours(0, 0, 0, 0);
 
                 if (renewalDateCheck.getTime() === today.getTime()) {
-                    if (renewalDisplay.includes('renewal-date-editable')) {
-                        // 添加今日高亮标记
-                        return renewalDisplay.replace(
-                            'class="renewal-date-editable"',
-                            'class="renewal-date-editable today-renewal"'
-                        );
-                    }
-                    return `<span class="today-highlight">${renewalDisplay}</span>`;
+                    return renewalDisplay.replace(
+                        'class="renewal-date-editable"',
+                        'class="renewal-date-editable today-renewal"'
+                    );
                 }
             }
             return renewalDisplay;
