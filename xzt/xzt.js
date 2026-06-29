@@ -643,11 +643,11 @@ document.addEventListener('DOMContentLoaded', function () {
         isLocked = !isLocked;
         if (isLocked) {
             sidebar.classList.add('locked');
-            lockBtn.textContent = '🔓';
+            lockBtn.textContent = '🔒';
             lockBtn.title = '解锁侧边栏';
         } else {
             sidebar.classList.remove('locked');
-            lockBtn.textContent = '🔒';
+            lockBtn.textContent = '🔓';
             lockBtn.title = '锁定侧边栏';
         }
     });
