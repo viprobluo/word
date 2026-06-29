@@ -832,6 +832,39 @@
             transform: translateY(0);
         }
 
+        .renewal-date-editable {
+            color: #ff4d4f;
+            cursor: pointer;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: linear-gradient(135deg, #fff1f0, #ffccc7);
+            border: 1px solid #ffaa99;
+            transition: all 0.2s ease;
+        }
+
+        .renewal-date-editable:hover {
+            background: linear-gradient(135deg, #ff4d4f, #ff7875);
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(255, 77, 79, 0.3);
+        }
+
+        .renewal-date-editable:active {
+            transform: translateY(0);
+        }
+
+        .renewal-date-editable.today-renewal {
+            background: linear-gradient(135deg, #fff2e8, #ffd4b8) !important;
+            border-color: #ffbb80 !important;
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.3); }
+            50% { box-shadow: 0 0 0 4px rgba(255, 77, 79, 0.1); }
+        }
+
         .bank-cell .bank-name {
             font-size: 13px;
             color: #333;
@@ -3578,9 +3611,10 @@
 
                 if (renewalDateCheck.getTime() === today.getTime()) {
                     if (renewalDisplay.includes('renewal-date-editable')) {
+                        // 添加今日高亮标记
                         return renewalDisplay.replace(
-                            'style="',
-                            'style="background: linear-gradient(135deg, #fff2e8, #ffd4b8); border: 1px solid #ffbb80; border-radius: 4px; padding: 1px 4px; '
+                            'class="renewal-date-editable"',
+                            'class="renewal-date-editable today-renewal"'
                         );
                     }
                     return `<span class="today-highlight">${renewalDisplay}</span>`;
@@ -3737,7 +3771,7 @@
                     const renewalDateStr = renewalDate ? formatDateCN(renewalDate) : '-';
                     const longTerm = isLongTermPolicy(policy);
                     const renewalDisplay = longTerm
-                        ? `<span class="renewal-date-editable" data-policy-no="${policy.policyNo}" style="color: #1890ff; cursor: pointer; text-decoration: underline;">${renewalDateStr}</span>`
+                        ? `<span class="renewal-date-editable" data-policy-no="${policy.policyNo}">${renewalDateStr}</span>`
                         : renewalDateStr;
 
                     const beneficiaryDisplay = getBeneficiaryDisplay(policy);
