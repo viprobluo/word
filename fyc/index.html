@@ -833,42 +833,30 @@
         }
 
         .renewal-date-editable {
-            color: #ff4d4f;
+            color: #1890ff;
             cursor: pointer;
             font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: linear-gradient(135deg, #e6f7ff, #bae7ff);
+            border: 1px solid #91d5ff;
             transition: all 0.2s ease;
         }
 
         .renewal-date-editable:hover {
-            color: #d4380d;
-            text-decoration: underline;
+            background: linear-gradient(135deg, #1890ff, #096dd9);
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
         }
 
         .renewal-date-editable:active {
             transform: translateY(0);
         }
 
-        .renewal-date-editable.today-renewal {
-            background: linear-gradient(135deg, #ff7a45, #fa541c) !important;
-            border-color: #d4380d !important;
+        .renewal-date-editable.today-renewal-date:hover {
+            background: linear-gradient(135deg, #d4380d, #ff4d4f) !important;
             color: #fff !important;
-            font-weight: 600 !important;
-            animation: pulse-orange 2s infinite;
-        }
-
-        .renewal-date-editable.today-renewal::before {
-            content: '📅';
-            margin-right: 3px;
-        }
-
-        .renewal-date-editable.today-renewal:hover {
-            background: linear-gradient(135deg, #ff4d4f, #ff7875) !important;
-            color: #fff !important;
-        }
-
-        @keyframes pulse-orange {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(250, 84, 28, 0.4); }
-            50% { box-shadow: 0 0 0 6px rgba(250, 84, 28, 0.1); }
         }
 
         .bank-cell .bank-name {
@@ -3608,31 +3596,30 @@
         }
 
         function highlightTodayRenewalDate(policy, renewalDisplay) {
-            // 只有长期险的续保日才可能高亮（非长期险的续保日显示"-"或无续保日）
-            if (!renewalDisplay.includes('renewal-date-editable')) {
+            const renewalDate = getNextRenewalDate(policy);
+            if (!renewalDate) return renewalDisplay;
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const renewalDateCheck = new Date(renewalDate);
+            renewalDateCheck.setHours(0, 0, 0, 0);
+
+            if (renewalDateCheck.getTime() !== today.getTime()) {
                 return renewalDisplay;
             }
 
-            const renewalDate = getNextRenewalDate(policy);
-            if (renewalDate) {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const renewalDateCheck = new Date(renewalDate);
-                renewalDateCheck.setHours(0, 0, 0, 0);
+            // 今日续保日：统一用红色背景白色文字
+            const todayClass = 'today-renewal-date';
+            const style = 'background: linear-gradient(135deg, #ff4d4f, #ff7875); color: #fff; font-weight: 600; padding: 2px 8px; border-radius: 4px; display: inline-block; border: 1px solid #ff4d4f;';
 
-                // 调试日志
-                const todayStr = `${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日`;
-                const renewalStr = `${renewalDateCheck.getFullYear()}年${renewalDateCheck.getMonth()+1}月${renewalDateCheck.getDate()}日`;
-                console.log(`续保日判断: 今日=${todayStr}, 续保日=${renewalStr}, customRenewalDate=${policy.customRenewalDate || '无'}`);
-
-                if (renewalDateCheck.getTime() === today.getTime()) {
-                    return renewalDisplay.replace(
-                        'class="renewal-date-editable"',
-                        'class="renewal-date-editable today-renewal"'
-                    );
-                }
+            if (renewalDisplay.includes('renewal-date-editable')) {
+                return renewalDisplay.replace(
+                    'class="renewal-date-editable"',
+                    `class="renewal-date-editable ${todayClass}" style="${style}"`
+                );
+            } else {
+                return `<span class="${todayClass}" style="${style}">${renewalDisplay}</span>`;
             }
-            return renewalDisplay;
         }
 
         function formatDateStr(date) {
