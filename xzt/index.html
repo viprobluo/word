@@ -359,8 +359,6 @@
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                padding-bottom: 50px;
-                box-sizing: border-box;
             }
 
             #mobileDocBtn {
@@ -368,12 +366,13 @@
             }
 
             .button-container {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
+                position: relative;
+                bottom: auto;
+                left: auto;
+                right: auto;
+                top: auto;
                 width: 100%;
-                max-width: none;
+                max-width: 100%;
                 min-width: 0;
                 padding: 6px 10px;
                 gap: 8px;
@@ -387,6 +386,7 @@
                 height: 48px;
                 overflow-x: auto;
                 overflow-y: hidden;
+                order: 2;
             }
 
             .button-container::-webkit-scrollbar {
@@ -410,6 +410,8 @@
                 flex-direction: column;
                 height: auto;
                 padding-bottom: 0;
+                order: 1;
+                overflow: hidden;
             }
 
             #editor {
@@ -418,7 +420,7 @@
                 font-size: 16px;
                 padding: 12px;
                 flex: 1;
-                min-height: 200px;
+                min-height: 0;
             }
 
             #read {
