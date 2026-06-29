@@ -3428,7 +3428,7 @@
                 return date.getTime() === today.getTime();
             };
 
-            // 检查生效日、等待期日、续保日
+            // 检查生效日
             if (checkDate(policy.effectiveDate)) return true;
 
             // 检查等待期日
@@ -3461,9 +3461,6 @@
 
             // 检查续保日
             if (checkDate(policy.renewalDate)) return true;
-
-            // 检查下单日
-            if (checkDate(policy.orderTime)) return true;
 
             return false;
         }
@@ -3754,7 +3751,7 @@
                         <td>${policy.insurancePeriod || '-'}</td>
                         <td>${paymentDisplay}</td>
                         <td style="font-family: monospace;">${policyTailNo}</td>
-                        <td>${highlightTodayDate(policy.orderTime, policy.orderTime || '-')}</td>
+                        <td>${policy.orderTime || '-'}</td>
                         <td>${waitingDisplay}</td>
                         <td>${bankCellDisplay}</td>
                         <td>
