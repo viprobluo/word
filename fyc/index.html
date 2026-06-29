@@ -914,6 +914,7 @@
                             <th class="sticky-col-4">产品</th>
                             <th class="sticky-col-5">身故受益人</th>
                             <th>生效日</th>
+                            <th>等待期日</th>
                             <th>续保日</th>
                             <th>连续投保</th>
                             <th>保费</th>
@@ -3452,17 +3453,43 @@
                         { key: 'renewal', label: '续保期', count: allStats.renewal },
                         { key: 'expired', label: '已失效', count: allStats.expired },
                         { key: 'overdue', label: '待续保', count: allStats.overdue }
-                    ];
-                    statsEl.innerHTML = statusItems.map(item => {
+                    ].filter(item => item.count > 0);
+
+                    statsEl.innerHTML = `<div class="status-filter-group">` + statusItems.map(item => {
                         const isActive = currentStatusFilter === item.key;
-                        const bgColor = isActive ? '#1890ff' : '#f5f5f5';
+                        const bgColor = isActive ? 'linear-gradient(135deg, #1890ff, #096dd9)' : 'linear-gradient(135deg, #f5f5f5, #e8e8e8)';
                         const textColor = isActive ? '#fff' : '#666';
-                        return `<span class="status-stat-item" data-status="${item.key}" style="margin-right: 10px; padding: 2px 8px; border-radius: 4px; background-color: ${bgColor}; color: ${textColor}; cursor: pointer; user-select: none;">${item.label}(${item.count})</span>`;
-                    }).join('');
+                        const shadow = isActive ? '0 2px 8px rgba(24,144,255,0.3)' : '0 1px 3px rgba(0,0,0,0.1)';
+                        return `<span class="status-stat-item" data-status="${item.key}" style="
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 4px;
+                            margin-right: 8px;
+                            padding: 4px 12px;
+                            border-radius: 16px;
+                            background: ${bgColor};
+                            color: ${textColor};
+                            cursor: pointer;
+                            user-select: none;
+                            font-size: 13px;
+                            font-weight: 500;
+                            box-shadow: ${shadow};
+                            transition: all 0.2s ease;
+                        ">
+                            <span>${item.label}</span>
+                            <span style="
+                                background: ${isActive ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.08)'};
+                                padding: 1px 6px;
+                                border-radius: 10px;
+                                font-size: 11px;
+                                font-weight: 600;
+                            ">${item.count}</span>
+                        </span>`;
+                    }).join('') + `</div>`;
 
                     statsEl.querySelectorAll('.status-stat-item').forEach(el => {
                         el.addEventListener('click', (e) => {
-                            const status = e.target.getAttribute('data-status');
+                            const status = e.currentTarget.getAttribute('data-status');
                             currentStatusFilter = status;
                             loadPoliciesToManage();
                         });
@@ -3531,6 +3558,8 @@
                         ? `<span class="product-download-link" data-pdf-url="${policy.pdfUrl || ''}" data-pdf-name="${policy.pdfFileName || ''}" style="color: #1890ff; cursor: pointer; text-decoration: underline;">${productName}</span>`
                         : productName;
 
+                    const waitingDateDisplay = getWaitingDateDisplay(policy);
+
                     tr.innerHTML = `
                         <td class="sticky-col-1"><span class="policy-status ${statusInfo.statusKey}">${statusInfo.status}</span></td>
                         <td class="sticky-col-2">${policy.holdername || '-'}</td>
@@ -3538,6 +3567,7 @@
                         <td class="sticky-col-4" style="white-space: normal; line-height: 1.4;">${productDisplay}</td>
                         <td class="sticky-col-5" style="white-space: normal; line-height: 1.4;">${beneficiaryDisplay}</td>
                         <td>${policy.effectiveDate || '-'}</td>
+                        <td>${waitingDateDisplay}</td>
                         <td>${renewalDisplay}</td>
                         <td>
                             <span class="policy-year-value year-editable" data-policy-no="${policy.policyNo}" style="color: #1890ff; cursor: pointer; text-decoration: underline; font-weight: bold;">${yearDisplay}</span>
@@ -3618,6 +3648,50 @@
                 }
                 return policy.waitingPeriodDays;
             }
+            return '-';
+        }
+
+        function getWaitingDateDisplay(policy) {
+            const effectiveDate = policy.effectiveDate;
+            if (!effectiveDate) return '-';
+
+            const policyYear = parseInt(policy.policyYear) || 1;
+            const isContinuous = policy.isContinuous || policyYear > 1;
+
+            if (isContinuous && policyYear > 1) {
+                return '-';
+            }
+
+            const effective = parseDate(effectiveDate);
+            if (!effective) return '-';
+
+            const formatDateStr = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}年${month}月${day}日`;
+            };
+
+            if (policy.newDiseaseWaitingDays && policy.generalHistoryWaitingDays) {
+                const newDays = parseInt(policy.newDiseaseWaitingDays.replace('天', '')) || 0;
+                const generalDays = parseInt(policy.generalHistoryWaitingDays.replace('天', '')) || 0;
+
+                const newDiseaseEnd = new Date(effective);
+                newDiseaseEnd.setDate(newDiseaseEnd.getDate() + newDays);
+
+                const generalEnd = new Date(effective);
+                generalEnd.setDate(generalEnd.getDate() + generalDays);
+
+                return `<div>${formatDateStr(newDiseaseEnd)}</div><div>${formatDateStr(generalEnd)}</div>`;
+            }
+
+            if (policy.waitingPeriodDays) {
+                const waitingDays = parseInt(policy.waitingPeriodDays.replace('天', '')) || 0;
+                const waitingEnd = new Date(effective);
+                waitingEnd.setDate(waitingEnd.getDate() + waitingDays);
+                return formatDateStr(waitingEnd);
+            }
+
             return '-';
         }
 
