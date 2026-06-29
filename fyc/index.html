@@ -855,10 +855,16 @@
         }
 
         .renewal-date-editable.today-renewal {
-            background: linear-gradient(135deg, #fff2e8, #ffd4b8) !important;
-            border-color: #ffbb80 !important;
-            color: #d4380d !important;
-            animation: pulse-red 2s infinite;
+            background: linear-gradient(135deg, #ff7a45, #fa541c) !important;
+            border-color: #d4380d !important;
+            color: #fff !important;
+            font-weight: 600 !important;
+            animation: pulse-orange 2s infinite;
+        }
+
+        .renewal-date-editable.today-renewal::before {
+            content: '📅';
+            margin-right: 3px;
         }
 
         .renewal-date-editable.today-renewal:hover {
@@ -866,9 +872,9 @@
             color: #fff !important;
         }
 
-        @keyframes pulse-red {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.3); }
-            50% { box-shadow: 0 0 0 4px rgba(255, 77, 79, 0.1); }
+        @keyframes pulse-orange {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(250, 84, 28, 0.4); }
+            50% { box-shadow: 0 0 0 6px rgba(250, 84, 28, 0.1); }
         }
 
         .bank-cell .bank-name {
