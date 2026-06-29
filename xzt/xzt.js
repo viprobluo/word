@@ -633,4 +633,22 @@ document.addEventListener('DOMContentLoaded', function () {
         // 理论上不会发生
         createNewDoc();
     }
+
+    // ---------- 侧边栏锁定 ----------
+    const sidebar = document.getElementById('sidebar');
+    const lockBtn = document.getElementById('lockBtn');
+    let isLocked = false;
+
+    lockBtn.addEventListener('click', function () {
+        isLocked = !isLocked;
+        if (isLocked) {
+            sidebar.classList.add('locked');
+            lockBtn.textContent = '🔓';
+            lockBtn.title = '解锁侧边栏';
+        } else {
+            sidebar.classList.remove('locked');
+            lockBtn.textContent = '🔒';
+            lockBtn.title = '锁定侧边栏';
+        }
+    });
 });

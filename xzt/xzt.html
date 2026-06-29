@@ -29,8 +29,8 @@
 
         /* ===== 侧边栏 ===== */
         #sidebar {
-            width: 220px;
-            min-width: 220px;
+            width: 60px;
+            min-width: 60px;
             height: 100%;
             background-color: #2a2a2a;
             border-right: 1px solid #555;
@@ -38,6 +38,17 @@
             flex-direction: column;
             overflow: hidden;
             z-index: 5;
+            transition: width 0.2s ease;
+        }
+
+        #sidebar:hover,
+        #sidebar.locked {
+            width: 320px;
+            min-width: 320px;
+        }
+
+        #sidebar.locked {
+            transition: none;
         }
 
         #sidebar-header {
@@ -53,6 +64,33 @@
             font-size: 16px;
             font-weight: normal;
             color: #ccc;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        #sidebar:not(:hover):not(.locked) #sidebar-header h3 {
+            width: 0;
+        }
+
+        #lockBtn {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 0 6px;
+            line-height: 1;
+            display: none;
+        }
+        #sidebar:hover #lockBtn,
+        #sidebar.locked #lockBtn {
+            display: inline-block;
+        }
+        #sidebar.locked #lockBtn {
+            color: #8cf;
+        }
+        #lockBtn:hover {
+            color: #fff;
         }
 
         #newDocBtn {
@@ -63,6 +101,11 @@
             cursor: pointer;
             padding: 0 4px;
             line-height: 1;
+            display: none;
+        }
+        #sidebar:hover #newDocBtn,
+        #sidebar.locked #newDocBtn {
+            display: inline-block;
         }
         #newDocBtn:hover {
             color: #8cf;
@@ -113,6 +156,11 @@
             line-height: 1;
             flex-shrink: 0;
             margin-left: 8px;
+            display: none;
+        }
+        #sidebar:hover .doc-delete,
+        #sidebar.locked .doc-delete {
+            display: inline-block;
         }
         .doc-delete:hover {
             color: #f66;
@@ -423,7 +471,10 @@
     <div id="sidebar">
         <div id="sidebar-header">
             <h3>📄 文档</h3>
-            <button id="newDocBtn" title="新建文档">+</button>
+            <div>
+                <button id="lockBtn" title="锁定侧边栏">🔒</button>
+                <button id="newDocBtn" title="新建文档">+</button>
+            </div>
         </div>
         <div id="doc-list"></div>
     </div>
