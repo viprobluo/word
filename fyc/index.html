@@ -857,7 +857,13 @@
         .renewal-date-editable.today-renewal {
             background: linear-gradient(135deg, #fff2e8, #ffd4b8) !important;
             border-color: #ffbb80 !important;
+            color: #d4380d !important;
             animation: pulse-red 2s infinite;
+        }
+
+        .renewal-date-editable.today-renewal:hover {
+            background: linear-gradient(135deg, #ff4d4f, #ff7875) !important;
+            color: #fff !important;
         }
 
         @keyframes pulse-red {
@@ -3613,6 +3619,11 @@
                 today.setHours(0, 0, 0, 0);
                 const renewalDateCheck = new Date(renewalDate);
                 renewalDateCheck.setHours(0, 0, 0, 0);
+
+                // 调试日志
+                const todayStr = `${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日`;
+                const renewalStr = `${renewalDateCheck.getFullYear()}年${renewalDateCheck.getMonth()+1}月${renewalDateCheck.getDate()}日`;
+                console.log(`续保日判断: 今日=${todayStr}, 续保日=${renewalStr}, customRenewalDate=${policy.customRenewalDate || '无'}`);
 
                 if (renewalDateCheck.getTime() === today.getTime()) {
                     return renewalDisplay.replace(
