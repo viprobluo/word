@@ -2436,7 +2436,7 @@
 
                     const policyTitle = `${policyData.insuredName || '未知'}-${policyData.productName || '未知产品'}`;
 
-                    const linkedPolicyData = getLinkedPolicyData(policyData.policyNo);
+                    const linkedPolicyData = getLinkedPolicyData(policyData.policyNo, policyData);
                     policyData.linkedPolicy = linkedPolicyData;
 
                     const { waitingDays, isConfigured, isDual, newDiseaseDays, generalHistoryDays } = await getProductWaitingDays(policyData.productName);
@@ -2558,9 +2558,25 @@
             return policyData;
         }
 
-        function getLinkedPolicyData(policyNo) {
-            if (!policyNo || !globalPolicyDownloadData.length) return null;
-            return globalPolicyDownloadData.find(item => item.policyNo === policyNo) || null;
+        function getLinkedPolicyData(policyNo, policyData) {
+            if (!globalPolicyDownloadData.length) return null;
+            if (policyNo) {
+                const exact = globalPolicyDownloadData.find(item => item.policyNo === policyNo);
+                if (exact) return exact;
+                const mingyaMatch = globalPolicyDownloadData.find(item => item.mingyaCode && item.mingyaCode === policyNo);
+                if (mingyaMatch) return mingyaMatch;
+                const orderMatch = globalPolicyDownloadData.find(item => item.orderNo && item.orderNo === policyNo);
+                if (orderMatch) return orderMatch;
+            }
+            if (policyData && policyData.productName && policyData.insuredName && policyData.holdername) {
+                const nameMatch = globalPolicyDownloadData.find(item =>
+                    item.productName === policyData.productName &&
+                    item.insuredName === policyData.insuredName &&
+                    item.appntName === policyData.holdername
+                );
+                if (nameMatch) return nameMatch;
+            }
+            return null;
         }
 
         async function renderPolicyFields(data, container) {
@@ -2723,10 +2739,14 @@
                 let pdfUrl = '';
                 if (realPolicy.newOrderBtnNeed && realPolicy.newOrderBtnNeed.ePolicyAddressList && realPolicy.newOrderBtnNeed.ePolicyAddressList.length > 0) {
                     pdfUrl = realPolicy.newOrderBtnNeed.ePolicyAddressList[0].ePolicyAddress;
+                } else if (realPolicy.ePolicyAddressList && realPolicy.ePolicyAddressList.length > 0) {
+                    pdfUrl = realPolicy.ePolicyAddressList[0].ePolicyAddress;
                 }
 
                 return {
                     policyNo: formatPolicyNo(realPolicy.policyCode || realPolicy.policycode || ''),
+                    mingyaCode: formatPolicyNo(realPolicy.mingyaCode || realPolicy.mingyacode || ''),
+                    orderNo: formatPolicyNo(realPolicy.orderNo || realPolicy.orderno || ''),
                     appntName: realPolicy.appntName || '未知',
                     insuredName: realPolicy.insuredName || '未知',
                     productName: realPolicy.productName || '未知产品',
