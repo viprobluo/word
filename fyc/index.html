@@ -2978,6 +2978,7 @@
                 const generalHistoryEndDate = policyData.generalHistoryWaitingEndDate || '';
                 const waitingEndDate = policyData.waitingEndDate || '';
                 const orderDate = policyData.orderTime || '';
+                const longTerm = isLongTermPolicy(policyData);
                 let nextYearRenewalDate = '';
                 const d = parseDate(orderDate);
                 if (d) {
@@ -3002,18 +3003,38 @@
                     waitingDays = '0';
                 }
 
+                const formatWaitingPeriod = (days, endDate) => {
+                    const daysNum = parseInt(days);
+                    if (daysNum === 0) return '无等待期';
+                    let text = `${days} 天`;
+                    if (endDate && endDate !== '无' && endDate !== '连续投保无等待期') {
+                        text += `（${endDate}）`;
+                    }
+                    text += '\n//等待期内不可理赔';
+                    return text;
+                };
+
+                const formatRenewalDate = (date) => {
+                    if (!date) return '';
+                    let text = `下年续保日：${date}`;
+                    if (longTerm) {
+                        text += '（每年这天左右自动扣费）';
+                    }
+                    return text;
+                };
+
                 let result = template
                     .replace(/\{产品名称\}/g, policyData.productName || '')
-                    .replace(/\{投保人\}/g, policyData.holdername || '')
-                    .replace(/\{被保人\}/g, policyData.insuredName || '')
-                    .replace(/\{生效日\}/g, policyData.effectiveDate || '')
-                    .replace(/\{新发疾病等待期\}/g, `${newDiseaseDays} 天${newDiseaseEndDate && newDiseaseEndDate !== '无' && newDiseaseEndDate !== '连续投保无等待期' ? `（${newDiseaseEndDate}）` : ''}`)
-                    .replace(/\{一般既往史等待期\}/g, `${generalHistoryDays} 天${generalHistoryEndDate && generalHistoryEndDate !== '无' && generalHistoryEndDate !== '连续投保无等待期' ? `（${generalHistoryEndDate}）` : ''}`)
-                    .replace(/\{等待期\}/g, `${waitingDays} 天${waitingEndDate && waitingEndDate !== '无' && waitingEndDate !== '连续投保无等待期' ? `（${waitingEndDate}）` : ''}`)
+                    .replace(/\{投保人\}/g, `投保人：${policyData.holdername || ''}`)
+                    .replace(/\{被保人\}/g, `被保人：${policyData.insuredName || ''}`)
+                    .replace(/\{生效日\}/g, `生效日：${policyData.effectiveDate || ''}`)
+                    .replace(/\{新发疾病等待期\}/g, `新发疾病等待期：${formatWaitingPeriod(newDiseaseDays, newDiseaseEndDate)}`)
+                    .replace(/\{一般既往史等待期\}/g, `一般既往史等待期：${formatWaitingPeriod(generalHistoryDays, generalHistoryEndDate)}`)
+                    .replace(/\{等待期\}/g, `等待期：${formatWaitingPeriod(waitingDays, waitingEndDate)}`)
                     .replace(/\{新发疾病等待期结束日\}/g, newDiseaseEndDate)
                     .replace(/\{一般既往史等待期结束日\}/g, generalHistoryEndDate)
                     .replace(/\{等待期结束日\}/g, waitingEndDate)
-                    .replace(/\{下年续保日\}/g, nextYearRenewalDate)
+                    .replace(/\{下年续保日\}/g, formatRenewalDate(nextYearRenewalDate))
                     .replace(/\{productName\}/g, policyData.productName || '')
                     .replace(/\{holdername\}/g, policyData.holdername || '')
                     .replace(/\{insuredName\}/g, policyData.insuredName || '')
@@ -3026,7 +3047,6 @@
                     .replace(/\{waitingEndDate\}/g, waitingEndDate)
                     .replace(/\{nextYearRenewalDate\}/g, nextYearRenewalDate);
 
-                result = result.replace(/天：天：/g, '天：').replace(/天：天$/g, '天');
                 result = result.replace(/ 天（）/g, ' 天');
                 return result;
             }
