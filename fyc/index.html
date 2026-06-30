@@ -1262,6 +1262,7 @@
             promotionFee: ['promotecommis'],
             promotionReward: ['rewardcommis'],
             performance: ['personachievesum'],
+            fyc: ['fyc', 'items.fyc', 'fycamount', 'items.fycamount'],
             insurancePeriod: ['insperiodtext'],
             paymentPeriod: ['paycostdate'],
             paymentMethod: ['paytype'],
@@ -2399,7 +2400,7 @@
 
                     policyData.isContinuous = !!(policyData.policyYear && parseInt(policyData.policyYear) > 1);
 
-                    const numericFields = ['premium', 'policyServiceFee', 'promotionFee', 'promotionReward', 'performance'];
+                    const numericFields = ['premium', 'policyServiceFee', 'promotionFee', 'promotionReward', 'performance', 'fyc'];
                     numericFields.forEach(field => {
                         if (policyData[field] !== '' && policyData[field] !== undefined && !isNaN(parseFloat(policyData[field]))) {
                             const num = parseFloat(policyData[field]);
