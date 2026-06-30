@@ -2395,8 +2395,14 @@
                     policyData.policyNo = formatPolicyNo(policyData.policyNo);
                     fycPolicyNos.push(policyData.policyNo);
 
-                    const rawEffectiveDate = policyData.effectiveDate;
-                    policyData.effectiveDate = timestampToDate(rawEffectiveDate);
+                    let effectiveDateVal = policyData.effectiveDate;
+                    if (!effectiveDateVal || effectiveDateVal === '') {
+                        const rowInsuranceStart = getNestedValue(row, 'insuranceStartTime') || getNestedValue(row, 'items.insuranceStartTime');
+                        if (rowInsuranceStart) {
+                            effectiveDateVal = rowInsuranceStart;
+                        }
+                    }
+                    policyData.effectiveDate = timestampToDate(effectiveDateVal);
                     if (policyData.effectiveDate === '无效日期' || policyData.effectiveDate === '日期解析失败') {
                         const linkedPolicy = getLinkedPolicyData(policyData.policyNo);
                         if (linkedPolicy && linkedPolicy.insuranceStartTime) {
