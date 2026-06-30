@@ -2184,7 +2184,14 @@
             document.addEventListener('click', (e) => {
                 if (e.target.classList.contains('var-insert-btn')) {
                     const varStr = e.target.getAttribute('data-var');
-                    const textarea = document.getElementById('productInterpretationTemplate');
+                    const modal = e.target.closest('.modal-content');
+                    let textarea = null;
+                    if (modal) {
+                        textarea = modal.querySelector('textarea');
+                    }
+                    if (!textarea) {
+                        textarea = document.getElementById('productInterpretationTemplate');
+                    }
                     if (textarea) {
                         const start = textarea.selectionStart;
                         const end = textarea.selectionEnd;
