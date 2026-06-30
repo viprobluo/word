@@ -2592,10 +2592,8 @@
                 { label: '下单时间', key: 'orderTime', noCopy: true, isNumeric: false },
                 { label: '生效日期', key: 'effectiveDate', noCopy: true, isNumeric: false },
                 { label: '保费', key: 'premium', isNumeric: true },
-                { label: '保单服务费', key: 'policyServiceFee', isNumeric: true },
-                { label: '推广费', key: 'promotionFee', isNumeric: true },
-                { label: '推广奖励', key: 'promotionReward', isNumeric: true },
                 { label: '业绩', key: 'performance', isNumeric: true },
+                { label: '总收入', key: 'totalIncome', isNumeric: true },
                 { label: '保障期间', key: 'insurancePeriod', noCopy: true, isNumeric: false },
                 { label: '缴费期间', key: 'paymentPeriod', noCopy: true, isNumeric: false },
             ];
@@ -2690,7 +2688,7 @@
                         displayValue = `${data[field.key]}（${field.combinedEndDate}）`;
                     }
                 } else {
-                    displayValue = data[field.key] === '' && ['premium', 'policyServiceFee', 'promotionFee', 'promotionReward', 'performance'].includes(field.key)
+                    displayValue = data[field.key] === '' && ['premium', 'policyServiceFee', 'promotionFee', 'promotionReward', 'performance', 'totalIncome'].includes(field.key)
                         ? '0'
                         : (data[field.key] || '');
                 }
