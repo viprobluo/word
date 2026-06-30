@@ -1035,6 +1035,7 @@
                         <button type="button" class="var-insert-btn" data-var="{等待期}" style="padding: 4px 10px; font-size: 12px; background-color: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer;">等待期</button>
                         <button type="button" class="var-insert-btn" data-var="{下年续保日}" style="padding: 4px 10px; font-size: 12px; background-color: #722ed1; color: white; border: none; border-radius: 4px; cursor: pointer;">下年续保日</button>
                         <button type="button" class="var-insert-btn" data-var="{续期保费}" style="padding: 4px 10px; font-size: 12px; background-color: #fa8c16; color: white; border: none; border-radius: 4px; cursor: pointer;">续期保费</button>
+                        <button type="button" class="var-insert-btn" data-var="{扣款银行}" style="padding: 4px 10px; font-size: 12px; background-color: #722ed1; color: white; border: none; border-radius: 4px; cursor: pointer;">扣款银行</button>
                     </div>
                     <textarea id="interpretationTemplateInput" rows="8" placeholder="在上方点击按钮插入变量，或直接输入文本"></textarea>
                     <div class="modal-tip">点击上方按钮插入变量，等待期会自动替换为实际天数和日期</div>
@@ -1160,6 +1161,7 @@
                         <button type="button" class="var-insert-btn" data-var="{等待期}" style="padding: 4px 10px; font-size: 12px; background-color: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer;">等待期</button>
                         <button type="button" class="var-insert-btn" data-var="{下年续保日}" style="padding: 4px 10px; font-size: 12px; background-color: #722ed1; color: white; border: none; border-radius: 4px; cursor: pointer;">下年续保日</button>
                         <button type="button" class="var-insert-btn" data-var="{续期保费}" style="padding: 4px 10px; font-size: 12px; background-color: #fa8c16; color: white; border: none; border-radius: 4px; cursor: pointer;">续期保费</button>
+                        <button type="button" class="var-insert-btn" data-var="{扣款银行}" style="padding: 4px 10px; font-size: 12px; background-color: #722ed1; color: white; border: none; border-radius: 4px; cursor: pointer;">扣款银行</button>
                     </div>
                     <textarea id="productInterpretationTemplate" rows="8" placeholder="在上方点击按钮插入变量，或直接输入文本"></textarea>
                     <div class="modal-tip">点击上方按钮插入变量，等待期会自动替换为实际天数和日期</div>
@@ -2932,6 +2934,8 @@
                 const waitingEndDate = policyData.waitingEndDate || '';
                 const premium = policyData.premium || '0';
                 const longTerm = isLongTermPolicy(policyData);
+                const paymentMethod = policyData.paymentMethod || '';
+                const isMobilePay = paymentMethod === '移动支付' || !policyData.bankName || policyData.bankName === '移动支付';
 
                 let nextYearRenewalDate = '';
                 const renewalDate = getNextRenewalDate(policyData);
@@ -2976,12 +2980,20 @@
                     return text;
                 };
 
+                const formatBankInfo = () => {
+                    if (isMobilePay || !policyData.bankName) return '';
+                    const bankName = policyData.bankName || '';
+                    const bankTail = getBankAccountTail(policyData.bankAccount);
+                    return `扣款银行：${bankName}${bankTail ? ' ' + bankTail : ''}`;
+                };
+
                 let result = template
                     .replace(/\{产品名称\}/g, policyData.productName || '')
                     .replace(/\{投保人\}/g, `投保人：${policyData.holdername || ''}`)
                     .replace(/\{被保人\}/g, `被保人：${policyData.insuredName || ''}`)
                     .replace(/\{生效日\}/g, `生效日：${effectiveDate}`)
-                    .replace(/\{续期保费\}/g, `续期保费：${premium}`)
+                    .replace(/\{续期保费\}/g, `续期保费：${premium} 元`)
+                    .replace(/\{扣款银行\}/g, formatBankInfo())
                     .replace(/\{新发疾病等待期\}/g, `新发疾病等待期：${formatWaiting(newDiseaseDays, newDiseaseEndDate)}`)
                     .replace(/\{一般既往史等待期\}/g, `一般既往史等待期：${formatWaiting(generalHistoryDays, generalHistoryEndDate)}`)
                     .replace(/\{等待期\}/g, `等待期：${formatWaiting(waitingDays, waitingEndDate)}`)
@@ -3002,6 +3014,7 @@
                     .replace(/\{waitingEndDate\}/g, waitingEndDate)
                     .replace(/\{nextYearRenewalDate\}/g, nextYearRenewalDate);
 
+                result = result.replace(/\n+扣款银行：$/gm, '').replace(/\n+扣款银行：\s*$/gm, '');
                 return result;
             }
 
