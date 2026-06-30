@@ -1256,7 +1256,7 @@
             holdername: ['holdername'],
             insuredName: ['inseredname'],
             orderTime: ['receivedate'],
-            effectiveDate: ['policystartdate', 'insuranceStartTime', 'items.insuranceStartTime'],
+            effectiveDate: ['policystartdate', 'newOrderBtnNeed.insuranceStartTime', 'effectDate', 'insuranceStartTime', 'items.insuranceStartTime'],
             premium: ['scalefee'],
             policyServiceFee: ['servicecommis'],
             promotionFee: ['promotecommis'],
@@ -2731,7 +2731,7 @@
                     insuredName: realPolicy.insuredName || '未知',
                     productName: realPolicy.productName || '未知产品',
                     validDate: realPolicy.validDate || '',
-                    insuranceStartTime: realPolicy.insuranceStartTime || '',
+                    insuranceStartTime: (realPolicy.newOrderBtnNeed && realPolicy.newOrderBtnNeed.insuranceStartTime) || realPolicy.effectDate || realPolicy.insuranceStartTime || '',
                     bankName: realPolicy.bankname || '',
                     bankAccount: realPolicy.bankaccount || '',
                     pdfUrl: pdfUrl
