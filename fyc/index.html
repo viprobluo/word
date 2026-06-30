@@ -2415,6 +2415,9 @@
                             + (parseFloat(policyData.promotionReward) || 0);
                         const totalStr = total.toFixed(3).replace(/(\d+\.\d*?)0+$/, '$1').replace(/\.$/, '');
                         policyData.totalIncome = totalStr;
+                    } else {
+                        const fycVal = parseFloat(policyData.fyc) || parseFloat(policyData.FYC) || 0;
+                        policyData.totalIncome = fycVal.toFixed(3).replace(/(\d+\.\d*?)0+$/, '$1').replace(/\.$/, '');
                     }
 
                     const policyTitle = `${policyData.insuredName || '未知'}-${policyData.productName || '未知产品'}`;
