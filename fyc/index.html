@@ -2555,9 +2555,6 @@
                 { label: '下单时间', key: 'orderTime', noCopy: true, isNumeric: false },
                 { label: '生效日期', key: 'effectiveDate', noCopy: true, isNumeric: false },
                 { label: '保费', key: 'premium', isNumeric: true },
-                { label: '保单服务费', key: 'policyServiceFee', isNumeric: true },
-                { label: '推广费', key: 'promotionFee', isNumeric: true },
-                { label: '推广奖励', key: 'promotionReward', isNumeric: true },
                 { label: '业绩', key: 'performance', isNumeric: true },
                 { label: '保障期间', key: 'insurancePeriod', noCopy: true, isNumeric: false },
                 { label: '缴费期间', key: 'paymentPeriod', noCopy: true, isNumeric: false },
@@ -2728,6 +2725,33 @@
             const productName = policy.productName || '未知产品';
             const validDate = formatDate(policy.validDate);
             return `${insuredName}-${productName}-生效日${validDate}`;
+        }
+
+        function formatPolicyForCopy(policy) {
+            if (!policy) return '';
+            const lines = [];
+            lines.push(`保单号：${policy.policyNo || ''}`);
+            lines.push(`产品名：${policy.productName || ''}`);
+            lines.push(`投保人：${policy.holdername || ''}`);
+            lines.push(`被保人：${policy.insuredName || ''}`);
+            lines.push(`下单时间：${policy.orderTime || ''}`);
+            lines.push(`生效日期：${policy.effectiveDate || ''}`);
+            lines.push(`保费：${formatNumber(policy.premium)}`);
+            lines.push(`业绩：${formatNumber(policy.performance)}`);
+            if (policy.waitingPeriodDays) {
+                let waitingText = policy.waitingPeriodDays;
+                if (policy.waitingEndDate && policy.waitingEndDate !== waitingText) {
+                    waitingText = `${policy.waitingPeriodDays}（${policy.waitingEndDate}）`;
+                }
+                lines.push(`等待期：${waitingText}`);
+            }
+            if (policy.insurancePeriod) lines.push(`保障期间：${policy.insurancePeriod}`);
+            if (policy.paymentPeriod) lines.push(`缴费期间：${policy.paymentPeriod}`);
+            if (policy.bankName) lines.push(`扣款银行：${policy.bankName}`);
+            if (policy.bankAccount) lines.push(`银行卡号：${policy.bankAccount}`);
+            if (policy.paymentMethod) lines.push(`缴费方式：${policy.paymentMethod}`);
+            if (policy.interpretation) lines.push(`保单解读：${policy.interpretation}`);
+            return lines.join('\n');
         }
 
         function downloadPolicyPdf(policy) {
@@ -3279,14 +3303,7 @@
             }
             actionsDiv.appendChild(downloadBtn);
 
-            if (totalIncome !== undefined && totalIncome !== null) {
-                const totalIncomeEl = document.createElement('div');
-                totalIncomeEl.style.color = '#f5222d';
-                totalIncomeEl.style.fontWeight = 'bold';
-                totalIncomeEl.style.fontSize = '14px';
-                totalIncomeEl.textContent = `总收入：${totalIncome}`;
-                actionsDiv.appendChild(totalIncomeEl);
-            }
+            // 总收入显示已隐藏
 
             if (performance !== undefined && performance !== null) {
                 const perfEl = document.createElement('div');
@@ -3295,6 +3312,26 @@
                 perfEl.style.fontSize = '14px';
                 perfEl.textContent = `业绩：${performance}`;
                 actionsDiv.appendChild(perfEl);
+            }
+
+            // 复制按钮
+            if (policyData) {
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-all-btn';
+                copyBtn.textContent = '复制订单信息';
+                copyBtn.style.padding = '4px 10px';
+                copyBtn.style.fontSize = '12px';
+                copyBtn.style.backgroundColor = '#52c41a';
+                copyBtn.style.color = 'white';
+                copyBtn.style.border = 'none';
+                copyBtn.style.borderRadius = '4px';
+                copyBtn.style.cursor = 'pointer';
+                copyBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const text = formatPolicyForCopy(policyData);
+                    copyToClipboard(text, '订单信息复制成功');
+                });
+                actionsDiv.appendChild(copyBtn);
             }
 
             header.appendChild(headerMain);
