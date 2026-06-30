@@ -1285,7 +1285,7 @@
             const now = getBeijingNow();
             const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
             const weekDay = weekDays[now.getDay()];
-            const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${weekDay}`;
+            const dateStr = `${now.getFullYear()} 年 ${now.getMonth() + 1} 月 ${now.getDate()} 日 ${weekDay}`;
             const el = document.getElementById('currentDate');
             if (el) {
                 el.textContent = dateStr;
@@ -2475,15 +2475,15 @@
                             policyData.waitingEndDate = '无';
                         } else {
                             policyData.waitingEndDate = calculateWaitingEndDate(policyData.effectiveDate, waitingDays);
-                            policyData.waitingPeriodDays = waitingDays > 0 ? `${waitingDays}天` : (waitingDays < 0 ? '去维护' : '未配置');
+                            policyData.waitingPeriodDays = waitingDays > 0 ? `${waitingDays} 天` : (waitingDays < 0 ? '去维护' : '未配置');
                         }
                         policyData.continuousNoWaiting = false;
                     }
 
                     if (isDual && !policyData.continuousNoWaiting) {
-                        policyData.newDiseaseWaitingDays = `${newDiseaseDays}天`;
+                        policyData.newDiseaseWaitingDays = `${newDiseaseDays} 天`;
                         policyData.newDiseaseWaitingEndDate = calculateWaitingEndDate(policyData.effectiveDate, newDiseaseDays);
-                        policyData.generalHistoryWaitingDays = `${generalHistoryDays}天`;
+                        policyData.generalHistoryWaitingDays = `${generalHistoryDays} 天`;
                         policyData.generalHistoryWaitingEndDate = calculateWaitingEndDate(policyData.effectiveDate, generalHistoryDays);
                     }
 
@@ -2838,7 +2838,7 @@
             if (isNaN(date.getTime())) return '日期解析失败';
             const utc = date.getTime() + date.getTimezoneOffset() * 60000;
             const beijingDate = new Date(utc + 8 * 3600 * 1000);
-            return `${beijingDate.getFullYear()}年${beijingDate.getMonth() + 1}月${beijingDate.getDate()}日`;
+            return `${beijingDate.getFullYear()} 年 ${beijingDate.getMonth() + 1} 月 ${beijingDate.getDate()} 日`;
         }
 
         async function getProductWaitingDays(productName) {
@@ -2897,7 +2897,7 @@
             }
             try {
                 let date;
-                const match = effectiveDate.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日$/);
+                const match = effectiveDate.match(/^(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日$/);
                 if (match) {
                     date = new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
                 } else if (/^\d{4}-\d{2}-\d{2}$/.test(effectiveDate)) {
@@ -2906,7 +2906,7 @@
                     return '日期格式不支持';
                 }
                 date.setDate(date.getDate() + days);
-                return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+                return `${date.getFullYear()} 年 ${date.getMonth() + 1} 月 ${date.getDate()} 日`;
             } catch (e) {
                 return '日期计算错误';
             }
@@ -2936,7 +2936,7 @@
         function parseDate(dateStr) {
             if (!dateStr) return null;
             try {
-                let match = dateStr.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日$/);
+                let match = dateStr.match(/^(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日$/);
                 if (match) {
                     return new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
                 }
@@ -2958,7 +2958,7 @@
 
         function formatDateCN(date) {
             if (!date || isNaN(date.getTime())) return '';
-            return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+            return `${date.getFullYear()} 年 ${date.getMonth() + 1} 月 ${date.getDate()} 日`;
         }
 
         function getBankAccountTail(bankAccount) {
@@ -3018,7 +3018,7 @@
                     if (!date) return '';
                     let text = `下年续保日：${date}`;
                     if (longTerm) {
-                        text += '（每年这天左右自动扣费）';
+                        text += '\n//每年这天左右自动扣费';
                     }
                     return text;
                 };
