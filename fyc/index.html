@@ -2395,7 +2395,14 @@
                     policyData.policyNo = formatPolicyNo(policyData.policyNo);
                     fycPolicyNos.push(policyData.policyNo);
 
-                    policyData.effectiveDate = timestampToDate(policyData.effectiveDate);
+                    const rawEffectiveDate = policyData.effectiveDate;
+                    policyData.effectiveDate = timestampToDate(rawEffectiveDate);
+                    if (policyData.effectiveDate === '无效日期' || policyData.effectiveDate === '日期解析失败') {
+                        const linkedPolicy = getLinkedPolicyData(policyData.policyNo);
+                        if (linkedPolicy && linkedPolicy.insuranceStartTime) {
+                            policyData.effectiveDate = timestampToDate(linkedPolicy.insuranceStartTime);
+                        }
+                    }
                     policyData.orderTime = timestampToDate(policyData.orderTime);
 
                     policyData.isContinuous = !!(policyData.policyYear && parseInt(policyData.policyYear) > 1);
@@ -2718,6 +2725,7 @@
                     insuredName: realPolicy.insuredName || '未知',
                     productName: realPolicy.productName || '未知产品',
                     validDate: realPolicy.validDate || '',
+                    insuranceStartTime: realPolicy.insuranceStartTime || '',
                     bankName: realPolicy.bankname || '',
                     bankAccount: realPolicy.bankaccount || '',
                     pdfUrl: pdfUrl
