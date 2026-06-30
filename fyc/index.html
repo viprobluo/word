@@ -2436,7 +2436,7 @@
                                     channel: 'internet',
                                     status: 'onSale',
                                     waitingType: 'single',
-                                    waitingDays: 30,
+                                    waitingDays: -1,
                                     interpretationTemplate: ''
                                 };
                                 await addProduct(productData);
@@ -2458,7 +2458,7 @@
                             policyData.waitingEndDate = '无';
                         } else {
                             policyData.waitingEndDate = calculateWaitingEndDate(policyData.effectiveDate, waitingDays);
-                            policyData.waitingPeriodDays = waitingDays > 0 ? `${waitingDays}天` : '未配置';
+                            policyData.waitingPeriodDays = waitingDays > 0 ? `${waitingDays}天` : (waitingDays < 0 ? '未填写' : '未配置');
                         }
                         policyData.continuousNoWaiting = false;
                     }
@@ -2585,9 +2585,10 @@
                     { label: '一般既往史等待期', key: 'generalHistoryWaitingDays', noCopy: true, combinedEndDate: data.generalHistoryWaitingEndDate, note: '连续投保无等待期', isNumeric: false }
                 );
             } else if (data.waitingPeriodDays !== undefined && data.waitingPeriodDays !== '') {
-                const showNote = data.waitingPeriodDays !== '无' && data.waitingPeriodDays !== '未配置';
+                const showNote = data.waitingPeriodDays !== '无' && data.waitingPeriodDays !== '未配置' && data.waitingPeriodDays !== '未填写';
+                const isNotFilled = data.waitingPeriodDays === '未填写';
                 fields.push(
-                    { label: '等待期', key: 'waitingPeriodDays', noCopy: true, combinedEndDate: data.waitingEndDate, note: showNote ? '连续投保无等待期' : '', isNumeric: false }
+                    { label: '等待期', key: 'waitingPeriodDays', noCopy: true, combinedEndDate: data.waitingEndDate, note: showNote ? '连续投保无等待期' : '', isNumeric: false, isRed: isNotFilled, clickable: true, productKey: data.productName }
                 );
             }
 
@@ -2641,7 +2642,7 @@
                 } else if (field.displayValue !== undefined) {
                     displayValue = field.displayValue;
                 } else if (field.combinedEndDate !== undefined) {
-                    if (data[field.key] === '无' || data[field.key] === '未配置') {
+                    if (data[field.key] === '无' || data[field.key] === '未配置' || data[field.key] === '未填写') {
                         displayValue = data[field.key];
                     } else {
                         displayValue = `${data[field.key]}（${field.combinedEndDate}）`;
@@ -2662,10 +2663,23 @@
                         fieldItem.style.border = '1px solid #ffccc7';
                     }
                 } else {
-                    valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong>${displayValue}${field.note ? `<div style="color: #999; font-size: 12px; margin-top: 4px;">${field.note}</div>` : ''}`;
+                    const isClickableWaiting = field.key === 'waitingPeriodDays' && field.clickable;
+                    if (isClickableWaiting) {
+                        valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong><span class="waiting-period-edit-btn" data-key="${field.productKey}" style="color: #f5222d; cursor: pointer; text-decoration: underline; font-weight: bold;">${displayValue}</span>${field.note ? `<div style="color: #999; font-size: 12px; margin-top: 4px;">${field.note}</div>` : ''}`;
+                    } else {
+                        valueEl.innerHTML = `<strong style="color: #333;">${field.label}：</strong>${displayValue}${field.note ? `<div style="color: #999; font-size: 12px; margin-top: 4px;">${field.note}</div>` : ''}`;
+                    }
                 }
 
                 fieldItem.appendChild(valueEl);
+
+                // 添加等待期字段的点击事件
+                if (field.key === 'waitingPeriodDays' && field.clickable && field.productKey) {
+                    fieldItem.style.cursor = 'pointer';
+                    fieldItem.addEventListener('click', () => {
+                        openWaitingEditModal(field.productKey);
+                    });
+                }
 
                 const showCopyBtn = !field.noCopy && !(field.isInterpretation && !productHasTemplate);
                 if (showCopyBtn) {
