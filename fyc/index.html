@@ -1774,7 +1774,7 @@
 
                     const interpretationDisplay = hasInterpretation
                         ? '<span class="interpretation-edit-btn" data-key="' + productKey + '" style="color: #52c41a; cursor: pointer;">已解读</span>'
-                        : '<button class="interpretation-edit-btn interpretation-edit-btn-unconfigured" data-key="' + productKey + '" style="padding: 4px 12px; font-size: 12px; background-color: #faad14; color: white; border: none; border-radius: 4px; cursor: pointer;">去编辑</button>';
+                        : '<span class="interpretation-edit-btn" data-key="' + productKey + '" style="color: #1890ff; cursor: pointer; text-decoration: underline; font-weight: bold;">未解读</span>';
 
                     tr.innerHTML = `
                         <td style="white-space: normal; line-height: 1.4; max-width: 250px;">${product.productName || '-'}</td>
