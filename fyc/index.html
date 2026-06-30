@@ -2556,6 +2556,7 @@
                 { label: '生效日期', key: 'effectiveDate', noCopy: true, isNumeric: false },
                 { label: '保费', key: 'premium', isNumeric: true },
                 { label: '业绩', key: 'performance', isNumeric: true },
+                { label: '总收入', key: 'totalIncome', isNumeric: true },
                 { label: '保障期间', key: 'insurancePeriod', noCopy: true, isNumeric: false },
                 { label: '缴费期间', key: 'paymentPeriod', noCopy: true, isNumeric: false },
             ];
@@ -3303,7 +3304,14 @@
             }
             actionsDiv.appendChild(downloadBtn);
 
-            // 总收入显示已隐藏
+            if (totalIncome !== undefined && totalIncome !== null) {
+                const totalIncomeEl = document.createElement('div');
+                totalIncomeEl.style.color = '#f5222d';
+                totalIncomeEl.style.fontWeight = 'bold';
+                totalIncomeEl.style.fontSize = '14px';
+                totalIncomeEl.textContent = `总收入：${totalIncome}`;
+                actionsDiv.appendChild(totalIncomeEl);
+            }
 
             if (performance !== undefined && performance !== null) {
                 const perfEl = document.createElement('div');
@@ -3312,26 +3320,6 @@
                 perfEl.style.fontSize = '14px';
                 perfEl.textContent = `业绩：${performance}`;
                 actionsDiv.appendChild(perfEl);
-            }
-
-            // 复制按钮
-            if (policyData) {
-                const copyBtn = document.createElement('button');
-                copyBtn.className = 'copy-all-btn';
-                copyBtn.textContent = '复制订单信息';
-                copyBtn.style.padding = '4px 10px';
-                copyBtn.style.fontSize = '12px';
-                copyBtn.style.backgroundColor = '#52c41a';
-                copyBtn.style.color = 'white';
-                copyBtn.style.border = 'none';
-                copyBtn.style.borderRadius = '4px';
-                copyBtn.style.cursor = 'pointer';
-                copyBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const text = formatPolicyForCopy(policyData);
-                    copyToClipboard(text, '订单信息复制成功');
-                });
-                actionsDiv.appendChild(copyBtn);
             }
 
             header.appendChild(headerMain);
