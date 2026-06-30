@@ -1256,7 +1256,7 @@
             holdername: ['holdername'],
             insuredName: ['inseredname'],
             orderTime: ['receivedate'],
-            effectiveDate: ['policystartdate'],
+            effectiveDate: ['policystartdate', 'insuranceStartTime', 'items.insuranceStartTime'],
             premium: ['scalefee'],
             policyServiceFee: ['servicecommis'],
             promotionFee: ['promotecommis'],
@@ -2780,12 +2780,24 @@
         }
 
         function timestampToDate(timestamp) {
-            if (!timestamp || isNaN(timestamp)) return '无效日期';
-            let ts = parseInt(timestamp);
-            if (ts < 10000000000) {
-                ts *= 1000;
+            if (!timestamp) return '无效日期';
+            let date;
+            if (!isNaN(timestamp) && !isNaN(parseFloat(timestamp))) {
+                let ts = parseInt(timestamp);
+                if (ts < 10000000000) {
+                    ts *= 1000;
+                }
+                date = new Date(ts);
+            } else if (typeof timestamp === 'string') {
+                const match = timestamp.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+                if (match) {
+                    date = new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
+                } else {
+                    date = new Date(timestamp);
+                }
+            } else {
+                return '无效日期';
             }
-            const date = new Date(ts);
             if (isNaN(date.getTime())) return '日期解析失败';
             const utc = date.getTime() + date.getTimezoneOffset() * 60000;
             const beijingDate = new Date(utc + 8 * 3600 * 1000);
