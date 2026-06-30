@@ -2667,7 +2667,7 @@
                     copyBtn.style.marginTop = '0';
                     copyBtn.style.marginLeft = '8px';
                     copyBtn.addEventListener('click', () => {
-                        const copyText = field.customCopyText || `${field.label}：${displayValue}`;
+                        const copyText = field.customCopyText || displayValue;
                         copyToClipboard(copyText, `${field.label}复制成功`);
                     });
                     valueEl.appendChild(copyBtn);
