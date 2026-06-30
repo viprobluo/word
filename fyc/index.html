@@ -3010,13 +3010,13 @@
                     if (endDate && endDate !== '无' && endDate !== '连续投保无等待期') {
                         text += `（${endDate}）`;
                     }
-                    text += '\n//等待期内不可理赔';
+                    text += '\n//等待期内不可理赔，连续投保无等待期';
                     return text;
                 };
 
                 const formatRenewalDate = (date) => {
                     if (!date) return '';
-                    let text = `下年续保日：${date}（连续投保无等待期）`;
+                    let text = `下年续保日：${date}`;
                     if (longTerm) {
                         text += '\n//每年这天左右自动扣费';
                     }
