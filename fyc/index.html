@@ -732,17 +732,6 @@
             color: #8c8c8c;
         }
 
-        .today-highlight {
-            background: linear-gradient(135deg, #fff2e8, #ffd4b8);
-            color: #d4380d;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 600;
-            border: 1px solid #ffbb80;
-            display: inline-block;
-            box-shadow: 0 1px 3px rgba(255,77,79,0.15);
-        }
-
         .error-tip {
             color: #f53f3f;
             font-size: 13px;
@@ -805,58 +794,6 @@
 
         .bank-cell {
             line-height: 1.4;
-        }
-
-        .product-download-link {
-            color: #1890ff;
-            cursor: pointer;
-            font-weight: 500;
-            padding: 2px 8px;
-            border-radius: 4px;
-            background: linear-gradient(135deg, #e6f4ff, #bae0ff);
-            border: 1px solid #91caff;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 2px;
-        }
-
-        .product-download-link:hover {
-            background: linear-gradient(135deg, #1890ff, #096dd9);
-            color: #fff;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
-        }
-
-        .product-download-link:active {
-            transform: translateY(0);
-        }
-
-        .renewal-date-editable {
-            color: #1890ff;
-            cursor: pointer;
-            font-weight: 500;
-            padding: 2px 8px;
-            border-radius: 4px;
-            background: linear-gradient(135deg, #e6f7ff, #bae7ff);
-            border: 1px solid #91d5ff;
-            transition: all 0.2s ease;
-        }
-
-        .renewal-date-editable:hover {
-            background: linear-gradient(135deg, #1890ff, #096dd9);
-            color: #fff;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
-        }
-
-        .renewal-date-editable:active {
-            transform: translateY(0);
-        }
-
-        .renewal-date-editable.today-renewal-date:hover {
-            background: linear-gradient(135deg, #d4380d, #ff4d4f) !important;
-            color: #fff !important;
         }
 
         .bank-cell .bank-name {
@@ -977,7 +914,6 @@
                             <th class="sticky-col-4">产品</th>
                             <th class="sticky-col-5">身故受益人</th>
                             <th>生效日</th>
-                            <th>等待期日</th>
                             <th>续保日</th>
                             <th>连续投保</th>
                             <th>保费</th>
@@ -2248,7 +2184,14 @@
             document.addEventListener('click', (e) => {
                 if (e.target.classList.contains('var-insert-btn')) {
                     const varStr = e.target.getAttribute('data-var');
-                    const textarea = document.getElementById('productInterpretationTemplate');
+                    const modal = e.target.closest('.modal-content');
+                    let textarea = null;
+                    if (modal) {
+                        textarea = modal.querySelector('textarea');
+                    }
+                    if (!textarea) {
+                        textarea = document.getElementById('productInterpretationTemplate');
+                    }
                     if (textarea) {
                         const start = textarea.selectionStart;
                         const end = textarea.selectionEnd;
@@ -2636,14 +2579,13 @@
                 );
             } else if (data.newDiseaseWaitingDays !== undefined) {
                 fields.push(
-                    { label: '新发疾病等待期', key: 'newDiseaseWaitingDays', noCopy: false, combinedEndDate: data.newDiseaseWaitingEndDate, note: '连续投保无等待期', isNumeric: false },
-                    { label: '一般既往史等待期', key: 'generalHistoryWaitingDays', noCopy: false, combinedEndDate: data.generalHistoryWaitingEndDate, note: '连续投保无等待期', isNumeric: false }
+                    { label: '新发疾病等待期', key: 'newDiseaseWaitingDays', noCopy: true, combinedEndDate: data.newDiseaseWaitingEndDate, note: '连续投保无等待期', isNumeric: false },
+                    { label: '一般既往史等待期', key: 'generalHistoryWaitingDays', noCopy: true, combinedEndDate: data.generalHistoryWaitingEndDate, note: '连续投保无等待期', isNumeric: false }
                 );
             } else if (data.waitingPeriodDays !== undefined && data.waitingPeriodDays !== '') {
-                const noCopy = data.waitingPeriodDays === '无' || data.waitingPeriodDays === '未配置';
                 const showNote = data.waitingPeriodDays !== '无' && data.waitingPeriodDays !== '未配置';
                 fields.push(
-                    { label: '等待期', key: 'waitingPeriodDays', noCopy: noCopy, combinedEndDate: data.waitingEndDate, note: showNote ? '连续投保无等待期' : '', isNumeric: false }
+                    { label: '等待期', key: 'waitingPeriodDays', noCopy: true, combinedEndDate: data.waitingEndDate, note: showNote ? '连续投保无等待期' : '', isNumeric: false }
                 );
             }
 
@@ -2731,7 +2673,7 @@
                     copyBtn.style.marginTop = '0';
                     copyBtn.style.marginLeft = '8px';
                     copyBtn.addEventListener('click', () => {
-                        const copyText = field.customCopyText || `${field.label}：${displayValue}`;
+                        const copyText = field.customCopyText || displayValue;
                         copyToClipboard(copyText, `${field.label}复制成功`);
                     });
                     valueEl.appendChild(copyBtn);
@@ -3443,11 +3385,7 @@
 
             let filtered = policies;
 
-            if (currentStatusFilter === 'todayRelated') {
-                filtered = filtered.filter(policy => {
-                    return isTodayRelated(policy);
-                });
-            } else if (currentStatusFilter !== 'all') {
+            if (currentStatusFilter !== 'all') {
                 filtered = filtered.filter(policy => {
                     const statusInfo = getPolicyStatus(policy);
                     return statusInfo.statusKey === currentStatusFilter;
@@ -3466,167 +3404,6 @@
             }
 
             return filtered;
-        }
-
-        function isTodayRelated(policy) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            // 检查生效日
-            if (policy.effectiveDate) {
-                const effectiveDate = parseDate(policy.effectiveDate);
-                if (effectiveDate) {
-                    effectiveDate.setHours(0, 0, 0, 0);
-                    if (effectiveDate.getTime() === today.getTime()) return true;
-                }
-            }
-
-            // 检查等待期日
-            if (policy.newDiseaseWaitingDays && policy.generalHistoryWaitingDays) {
-                const effectiveDate = parseDate(policy.effectiveDate);
-                if (effectiveDate) {
-                    const newDays = parseInt(policy.newDiseaseWaitingDays.replace('天', '')) || 0;
-                    const generalDays = parseInt(policy.generalHistoryWaitingDays.replace('天', '')) || 0;
-
-                    const newEnd = new Date(effectiveDate);
-                    newEnd.setDate(newEnd.getDate() + newDays);
-                    newEnd.setHours(0, 0, 0, 0);
-                    if (newEnd.getTime() === today.getTime()) return true;
-
-                    const generalEnd = new Date(effectiveDate);
-                    generalEnd.setDate(generalEnd.getDate() + generalDays);
-                    generalEnd.setHours(0, 0, 0, 0);
-                    if (generalEnd.getTime() === today.getTime()) return true;
-                }
-            } else if (policy.waitingPeriodDays && policy.effectiveDate) {
-                const effectiveDate = parseDate(policy.effectiveDate);
-                if (effectiveDate) {
-                    const waitingDays = parseInt(policy.waitingPeriodDays.replace('天', '')) || 0;
-                    const waitingEnd = new Date(effectiveDate);
-                    waitingEnd.setDate(waitingEnd.getDate() + waitingDays);
-                    waitingEnd.setHours(0, 0, 0, 0);
-                    if (waitingEnd.getTime() === today.getTime()) return true;
-                }
-            }
-
-            // 检查续保日（使用计算后的续保日）
-            const renewalDate = getNextRenewalDate(policy);
-            if (renewalDate) {
-                const renewalDateCheck = new Date(renewalDate);
-                renewalDateCheck.setHours(0, 0, 0, 0);
-                if (renewalDateCheck.getTime() === today.getTime()) return true;
-            }
-
-            return false;
-        }
-
-        function getTodayRelatedCount(policies) {
-            return policies.filter(p => isTodayRelated(p)).length;
-        }
-
-        function isToday(dateStr) {
-            if (!dateStr) return false;
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const date = parseDate(dateStr);
-            if (!date) return false;
-            date.setHours(0, 0, 0, 0);
-            return date.getTime() === today.getTime();
-        }
-
-        function highlightTodayDate(dateStr, content) {
-            if (isToday(dateStr)) {
-                return `<span class="today-highlight">${content}</span>`;
-            }
-            return content;
-        }
-
-        function highlightTodayWaitingDate(policy, waitingDisplay) {
-            if (!policy.effectiveDate || waitingDisplay === '-') return waitingDisplay;
-
-            const effective = parseDate(policy.effectiveDate);
-            if (!effective) return waitingDisplay;
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            const checkDate = (date) => {
-                date.setHours(0, 0, 0, 0);
-                return date.getTime() === today.getTime();
-            };
-
-            if (policy.newDiseaseWaitingDays && policy.generalHistoryWaitingDays) {
-                const newDays = parseInt(policy.newDiseaseWaitingDays.replace('天', '')) || 0;
-                const generalDays = parseInt(policy.generalHistoryWaitingDays.replace('天', '')) || 0;
-
-                const newEnd = new Date(effective);
-                newEnd.setDate(newEnd.getDate() + newDays);
-
-                const generalEnd = new Date(effective);
-                generalEnd.setDate(generalEnd.getDate() + generalDays);
-
-                const newIsToday = checkDate(newEnd);
-                const generalIsToday = checkDate(generalEnd);
-
-                let result = '';
-                if (newIsToday) {
-                    result += `<span class="today-highlight">${formatDateStr(newEnd)}</span>`;
-                } else {
-                    result += formatDateStr(newEnd);
-                }
-                result += '<br>';
-                if (generalIsToday) {
-                    result += `<span class="today-highlight">${formatDateStr(generalEnd)}</span>`;
-                } else {
-                    result += formatDateStr(generalEnd);
-                }
-                return result;
-            } else if (policy.waitingPeriodDays) {
-                const waitingDays = parseInt(policy.waitingPeriodDays.replace('天', '')) || 0;
-                const waitingEnd = new Date(effective);
-                waitingEnd.setDate(waitingEnd.getDate() + waitingDays);
-
-                if (checkDate(waitingEnd)) {
-                    return `<span class="today-highlight">${formatDateStr(waitingEnd)}</span>`;
-                }
-                return formatDateStr(waitingEnd);
-            }
-
-            return waitingDisplay;
-        }
-
-        function highlightTodayRenewalDate(policy, renewalDisplay) {
-            const renewalDate = getNextRenewalDate(policy);
-            if (!renewalDate) return renewalDisplay;
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const renewalDateCheck = new Date(renewalDate);
-            renewalDateCheck.setHours(0, 0, 0, 0);
-
-            if (renewalDateCheck.getTime() !== today.getTime()) {
-                return renewalDisplay;
-            }
-
-            // 今日续保日：统一用红色背景白色文字
-            const todayClass = 'today-renewal-date';
-            const style = 'background: linear-gradient(135deg, #ff4d4f, #ff7875); color: #fff; font-weight: 600; padding: 2px 8px; border-radius: 4px; display: inline-block; border: 1px solid #ff4d4f;';
-
-            if (renewalDisplay.includes('renewal-date-editable')) {
-                return renewalDisplay.replace(
-                    'class="renewal-date-editable"',
-                    `class="renewal-date-editable ${todayClass}" style="${style}"`
-                );
-            } else {
-                return `<span class="${todayClass}" style="${style}">${renewalDisplay}</span>`;
-            }
-        }
-
-        function formatDateStr(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}年${month}月${day}日`;
         }
 
         function getPolicyStatusStats(policies) {
@@ -3672,63 +3449,26 @@
                 const statsEl = document.getElementById('policyStatusStats');
 
                 const allStats = getPolicyStatusStats(policies);
-                const todayRelatedCount = getTodayRelatedCount(policies);
                 if (statsEl) {
                     const statusItems = [
                         { key: 'all', label: '全部', count: policies.length },
-                        { key: 'todayRelated', label: '今日相关', count: todayRelatedCount },
                         { key: 'pending', label: '待生效', count: allStats.pending },
                         { key: 'waiting', label: '等待期内', count: allStats.waiting },
                         { key: 'active', label: '生效中', count: allStats.active },
                         { key: 'renewal', label: '续保期', count: allStats.renewal },
                         { key: 'expired', label: '已失效', count: allStats.expired },
                         { key: 'overdue', label: '待续保', count: allStats.overdue }
-                    ].filter(item => item.count > 0);
-
-                    statsEl.innerHTML = `<div class="status-filter-group">` + statusItems.map(item => {
+                    ];
+                    statsEl.innerHTML = statusItems.map(item => {
                         const isActive = currentStatusFilter === item.key;
-                        let bgColor, textColor, shadow;
-
-                        if (item.key === 'todayRelated') {
-                            bgColor = isActive ? 'linear-gradient(135deg, #ff4d4f, #ff7875)' : 'linear-gradient(135deg, #fff1f0, #ffccc7)';
-                            textColor = isActive ? '#fff' : '#ff4d4f';
-                            shadow = isActive ? '0 2px 8px rgba(255,77,79,0.3)' : '0 1px 3px rgba(255,77,79,0.2)';
-                        } else {
-                            bgColor = isActive ? 'linear-gradient(135deg, #1890ff, #096dd9)' : 'linear-gradient(135deg, #f5f5f5, #e8e8e8)';
-                            textColor = isActive ? '#fff' : '#666';
-                            shadow = isActive ? '0 2px 8px rgba(24,144,255,0.3)' : '0 1px 3px rgba(0,0,0,0.1)';
-                        }
-
-                        return `<span class="status-stat-item" data-status="${item.key}" style="
-                            display: inline-flex;
-                            align-items: center;
-                            gap: 4px;
-                            margin-right: 8px;
-                            padding: 4px 12px;
-                            border-radius: 16px;
-                            background: ${bgColor};
-                            color: ${textColor};
-                            cursor: pointer;
-                            user-select: none;
-                            font-size: 13px;
-                            font-weight: 500;
-                            box-shadow: ${shadow};
-                            transition: all 0.2s ease;
-                        ">
-                            <span>${item.label}</span>
-                            <span style="
-                                background: ${isActive ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.08)'};
-                                padding: 1px 6px;
-                                border-radius: 10px;
-                                font-size: 11px;
-                                font-weight: 600;
-                            ">${item.count}</span>
-                        </span>`;
-                    }).join('') + `</div>`;
+                        const bgColor = isActive ? '#1890ff' : '#f5f5f5';
+                        const textColor = isActive ? '#fff' : '#666';
+                        return `<span class="status-stat-item" data-status="${item.key}" style="margin-right: 10px; padding: 2px 8px; border-radius: 4px; background-color: ${bgColor}; color: ${textColor}; cursor: pointer; user-select: none;">${item.label}(${item.count})</span>`;
+                    }).join('');
 
                     statsEl.querySelectorAll('.status-stat-item').forEach(el => {
                         el.addEventListener('click', (e) => {
-                            const status = e.currentTarget.getAttribute('data-status');
+                            const status = e.target.getAttribute('data-status');
                             currentStatusFilter = status;
                             loadPoliciesToManage();
                         });
@@ -3770,7 +3510,7 @@
                     const renewalDateStr = renewalDate ? formatDateCN(renewalDate) : '-';
                     const longTerm = isLongTermPolicy(policy);
                     const renewalDisplay = longTerm
-                        ? `<span class="renewal-date-editable" data-policy-no="${policy.policyNo}">${renewalDateStr}</span>`
+                        ? `<span class="renewal-date-editable" data-policy-no="${policy.policyNo}" style="color: #1890ff; cursor: pointer; text-decoration: underline;">${renewalDateStr}</span>`
                         : renewalDateStr;
 
                     const beneficiaryDisplay = getBeneficiaryDisplay(policy);
@@ -3794,12 +3534,8 @@
                     const productName = policy.productName || '-';
                     const hasPdf = policy.pdfUrl && policy.pdfUrl.length > 0;
                     const productDisplay = hasPdf
-                        ? `<span class="product-download-link" data-pdf-url="${policy.pdfUrl || ''}" data-pdf-name="${policy.pdfFileName || ''}" title="点击下载保单">${productName}</span>`
+                        ? `<span class="product-download-link" data-pdf-url="${policy.pdfUrl || ''}" data-pdf-name="${policy.pdfFileName || ''}" style="color: #1890ff; cursor: pointer; text-decoration: underline;">${productName}</span>`
                         : productName;
-
-                    const waitingDateDisplay = getWaitingDateDisplay(policy);
-                    const todayWaitingDisplay = highlightTodayWaitingDate(policy, waitingDateDisplay);
-                    const todayRenewalDisplay = highlightTodayRenewalDate(policy, renewalDisplay);
 
                     tr.innerHTML = `
                         <td class="sticky-col-1"><span class="policy-status ${statusInfo.statusKey}">${statusInfo.status}</span></td>
@@ -3807,9 +3543,8 @@
                         <td class="sticky-col-3" style="white-space: normal; line-height: 1.4;">${insuredDisplay}</td>
                         <td class="sticky-col-4" style="white-space: normal; line-height: 1.4;">${productDisplay}</td>
                         <td class="sticky-col-5" style="white-space: normal; line-height: 1.4;">${beneficiaryDisplay}</td>
-                        <td>${highlightTodayDate(policy.effectiveDate, policy.effectiveDate || '-')}</td>
-                        <td>${todayWaitingDisplay}</td>
-                        <td>${todayRenewalDisplay}</td>
+                        <td>${policy.effectiveDate || '-'}</td>
+                        <td>${renewalDisplay}</td>
                         <td>
                             <span class="policy-year-value year-editable" data-policy-no="${policy.policyNo}" style="color: #1890ff; cursor: pointer; text-decoration: underline; font-weight: bold;">${yearDisplay}</span>
                         </td>
@@ -3889,50 +3624,6 @@
                 }
                 return policy.waitingPeriodDays;
             }
-            return '-';
-        }
-
-        function getWaitingDateDisplay(policy) {
-            const effectiveDate = policy.effectiveDate;
-            if (!effectiveDate) return '-';
-
-            const policyYear = parseInt(policy.policyYear) || 1;
-            const isContinuous = policy.isContinuous || policyYear > 1;
-
-            if (isContinuous && policyYear > 1) {
-                return '-';
-            }
-
-            const effective = parseDate(effectiveDate);
-            if (!effective) return '-';
-
-            const formatDateStr = (date) => {
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}年${month}月${day}日`;
-            };
-
-            if (policy.newDiseaseWaitingDays && policy.generalHistoryWaitingDays) {
-                const newDays = parseInt(policy.newDiseaseWaitingDays.replace('天', '')) || 0;
-                const generalDays = parseInt(policy.generalHistoryWaitingDays.replace('天', '')) || 0;
-
-                const newDiseaseEnd = new Date(effective);
-                newDiseaseEnd.setDate(newDiseaseEnd.getDate() + newDays);
-
-                const generalEnd = new Date(effective);
-                generalEnd.setDate(generalEnd.getDate() + generalDays);
-
-                return `<div>${formatDateStr(newDiseaseEnd)}</div><div>${formatDateStr(generalEnd)}</div>`;
-            }
-
-            if (policy.waitingPeriodDays) {
-                const waitingDays = parseInt(policy.waitingPeriodDays.replace('天', '')) || 0;
-                const waitingEnd = new Date(effective);
-                waitingEnd.setDate(waitingEnd.getDate() + waitingDays);
-                return formatDateStr(waitingEnd);
-            }
-
             return '-';
         }
 
