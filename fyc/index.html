@@ -2779,8 +2779,11 @@
             lines.push(`业绩：${formatNumber(policy.performance)}`);
             if (policy.waitingPeriodDays) {
                 let waitingText = policy.waitingPeriodDays;
-                if (policy.waitingEndDate && policy.waitingEndDate !== waitingText) {
-                    waitingText = `${policy.waitingPeriodDays}（${policy.waitingEndDate}）`;
+                if (policy.waitingPeriodDays.includes('天') && !policy.waitingPeriodDays.includes(' ')) {
+                    waitingText = policy.waitingPeriodDays.replace('天', ' 天');
+                }
+                if (policy.waitingEndDate && policy.waitingEndDate !== policy.waitingPeriodDays && policy.waitingEndDate !== '无' && policy.waitingEndDate !== '连续投保无等待期') {
+                    waitingText = `${waitingText}（${policy.waitingEndDate}）`;
                 }
                 lines.push(`等待期：${waitingText}`);
             }
@@ -2973,6 +2976,7 @@
                 const template = productConfig.interpretationTemplate;
                 const newDiseaseEndDate = policyData.newDiseaseWaitingEndDate || '';
                 const generalHistoryEndDate = policyData.generalHistoryWaitingEndDate || '';
+                const waitingEndDate = policyData.waitingEndDate || '';
                 const orderDate = policyData.orderTime || '';
                 let nextYearRenewalDate = '';
                 const d = parseDate(orderDate);
@@ -3003,11 +3007,12 @@
                     .replace(/\{投保人\}/g, policyData.holdername || '')
                     .replace(/\{被保人\}/g, policyData.insuredName || '')
                     .replace(/\{生效日\}/g, policyData.effectiveDate || '')
-                    .replace(/\{新发疾病等待期\}/g, `${newDiseaseDays} 天：${newDiseaseEndDate}`)
-                    .replace(/\{一般既往史等待期\}/g, `${generalHistoryDays} 天：${generalHistoryEndDate}`)
-                    .replace(/\{等待期\}/g, `${waitingDays} 天`)
+                    .replace(/\{新发疾病等待期\}/g, `${newDiseaseDays} 天${newDiseaseEndDate && newDiseaseEndDate !== '无' && newDiseaseEndDate !== '连续投保无等待期' ? `（${newDiseaseEndDate}）` : ''}`)
+                    .replace(/\{一般既往史等待期\}/g, `${generalHistoryDays} 天${generalHistoryEndDate && generalHistoryEndDate !== '无' && generalHistoryEndDate !== '连续投保无等待期' ? `（${generalHistoryEndDate}）` : ''}`)
+                    .replace(/\{等待期\}/g, `${waitingDays} 天${waitingEndDate && waitingEndDate !== '无' && waitingEndDate !== '连续投保无等待期' ? `（${waitingEndDate}）` : ''}`)
                     .replace(/\{新发疾病等待期结束日\}/g, newDiseaseEndDate)
                     .replace(/\{一般既往史等待期结束日\}/g, generalHistoryEndDate)
+                    .replace(/\{等待期结束日\}/g, waitingEndDate)
                     .replace(/\{下年续保日\}/g, nextYearRenewalDate)
                     .replace(/\{productName\}/g, policyData.productName || '')
                     .replace(/\{holdername\}/g, policyData.holdername || '')
@@ -3018,9 +3023,11 @@
                     .replace(/\{waitingDays\}/g, waitingDays)
                     .replace(/\{newDiseaseEndDate\}/g, newDiseaseEndDate)
                     .replace(/\{generalHistoryEndDate\}/g, generalHistoryEndDate)
+                    .replace(/\{waitingEndDate\}/g, waitingEndDate)
                     .replace(/\{nextYearRenewalDate\}/g, nextYearRenewalDate);
 
                 result = result.replace(/天：天：/g, '天：').replace(/天：天$/g, '天');
+                result = result.replace(/ 天（）/g, ' 天');
                 return result;
             }
 
