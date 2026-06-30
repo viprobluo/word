@@ -2983,7 +2983,7 @@
                     .replace(/\{投保人\}/g, `投保人：${policyData.holdername || ''}`)
                     .replace(/\{被保人\}/g, `被保人：${policyData.insuredName || ''}`)
                     .replace(/\{生效日\}/g, `生效日：${effectiveDate}`)
-                    .replace(/\{续期保费\}/g, `续期保费：${premium} 元${isMobilePay || !policyData.bankName ? '' : `\n扣款银行：${policyData.bankName || ''}${getBankAccountTail(policyData.bankAccount) ? ' ' + getBankAccountTail(policyData.bankAccount) : ''}`}`)
+                    .replace(/\{续期保费\}/g, `续期保费：${premium} 元${isMobilePay || !policyData.bankName ? '' : `\n${policyData.bankName || ''}卡尾号 ${getBankAccountTail(policyData.bankAccount) || ''}`}`)
                     .replace(/\{新发疾病等待期\}/g, `新发疾病等待期：${formatWaiting(newDiseaseDays, newDiseaseEndDate)}`)
                     .replace(/\{一般既往史等待期\}/g, `一般既往史等待期：${formatWaiting(generalHistoryDays, generalHistoryEndDate)}`)
                     .replace(/\{等待期\}/g, `等待期：${formatWaiting(waitingDays, waitingEndDate)}`)
@@ -3004,7 +3004,7 @@
                     .replace(/\{waitingEndDate\}/g, waitingEndDate)
                     .replace(/\{nextYearRenewalDate\}/g, nextYearRenewalDate);
 
-                result = result.replace(/\n+扣款银行：$/gm, '').replace(/\n+扣款银行：\s*$/gm, '');
+                result = result.replace(/\n+卡尾号\s*$/gm, '');
                 return result;
             }
 
