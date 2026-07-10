@@ -1575,8 +1575,12 @@
                         let data = { ...item };
                         if (existing) {
                             data.createTime = existing.createTime || Date.now();
+                            if (!item.tags || item.tags.length === 0) {
+                                data.tags = existing.tags || [];
+                            }
                         } else {
                             data.createTime = Date.now();
+                            if (!data.tags) data.tags = [];
                         }
                         data.updateTime = Date.now();
                         const putRequest = objectStore.put(data);
@@ -2896,14 +2900,10 @@
                     try {
                         const existing = await getRenewalByPolicyCode(policyCode);
                         if (!existing) return;
-                        const tags = existing.tags || [];
-                        const idx = tags.indexOf(tag);
-                        if (idx >= 0) {
-                            tags.splice(idx, 1);
-                        } else {
-                            tags.push(tag);
-                        }
-                        await updateRenewalStatus(policyCode, { tags });
+                        const currentTags = existing.tags || [];
+                        const isActive = currentTags.includes(tag);
+                        const newTags = isActive ? [] : [tag];
+                        await updateRenewalStatus(policyCode, { tags: newTags });
                         await loadRenewalsFromDB();
                     } catch (err) {
                         showToast('标签更新失败');
