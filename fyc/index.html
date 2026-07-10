@@ -2451,10 +2451,14 @@
                 let allItems = [];
 
                 for (const part of jsonParts) {
-                    const data = JSON.parse(part);
-                    const list = data.data?.list || data.list || [];
-                    if (Array.isArray(list)) {
-                        allItems = allItems.concat(list);
+                    try {
+                        const data = JSON.parse(part);
+                        const list = data.data?.list || data.list || [];
+                        if (Array.isArray(list)) {
+                            allItems = allItems.concat(list);
+                        }
+                    } catch (parseErr) {
+                        console.warn('单个JSON解析失败，跳过:', parseErr);
                     }
                 }
 
