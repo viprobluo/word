@@ -983,13 +983,14 @@
             <div class="policy-manage-header">
                 <h3>续保提醒</h3>
                 <div class="policy-manage-actions">
-                    <select id="renewalTagFilter" class="status-select">
-                        <option value="all">全部标签</option>
-                        <option value="已发送">已发送</option>
-                        <option value="已续保">已续保</option>
-                        <option value="不再续保">不再续保</option>
-                        <option value="已转投">已转投</option>
-                    </select>
+                    <div id="renewalTagFilter" style="display: flex; gap: 6px; align-items: center;">
+                        <span class="renewal-filter-chip" data-tag="全部" style="padding: 4px 12px; border: 1px solid #1890ff; border-radius: 14px; font-size: 12px; cursor: pointer; background-color: #1890ff; color: #fff;">全部</span>
+                        <span class="renewal-filter-chip" data-tag="无标签" style="padding: 4px 12px; border: 1px solid #d9d9d9; border-radius: 14px; font-size: 12px; cursor: pointer; background-color: #fff; color: #666;">无标签</span>
+                        <span class="renewal-filter-chip" data-tag="已发送" style="padding: 4px 12px; border: 1px solid #d9d9d9; border-radius: 14px; font-size: 12px; cursor: pointer; background-color: #fff; color: #666;">已发送</span>
+                        <span class="renewal-filter-chip" data-tag="已续保" style="padding: 4px 12px; border: 1px solid #d9d9d9; border-radius: 14px; font-size: 12px; cursor: pointer; background-color: #fff; color: #666;">已续保</span>
+                        <span class="renewal-filter-chip" data-tag="不再续保" style="padding: 4px 12px; border: 1px solid #d9d9d9; border-radius: 14px; font-size: 12px; cursor: pointer; background-color: #fff; color: #666;">不再续保</span>
+                        <span class="renewal-filter-chip" data-tag="已转投" style="padding: 4px 12px; border: 1px solid #d9d9d9; border-radius: 14px; font-size: 12px; cursor: pointer; background-color: #fff; color: #666;">已转投</span>
+                    </div>
                     <button id="exportRenewalBtn" style="padding: 6px 12px; font-size: 13px;">导出数据</button>
                     <button id="importRenewalBtn" style="padding: 6px 12px; font-size: 13px; background-color: #52c41a;">导入数据</button>
                     <input type="file" id="importRenewalFileInput" accept=".json" style="display: none;">
@@ -2412,7 +2413,47 @@
             document.getElementById('exportRenewalBtn').addEventListener('click', exportRenewalData);
             document.getElementById('importRenewalBtn').addEventListener('click', () => document.getElementById('importRenewalFileInput').click());
             document.getElementById('importRenewalFileInput').addEventListener('change', handleImportRenewalFile);
-            document.getElementById('renewalTagFilter').addEventListener('change', loadRenewalsFromDB);
+
+            document.querySelectorAll('#renewalTagFilter .renewal-filter-chip').forEach(chip => {
+                chip.addEventListener('click', (e) => {
+                    const tag = e.currentTarget.getAttribute('data-tag');
+                    if (tag === '全部') {
+                        document.querySelectorAll('#renewalTagFilter .renewal-filter-chip').forEach(c => {
+                            c.style.backgroundColor = '#fff';
+                            c.style.color = '#666';
+                            c.style.borderColor = '#d9d9d9';
+                        });
+                        e.currentTarget.style.backgroundColor = '#1890ff';
+                        e.currentTarget.style.color = '#fff';
+                        e.currentTarget.style.borderColor = '#1890ff';
+                    } else {
+                        const allChip = document.querySelector('#renewalTagFilter .renewal-filter-chip[data-tag="全部"]');
+                        if (allChip) {
+                            allChip.style.backgroundColor = '#fff';
+                            allChip.style.color = '#666';
+                            allChip.style.borderColor = '#d9d9d9';
+                        }
+                        const isActive = e.currentTarget.style.backgroundColor === 'rgb(24, 144, 255)' ||
+                            e.currentTarget.getAttribute('data-active') === 'true';
+                        if (isActive) {
+                            e.currentTarget.style.backgroundColor = '#fff';
+                            e.currentTarget.style.color = '#666';
+                            e.currentTarget.style.borderColor = '#d9d9d9';
+                            e.currentTarget.setAttribute('data-active', 'false');
+                        } else {
+                            const activeColor = tag === '已发送' ? '#fa8c16' :
+                                tag === '已续保' ? '#52c41a' :
+                                tag === '不再续保' ? '#f5222d' :
+                                tag === '已转投' ? '#722ed1' : '#1890ff';
+                            e.currentTarget.style.backgroundColor = activeColor;
+                            e.currentTarget.style.color = '#fff';
+                            e.currentTarget.style.borderColor = activeColor;
+                            e.currentTarget.setAttribute('data-active', 'true');
+                        }
+                    }
+                    loadRenewalsFromDB();
+                });
+            });
 
         function clearAllInputs() {
             document.getElementById('policyJsonInput').value = '';
@@ -2516,14 +2557,26 @@
         async function loadRenewalsFromDB() {
             try {
                 const allRenewals = await getAllRenewals();
-                const tagFilter = document.getElementById('renewalTagFilter').value;
+
+                const activeFilters = [];
+                document.querySelectorAll('#renewalTagFilter .renewal-filter-chip').forEach(c => {
+                    const tag = c.getAttribute('data-tag');
+                    if (tag === '全部') return;
+                    if (c.getAttribute('data-active') === 'true') {
+                        activeFilters.push(tag);
+                    }
+                });
+                const allChipActive = document.querySelector('#renewalTagFilter .renewal-filter-chip[data-tag="全部"]');
+                const isAllMode = allChipActive && (allChipActive.style.backgroundColor === 'rgb(24, 144, 255)' || activeFilters.length === 0);
 
                 let filtered = allRenewals;
-                if (tagFilter !== 'all') {
-                    filtered = filtered.filter(r => r.tags && r.tags.includes(tagFilter));
+                if (!isAllMode && activeFilters.length > 0) {
+                    filtered = filtered.filter(r => {
+                        const itemTags = r.tags || [];
+                        if (activeFilters.includes('无标签') && itemTags.length === 0) return true;
+                        return activeFilters.filter(t => t !== '无标签').some(t => itemTags.includes(t));
+                    });
                 }
-
-                updateTagFilterOptions(allRenewals);
 
                 if (filtered.length === 0) {
                     document.getElementById('renewalResultSection').style.display = 'none';
@@ -2544,28 +2597,6 @@
                 renderRenewalOutput(grouped);
             } catch (e) {
                 console.error('加载失败:', e);
-            }
-        }
-
-        function updateTagFilterOptions(renewals) {
-            const allTags = new Set();
-            renewals.forEach(r => {
-                if (r.tags) {
-                    r.tags.forEach(t => allTags.add(t));
-                }
-            });
-
-            const select = document.getElementById('renewalTagFilter');
-            const currentValue = select.value;
-            select.innerHTML = '<option value="all">全部标签</option>';
-            allTags.forEach(tag => {
-                const option = document.createElement('option');
-                option.value = tag;
-                option.textContent = tag;
-                select.appendChild(option);
-            });
-            if (allTags.has(currentValue)) {
-                select.value = currentValue;
             }
         }
 
@@ -2772,9 +2803,6 @@
                         }
                     }
 
-                    const tagHtml = tags.length > 0 ? 
-                        `<div style="margin-top: 8px;">${tags.map(t => `<span style="display: inline-block; margin-right: 6px; padding: 2px 8px; background-color: #e6f7ff; color: #1890ff; border-radius: 4px; font-size: 12px;">${t}</span>`).join('')}</div>` : '';
-
                     const tagSelectorHtml = `
                         <div style="margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap;">
                             <span class="renewal-tag-chip ${tags.includes('已发送') ? 'active' : ''}" data-policy-code="${policyCode}" data-tag="已发送" style="padding: 2px 10px; border: 1px solid ${tags.includes('已发送') ? '#fa8c16' : '#d9d9d9'}; border-radius: 12px; font-size: 12px; cursor: pointer; background-color: ${tags.includes('已发送') ? '#fa8c16' : '#fff'}; color: ${tags.includes('已发送') ? '#fff' : '#666'};">已发送</span>
@@ -2800,7 +2828,6 @@
                                 <div>续保日期：${formatRenewalDateCN(shouldGetDate)}</div>
                                 <div>保费：${fee} 元</div>
                                 ${extraHtml}
-                                ${tagHtml}
                                 ${tagSelectorHtml}
                             </div>
                         </div>
