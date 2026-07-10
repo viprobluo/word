@@ -1566,27 +1566,43 @@
                 const transaction = db.transaction(['renewals'], 'readwrite');
                 const objectStore = transaction.objectStore('renewals');
                 let count = 0;
+                let skipped = 0;
                 const total = renewalItems.length;
                 
                 renewalItems.forEach(item => {
                     const request = objectStore.get(item.policyCode);
                     request.onsuccess = () => {
                         const existing = request.result;
-                        let data = { ...item };
                         if (existing) {
-                            data.createTime = existing.createTime || Date.now();
-                            if (!item.tags || item.tags.length === 0) {
-                                data.tags = existing.tags || [];
+                            skipped++;
+                            count++;
+                            if (count === total) {
+                                const added = total - skipped;
+                                if (added > 0) {
+                                    showToast(`已新增 ${added} 条数据，跳过 ${skipped} 条已存在数据`);
+                                } else {
+                                    showToast(`所有 ${total} 条数据已存在，已跳过`);
+                                }
+                                resolve();
                             }
-                        } else {
-                            data.createTime = Date.now();
-                            if (!data.tags) data.tags = [];
+                            return;
                         }
+                        let data = { ...item };
+                        data.createTime = Date.now();
+                        if (!data.tags) data.tags = [];
                         data.updateTime = Date.now();
                         const putRequest = objectStore.put(data);
                         putRequest.onsuccess = () => {
                             count++;
-                            if (count === total) resolve();
+                            if (count === total) {
+                                const added = total - skipped;
+                                if (added > 0) {
+                                    showToast(`已新增 ${added} 条数据，跳过 ${skipped} 条已存在数据`);
+                                } else {
+                                    showToast(`所有 ${total} 条数据已存在，已跳过`);
+                                }
+                                resolve();
+                            }
                         };
                         putRequest.onerror = () => reject(putRequest.error);
                     };
@@ -2518,7 +2534,6 @@
                 }).filter(Boolean);
 
                 await saveRenewals(renewalItems);
-                showToast(`已保存 ${renewalItems.length} 条续保数据`);
                 await loadRenewalsFromDB();
             } catch (e) {
                 console.error('解析失败:', e);
