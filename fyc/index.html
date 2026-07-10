@@ -992,6 +992,8 @@
                     </select>
                     <select id="renewalTagFilter" class="status-select">
                         <option value="all">全部标签</option>
+                        <option value="已发送">已发送</option>
+                        <option value="已续保">已续保</option>
                     </select>
                     <button id="exportRenewalBtn" style="padding: 6px 12px; font-size: 13px;">导出数据</button>
                     <button id="importRenewalBtn" style="padding: 6px 12px; font-size: 13px; background-color: #52c41a;">导入数据</button>
@@ -1581,14 +1583,12 @@
                             data.readTime = existing.readTime || null;
                             data.sendTime = existing.sendTime || null;
                             data.renewTime = existing.renewTime || null;
-                            data.notes = existing.notes || '';
                         } else {
                             data.status = 'pending';
                             data.tags = [];
                             data.readTime = null;
                             data.sendTime = null;
                             data.renewTime = null;
-                            data.notes = '';
                         }
                         data.updateTime = Date.now();
                         if (!data.createTime) data.createTime = Date.now();
@@ -2626,8 +2626,7 @@
                         tags: item.tags || [],
                         readTime: item.readTime || null,
                         sendTime: item.sendTime || null,
-                        renewTime: item.renewTime || null,
-                        notes: item.notes || ''
+                        renewTime: item.renewTime || null
                     })).filter(item => item.policyCode);
 
                     await saveRenewals(renewalItems);
@@ -2814,16 +2813,10 @@
                         </div>
                     `;
 
-                    const notesHtml = `
-                        <div style="margin-top: 8px;">
-                            <textarea class="renewal-notes-input" data-policy-code="${policyCode}" rows="2" placeholder="添加备注..." style="width: 100%; padding: 6px; border: 1px solid #e8e8e8; border-radius: 4px; font-size: 12px; resize: vertical;">${item.notes || ''}</textarea>
-                        </div>
-                    `;
-
-                    const tagInputHtml = `
-                        <div style="margin-top: 8px; display: flex; gap: 4px;">
-                            <input type="text" class="renewal-tag-input" data-policy-code="${policyCode}" placeholder="添加标签" style="flex: 1; padding: 4px 8px; border: 1px solid #e8e8e8; border-radius: 4px; font-size: 12px;">
-                            <button class="renewal-add-tag-btn" data-policy-code="${policyCode}" style="padding: 4px 12px; font-size: 12px; background-color: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer;">添加标签</button>
+                    const tagSelectorHtml = `
+                        <div style="margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap;">
+                            <span class="renewal-tag-chip ${tags.includes('已发送') ? 'active' : ''}" data-policy-code="${policyCode}" data-tag="已发送" style="padding: 2px 10px; border: 1px solid ${tags.includes('已发送') ? '#fa8c16' : '#d9d9d9'}; border-radius: 12px; font-size: 12px; cursor: pointer; background-color: ${tags.includes('已发送') ? '#fa8c16' : '#fff'}; color: ${tags.includes('已发送') ? '#fff' : '#666'};">已发送</span>
+                            <span class="renewal-tag-chip ${tags.includes('已续保') ? 'active' : ''}" data-policy-code="${policyCode}" data-tag="已续保" style="padding: 2px 10px; border: 1px solid ${tags.includes('已续保') ? '#52c41a' : '#d9d9d9'}; border-radius: 12px; font-size: 12px; cursor: pointer; background-color: ${tags.includes('已续保') ? '#52c41a' : '#fff'}; color: ${tags.includes('已续保') ? '#fff' : '#666'};">已续保</span>
                         </div>
                     `;
 
@@ -2845,9 +2838,8 @@
                                 <div>保费：${fee} 元</div>
                                 ${extraHtml}
                                 ${tagHtml}
+                                ${tagSelectorHtml}
                                 ${statusHtml}
-                                ${notesHtml}
-                                ${tagInputHtml}
                             </div>
                         </div>
                     `;
@@ -2906,38 +2898,24 @@
                 });
             });
 
-            outputList.querySelectorAll('.renewal-notes-input').forEach(textarea => {
-                textarea.addEventListener('blur', async (e) => {
+            outputList.querySelectorAll('.renewal-tag-chip').forEach(chip => {
+                chip.addEventListener('click', async (e) => {
                     const policyCode = e.currentTarget.getAttribute('data-policy-code');
-                    const notes = e.currentTarget.value;
-                    try {
-                        await updateRenewalStatus(policyCode, { notes });
-                    } catch (err) {
-                        console.error('保存备注失败:', err);
-                    }
-                });
-            });
-
-            outputList.querySelectorAll('.renewal-add-tag-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const policyCode = e.currentTarget.getAttribute('data-policy-code');
-                    const input = e.currentTarget.previousElementSibling;
-                    const tag = input.value.trim();
-                    if (!tag) return;
-
+                    const tag = e.currentTarget.getAttribute('data-tag');
                     try {
                         const existing = await getRenewalByPolicyCode(policyCode);
-                        if (existing) {
-                            const tags = existing.tags || [];
-                            if (!tags.includes(tag)) {
-                                tags.push(tag);
-                                await updateRenewalStatus(policyCode, { tags });
-                            }
+                        if (!existing) return;
+                        const tags = existing.tags || [];
+                        const idx = tags.indexOf(tag);
+                        if (idx >= 0) {
+                            tags.splice(idx, 1);
+                        } else {
+                            tags.push(tag);
                         }
-                        input.value = '';
+                        await updateRenewalStatus(policyCode, { tags });
                         await loadRenewalsFromDB();
                     } catch (err) {
-                        showToast('添加标签失败');
+                        showToast('标签更新失败');
                     }
                 });
             });
