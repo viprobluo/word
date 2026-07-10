@@ -983,17 +983,12 @@
             <div class="policy-manage-header">
                 <h3>续保提醒</h3>
                 <div class="policy-manage-actions">
-                    <select id="renewalStatusFilter" class="status-select">
-                        <option value="all">全部状态</option>
-                        <option value="pending">待处理</option>
-                        <option value="read">已读</option>
-                        <option value="sent">已发送</option>
-                        <option value="renewed">已续保</option>
-                    </select>
                     <select id="renewalTagFilter" class="status-select">
                         <option value="all">全部标签</option>
                         <option value="已发送">已发送</option>
                         <option value="已续保">已续保</option>
+                        <option value="不再续保">不再续保</option>
+                        <option value="已转投">已转投</option>
                     </select>
                     <button id="exportRenewalBtn" style="padding: 6px 12px; font-size: 13px;">导出数据</button>
                     <button id="importRenewalBtn" style="padding: 6px 12px; font-size: 13px; background-color: #52c41a;">导入数据</button>
@@ -2417,7 +2412,6 @@
             document.getElementById('exportRenewalBtn').addEventListener('click', exportRenewalData);
             document.getElementById('importRenewalBtn').addEventListener('click', () => document.getElementById('importRenewalFileInput').click());
             document.getElementById('importRenewalFileInput').addEventListener('change', handleImportRenewalFile);
-            document.getElementById('renewalStatusFilter').addEventListener('change', loadRenewalsFromDB);
             document.getElementById('renewalTagFilter').addEventListener('change', loadRenewalsFromDB);
 
         function clearAllInputs() {
@@ -2522,13 +2516,9 @@
         async function loadRenewalsFromDB() {
             try {
                 const allRenewals = await getAllRenewals();
-                const statusFilter = document.getElementById('renewalStatusFilter').value;
                 const tagFilter = document.getElementById('renewalTagFilter').value;
 
                 let filtered = allRenewals;
-                if (statusFilter !== 'all') {
-                    filtered = filtered.filter(r => r.status === statusFilter);
-                }
                 if (tagFilter !== 'all') {
                     filtered = filtered.filter(r => r.tags && r.tags.includes(tagFilter));
                 }
@@ -2729,26 +2719,6 @@
             return greeting + '\n\n' + itemTexts.join('\n\n');
         }
 
-        function getStatusText(status) {
-            const map = {
-                pending: '待处理',
-                read: '已读',
-                sent: '已发送',
-                renewed: '已续保'
-            };
-            return map[status] || '待处理';
-        }
-
-        function getStatusClass(status) {
-            const map = {
-                pending: 'status-pending',
-                read: 'status-read',
-                sent: 'status-sent',
-                renewed: 'status-renewed'
-            };
-            return map[status] || 'status-pending';
-        }
-
         function renderRenewalOutput(grouped) {
             const outputList = document.getElementById('renewalOutputList');
             const holderNames = Object.keys(grouped);
@@ -2805,18 +2775,12 @@
                     const tagHtml = tags.length > 0 ? 
                         `<div style="margin-top: 8px;">${tags.map(t => `<span style="display: inline-block; margin-right: 6px; padding: 2px 8px; background-color: #e6f7ff; color: #1890ff; border-radius: 4px; font-size: 12px;">${t}</span>`).join('')}</div>` : '';
 
-                    const statusHtml = `
-                        <div style="display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap;">
-                            <button class="renewal-status-btn ${status === 'read' ? 'active' : ''}" data-policy-code="${policyCode}" data-status="read" style="padding: 3px 8px; font-size: 12px; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; background-color: ${status === 'read' ? '#1890ff' : '#fff'}; color: ${status === 'read' ? '#fff' : '#666'};">已读</button>
-                            <button class="renewal-status-btn ${status === 'sent' ? 'active' : ''}" data-policy-code="${policyCode}" data-status="sent" style="padding: 3px 8px; font-size: 12px; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; background-color: ${status === 'sent' ? '#fa8c16' : '#fff'}; color: ${status === 'sent' ? '#fff' : '#666'};">已发送</button>
-                            <button class="renewal-status-btn ${status === 'renewed' ? 'active' : ''}" data-policy-code="${policyCode}" data-status="renewed" style="padding: 3px 8px; font-size: 12px; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; background-color: ${status === 'renewed' ? '#52c41a' : '#fff'}; color: ${status === 'renewed' ? '#fff' : '#666'};">已续保</button>
-                        </div>
-                    `;
-
                     const tagSelectorHtml = `
                         <div style="margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap;">
                             <span class="renewal-tag-chip ${tags.includes('已发送') ? 'active' : ''}" data-policy-code="${policyCode}" data-tag="已发送" style="padding: 2px 10px; border: 1px solid ${tags.includes('已发送') ? '#fa8c16' : '#d9d9d9'}; border-radius: 12px; font-size: 12px; cursor: pointer; background-color: ${tags.includes('已发送') ? '#fa8c16' : '#fff'}; color: ${tags.includes('已发送') ? '#fff' : '#666'};">已发送</span>
                             <span class="renewal-tag-chip ${tags.includes('已续保') ? 'active' : ''}" data-policy-code="${policyCode}" data-tag="已续保" style="padding: 2px 10px; border: 1px solid ${tags.includes('已续保') ? '#52c41a' : '#d9d9d9'}; border-radius: 12px; font-size: 12px; cursor: pointer; background-color: ${tags.includes('已续保') ? '#52c41a' : '#fff'}; color: ${tags.includes('已续保') ? '#fff' : '#666'};">已续保</span>
+                            <span class="renewal-tag-chip ${tags.includes('不再续保') ? 'active' : ''}" data-policy-code="${policyCode}" data-tag="不再续保" style="padding: 2px 10px; border: 1px solid ${tags.includes('不再续保') ? '#f5222d' : '#d9d9d9'}; border-radius: 12px; font-size: 12px; cursor: pointer; background-color: ${tags.includes('不再续保') ? '#f5222d' : '#fff'}; color: ${tags.includes('不再续保') ? '#fff' : '#666'};">不再续保</span>
+                            <span class="renewal-tag-chip ${tags.includes('已转投') ? 'active' : ''}" data-policy-code="${policyCode}" data-tag="已转投" style="padding: 2px 10px; border: 1px solid ${tags.includes('已转投') ? '#722ed1' : '#d9d9d9'}; border-radius: 12px; font-size: 12px; cursor: pointer; background-color: ${tags.includes('已转投') ? '#722ed1' : '#fff'}; color: ${tags.includes('已转投') ? '#fff' : '#666'};">已转投</span>
                         </div>
                     `;
 
@@ -2826,8 +2790,7 @@
                         <div class="renewal-item-card" style="margin-bottom: 12px; padding: 12px; border: 1px solid #e8e8e8; border-radius: 6px; background-color: #fafafa;">
                             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
                                 <div style="font-weight: 600; color: #333; font-size: 14px;">${numberPrefix}${riskName}</div>
-                                <div style="display: flex; gap: 6px;">
-                                    <span class="renewal-status-badge ${getStatusClass(status)}" style="padding: 2px 8px; border-radius: 4px; font-size: 12px; background-color: ${status === 'renewed' ? '#f6ffed' : status === 'sent' ? '#fff7e6' : status === 'read' ? '#e6f7ff' : '#fff1f0'}; color: ${status === 'renewed' ? '#52c41a' : status === 'sent' ? '#fa8c16' : status === 'read' ? '#1890ff' : '#ff4d4f'};">${getStatusText(status)}</span>
+                                <div>
                                     <button class="copy-single-renewal-btn" data-policy-code="${policyCode}" data-index="${i}" style="padding: 4px 10px; background-color: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap;">复制本条</button>
                                 </div>
                             </div>
@@ -2839,7 +2802,6 @@
                                 ${extraHtml}
                                 ${tagHtml}
                                 ${tagSelectorHtml}
-                                ${statusHtml}
                             </div>
                         </div>
                     `;
@@ -2873,27 +2835,6 @@
                         const showNumber = grouped[holderName]?.length > 1;
                         const singleText = greeting + '\n\n' + generateSingleItemText(item, position + 1, holderName, showNumber);
                         copyToClipboard(singleText, '本条复制成功');
-                    }
-                });
-            });
-
-            outputList.querySelectorAll('.renewal-status-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const policyCode = e.currentTarget.getAttribute('data-policy-code');
-                    const status = e.currentTarget.getAttribute('data-status');
-                    const now = Date.now();
-                    
-                    const updates = { status };
-                    if (status === 'read') updates.readTime = now;
-                    else if (status === 'sent') updates.sendTime = now;
-                    else if (status === 'renewed') updates.renewTime = now;
-
-                    try {
-                        await updateRenewalStatus(policyCode, updates);
-                        showToast('状态更新成功');
-                        await loadRenewalsFromDB();
-                    } catch (err) {
-                        showToast('状态更新失败');
                     }
                 });
             });
