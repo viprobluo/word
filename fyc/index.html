@@ -2421,9 +2421,6 @@
 
             document.getElementById('parseRenewalBtn').addEventListener('click', parseRenewalData);
             document.getElementById('clearRenewalBtn').addEventListener('click', clearRenewalData);
-            document.getElementById('exportRenewalBtn').addEventListener('click', exportRenewalData);
-            document.getElementById('importRenewalBtn').addEventListener('click', () => document.getElementById('importRenewalFileInput').click());
-            document.getElementById('importRenewalFileInput').addEventListener('change', handleImportRenewalFile);
 
             document.querySelectorAll('#renewalTagFilter .renewal-filter-chip').forEach(chip => {
                 chip.addEventListener('click', (e) => {
@@ -2465,6 +2462,7 @@
                     loadRenewalsFromDB();
                 });
             });
+        }
 
         function clearAllInputs() {
             document.getElementById('policyJsonInput').value = '';
@@ -2608,100 +2606,6 @@
             } catch (e) {
                 console.error('加载失败:', e);
             }
-        }
-
-        async function exportRenewalData() {
-            try {
-                const renewals = await getAllRenewals();
-                const dataStr = JSON.stringify(renewals, null, 2);
-                const blob = new Blob([dataStr], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `renewals_${new Date().toISOString().split('T')[0]}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-                showToast('导出成功');
-            } catch (e) {
-                console.error('导出失败:', e);
-                showToast('导出失败');
-            }
-        }
-
-        function handleImportRenewalFile(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                try {
-                    let content = event.target.result;
-                    content = content.trim();
-                    
-                    if (content.startsWith('\uFEFF')) {
-                        content = content.substring(1);
-                    }
-
-                    let allItems = [];
-                    const chunks = content.split('===');
-                    
-                    for (const chunk of chunks) {
-                        const trimmedChunk = chunk.trim();
-                        if (!trimmedChunk) continue;
-                        
-                        try {
-                            const parsed = JSON.parse(trimmedChunk);
-                            
-                            if (Array.isArray(parsed)) {
-                                allItems = allItems.concat(parsed);
-                            } else if (parsed.data && Array.isArray(parsed.data.list)) {
-                                allItems = allItems.concat(parsed.data.list);
-                            } else if (parsed.data && Array.isArray(parsed.data)) {
-                                allItems = allItems.concat(parsed.data);
-                            } else if (parsed.list && Array.isArray(parsed.list)) {
-                                allItems = allItems.concat(parsed.list);
-                            } else {
-                                allItems.push(parsed);
-                            }
-                        } catch (parseErr) {
-                            console.warn('跳过无效JSON片段:', parseErr.message);
-                        }
-                    }
-
-                    if (allItems.length === 0) {
-                        showToast('未解析到任何有效数据');
-                        return;
-                    }
-
-                    const renewalItems = allItems.map(item => ({
-                        policyCode: item.policyCode || '',
-                        holderName: item.holderName || '',
-                        insuredName: item.insuredName || '',
-                        riskName: item.riskName || item.riskname || '',
-                        fee: item.fee || item.prem || '0',
-                        shouldGetDate: item.shouldGetDate || '',
-                        renewalBankName: item.renewalBankName || '',
-                        renewalBankNo: item.renewalBankNo || '',
-                        linkUrl: item.linkUrl || '',
-                        amnt: item.amnt || '',
-                        days: item.days || 0,
-                        status: item.status || 'pending',
-                        tags: item.tags || [],
-                        readTime: item.readTime || null,
-                        sendTime: item.sendTime || null,
-                        renewTime: item.renewTime || null
-                    })).filter(item => item.policyCode);
-
-                    await saveRenewals(renewalItems);
-                    showToast(`已导入 ${renewalItems.length} 条数据（重复数据已跳过）`);
-                    await loadRenewalsFromDB();
-                } catch (err) {
-                    console.error('导入失败:', err);
-                    showToast('导入失败，请检查文件格式');
-                }
-            };
-            reader.readAsText(file);
-            e.target.value = '';
         }
 
         function getHolderSurname(holderName) {
@@ -4762,7 +4666,6 @@
             } finally {
                 event.target.value = '';
             }
-        }
         }
     </script>
 </body>
