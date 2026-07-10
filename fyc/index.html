@@ -994,8 +994,7 @@
                 </div>
                 <div id="renewalResultSection" style="display: none;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h4 style="margin: 0; color: #333;">续保提醒内容</h4>
-                        <button id="copyAllRenewalBtn" style="padding: 6px 14px; background-color: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">一键复制全部</button>
+                        <h4 style="margin: 0; color: #333;">续保提醒内容（按投保人分组）</h4>
                     </div>
                     <div id="renewalOutputList"></div>
                 </div>
@@ -2280,7 +2279,6 @@
 
             document.getElementById('parseRenewalBtn').addEventListener('click', parseRenewalData);
             document.getElementById('clearRenewalBtn').addEventListener('click', clearRenewalData);
-            document.getElementById('copyAllRenewalBtn').addEventListener('click', copyAllRenewalText);
         }
 
         function clearAllInputs() {
@@ -2346,8 +2344,7 @@
                     grouped[holder].push(item);
                 }
 
-                const fullText = generateRenewalText(grouped);
-                renderRenewalOutput(grouped, fullText);
+                renderRenewalOutput(grouped);
                 resultSection.style.display = 'block';
                 showToast(`已解析 ${uniqueItems.length} 条续保数据`);
             } catch (e) {
@@ -2364,169 +2361,28 @@
             showToast('已清空');
         }
 
-        function generateRenewalText(grouped) {
-            const holderNames = Object.keys(grouped);
-            if (holderNames.length === 0) return '';
-
-            const greeting = '张老师你好，你的以下保单到了续保期，可以开始续保了\n';
-            const sections = [];
-
-            for (const holder of holderNames) {
-                const items = grouped[holder];
-                const holderSection = [];
-
-                for (let i = 0; i < items.length; i++) {
-                    const item = items[i];
-                    const num = i + 1;
-                    const riskName = item.riskName || item.riskname || '-';
-                    const policyCode = item.policyCode || item.policycode || '-';
-                    const insuredName = item.insuredName || item.insuredname || '-';
-                    const shouldGetDate = item.shouldGetDate || '-';
-                    const fee = formatRenewalFee(item.fee || item.prem);
-                    const isLongTerm = !!(item.renewalBankName || item.renewalBankNo);
-
-                    let itemText = `${toChineseNumber(num)}、${riskName}\n`;
-                    itemText += `保单号：${policyCode}\n`;
-                    itemText += `投保人：${holder} 被保人：${insuredName}\n`;
-                    itemText += `续保日期：${formatRenewalDate(shouldGetDate)}\n`;
-                    itemText += `保费：${fee} 元\n`;
-
-                    if (isLongTerm) {
-                        const bankName = item.renewalBankName || '-';
-                        const bankNo = item.renewalBankNo || '';
-                        const tailNo = extractBankTail(bankNo);
-                        itemText += `自动扣费银行卡：${bankName}${tailNo ? '（卡尾号 ' + tailNo + '）' : ''}\n`;
-                        itemText += `\n只需确保账户有 ${fee} 元，系统会自动扣款。为避免余额不足导致扣款失败影响保单权益，请提前安排好资金`;
-                    } else {
-                        let linkUrl = item.linkUrl || item.changeLine || '';
-                        linkUrl = linkUrl.replace(/^`|`$/g, '').trim();
-                        if (linkUrl) {
-                            itemText += `续保链接：${linkUrl}`;
-                        }
-                    }
-
-                    holderSection.push(itemText);
-                }
-
-                if (holderNames.length > 1) {
-                    sections.push(`${holder}的续保保单：\n\n${holderSection.join('\n\n')}`);
-                } else {
-                    sections.push(holderSection.join('\n\n'));
-                }
-            }
-
-            return greeting + '\n' + sections.join('\n\n');
+        function getHolderSurname(holderName) {
+            if (!holderName) return '未知';
+            return holderName.charAt(0);
         }
 
-        function renderRenewalOutput(grouped, fullText) {
-            const outputList = document.getElementById('renewalOutputList');
-            const holderNames = Object.keys(grouped);
-
-            let html = '';
-            for (const holder of holderNames) {
-                const items = grouped[holder];
-                if (holderNames.length > 1) {
-                    html += `<div style="margin-bottom: 8px; font-weight: 600; color: #1890ff; font-size: 15px;">${holder}的续保保单：</div>`;
-                }
-
-                for (let i = 0; i < items.length; i++) {
-                    const item = items[i];
-                    const num = i + 1;
-                    const riskName = item.riskName || item.riskname || '-';
-                    const policyCode = item.policyCode || item.policycode || '-';
-                    const insuredName = item.insuredName || item.insuredname || '-';
-                    const shouldGetDate = item.shouldGetDate || '-';
-                    const fee = formatRenewalFee(item.fee || item.prem);
-                    const isLongTerm = !!(item.renewalBankName || item.renewalBankNo);
-
-                    let cardHtml = '';
-                    if (isLongTerm) {
-                        const bankName = item.renewalBankName || '-';
-                        const bankNo = item.renewalBankNo || '';
-                        const tailNo = extractBankTail(bankNo);
-                        cardHtml += `<div style="margin-bottom: 4px;">自动扣费银行卡：${bankName}${tailNo ? '（卡尾号 ' + tailNo + '）' : ''}</div>`;
-                        cardHtml += `<div style="margin-top: 8px; padding: 8px; background-color: #fff7e6; border-radius: 4px; color: #d46b08; font-size: 13px;">只需确保账户有 ${fee} 元，系统会自动扣款。为避免余额不足导致扣款失败影响保单权益，请提前安排好资金</div>`;
-                    } else {
-                        let linkUrl = item.linkUrl || item.changeLine || '';
-                        linkUrl = linkUrl.replace(/^`|`$/g, '').trim();
-                        if (linkUrl) {
-                            cardHtml += `<div style="margin-bottom: 4px;">续保链接：<a href="${linkUrl}" target="_blank" style="color: #1890ff;">${linkUrl}</a></div>`;
-                        }
-                    }
-
-                    const itemText = generateSingleRenewalText(item, num, holder);
-
-                    html += `
-                        <div style="margin-bottom: 16px; padding: 12px; border: 1px solid #e8e8e8; border-radius: 6px; background-color: #fafafa;">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-                                <div style="font-weight: 600; color: #333; font-size: 14px;">${toChineseNumber(num)}、${riskName}</div>
-                                <button class="copy-single-renewal-btn" data-text="${escapeHtml(itemText)}" style="padding: 4px 10px; background-color: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap;">复制本条</button>
-                            </div>
-                            <div style="font-size: 13px; color: #555; line-height: 1.8;">
-                                <div>保单号：${policyCode}</div>
-                                <div>投保人：${holder} 被保人：${insuredName}</div>
-                                <div>续保日期：${formatRenewalDate(shouldGetDate)}</div>
-                                <div>保费：${fee} 元</div>
-                                ${cardHtml}
-                            </div>
-                        </div>
-                    `;
-                }
-                html += '<div style="margin-bottom: 20px;"></div>';
-            }
-
-            outputList.innerHTML = html;
-            outputList.dataset.fullText = fullText;
-
-            outputList.querySelectorAll('.copy-single-renewal-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const text = e.currentTarget.getAttribute('data-text');
-                    copyToClipboard(text, '本条复制成功');
-                });
-            });
+        function generateHolderGreeting(holderName) {
+            const surname = getHolderSurname(holderName);
+            return `${surname}老师你好，你的以下保单到了续保期，可以开始续保了`;
         }
 
-        function generateSingleRenewalText(item, num, holder) {
-            const riskName = item.riskName || item.riskname || '-';
-            const policyCode = item.policyCode || item.policycode || '-';
-            const insuredName = item.insuredName || item.insuredname || '-';
-            const shouldGetDate = item.shouldGetDate || '-';
-            const fee = formatRenewalFee(item.fee || item.prem);
-            const isLongTerm = !!(item.renewalBankName || item.renewalBankNo);
-
-            let text = `${toChineseNumber(num)}、${riskName}\n`;
-            text += `保单号：${policyCode}\n`;
-            text += `投保人：${holder} 被保人：${insuredName}\n`;
-            text += `续保日期：${formatRenewalDate(shouldGetDate)}\n`;
-            text += `保费：${fee} 元\n`;
-
-            if (isLongTerm) {
-                const bankName = item.renewalBankName || '-';
-                const bankNo = item.renewalBankNo || '';
-                const tailNo = extractBankTail(bankNo);
-                text += `自动扣费银行卡：${bankName}${tailNo ? '（卡尾号 ' + tailNo + '）' : ''}\n`;
-                text += `\n只需确保账户有 ${fee} 元，系统会自动扣款。为避免余额不足导致扣款失败影响保单权益，请提前安排好资金`;
-            } else {
-                let linkUrl = item.linkUrl || item.changeLine || '';
-                linkUrl = linkUrl.replace(/^`|`$/g, '').trim();
-                if (linkUrl) {
-                    text += `续保链接：${linkUrl}`;
-                }
+        function formatRenewalFeeSmart(fee) {
+            if (!fee) return '0';
+            const num = parseFloat(fee);
+            if (isNaN(num)) return '0';
+            if (num === Math.floor(num)) {
+                return num.toString();
             }
-
-            return text;
+            return num.toFixed(2).replace(/\.?0+$/, '');
         }
 
-        function copyAllRenewalText() {
-            const outputList = document.getElementById('renewalOutputList');
-            const fullText = outputList.dataset.fullText;
-            if (fullText) {
-                copyToClipboard(fullText, '全部内容复制成功');
-            }
-        }
-
-        function formatRenewalDate(dateStr) {
-            if (!dateStr || dateStr === '-') return '-';
+        function formatRenewalDateCN(dateStr) {
+            if (!dateStr) return '-';
             const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
             if (match) {
                 return `${match[1]} 年 ${parseInt(match[2])} 月 ${parseInt(match[3])} 日`;
@@ -2534,18 +2390,11 @@
             return dateStr;
         }
 
-        function formatRenewalFee(fee) {
-            if (!fee || fee === '-') return '0';
-            const num = parseFloat(fee);
-            if (isNaN(num)) return '0';
-            return num.toFixed(0);
-        }
-
         function extractBankTail(bankNo) {
             if (!bankNo) return '';
             const str = bankNo.toString();
-            const match = str.match(/(\d{4})$/);
-            return match ? match[1] : '';
+            const digits = str.replace(/\D/g, '');
+            return digits.slice(-4);
         }
 
         function toChineseNumber(num) {
@@ -2557,10 +2406,134 @@
             return chinese[tens] + '十' + (ones === 0 ? '' : chinese[ones]);
         }
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        function generateSingleItemText(item, num, holderName) {
+            const riskName = item.riskName || item.riskname || '-';
+            const policyCode = item.policyCode || item.policycode || '-';
+            const insuredName = item.insuredName || item.insuredname || '-';
+            const shouldGetDate = item.shouldGetDate || '-';
+            const fee = formatRenewalFeeSmart(item.fee || item.prem);
+            const isLongTerm = !!(item.renewalBankName);
+
+            let text = `${toChineseNumber(num)}、${riskName}\n`;
+            text += `保单号：${policyCode}\n`;
+            text += `投保人：${holderName}；被保人：${insuredName}\n`;
+            text += `续保日期：${formatRenewalDateCN(shouldGetDate)}\n`;
+            text += `保费：${fee} 元\n`;
+
+            if (isLongTerm) {
+                const bankName = item.renewalBankName || '-';
+                const bankNo = item.renewalBankNo || '';
+                const tailNo = extractBankTail(bankNo);
+                text += `自动扣费银行卡：${bankName}${tailNo ? '（卡尾号 ' + tailNo + '）' : ''}\n`;
+                text += `\n只需确保账户有 ${fee} 元，系统会自动扣款。为避免余额不足导致扣款失败影响保单权益，请提前安排好资金`;
+            } else {
+                let linkUrl = item.linkUrl || item.myLine || '';
+                linkUrl = linkUrl.replace(/^`|`$/g, '').trim();
+                if (linkUrl) {
+                    text += `续保链接：${linkUrl}\n`;
+                    text += `//点击即可续保`;
+                }
+            }
+
+            return text;
+        }
+
+        function generateHolderFullText(holderName, items) {
+            const greeting = generateHolderGreeting(holderName);
+            const itemTexts = items.map((item, i) => generateSingleItemText(item, i + 1, holderName));
+            return greeting + '\n\n' + itemTexts.join('\n\n');
+        }
+
+        function renderRenewalOutput(grouped) {
+            const outputList = document.getElementById('renewalOutputList');
+            const holderNames = Object.keys(grouped);
+
+            let html = '';
+            for (const holderName of holderNames) {
+                const items = grouped[holderName];
+                const holderFullText = generateHolderFullText(holderName, items);
+                const holderId = 'holder_' + holderName.replace(/\s/g, '_');
+
+                html += `
+                    <div class="renewal-holder-group" style="margin-bottom: 24px; padding: 16px; border: 1px solid #d9d9d9; border-radius: 8px; background-color: #fff;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <div style="font-weight: 600; color: #1890ff; font-size: 16px;">投保人：${holderName}（${items.length} 条）</div>
+                            <button class="copy-holder-btn" data-holder-text="${encodeURIComponent(holderFullText)}" style="padding: 6px 14px; background-color: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">复制该家庭全部</button>
+                        </div>
+                        <div class="renewal-holder-items">
+                `;
+
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
+                    const num = i + 1;
+                    const riskName = item.riskName || item.riskname || '-';
+                    const policyCode = item.policyCode || item.policycode || '-';
+                    const insuredName = item.insuredName || item.insuredname || '-';
+                    const shouldGetDate = item.shouldGetDate || '-';
+                    const fee = formatRenewalFeeSmart(item.fee || item.prem);
+                    const isLongTerm = !!(item.renewalBankName);
+
+                    const greeting = generateHolderGreeting(holderName);
+                    const singleText = greeting + '\n\n' + generateSingleItemText(item, num, holderName);
+
+                    let extraHtml = '';
+                    if (isLongTerm) {
+                        const bankName = item.renewalBankName || '-';
+                        const bankNo = item.renewalBankNo || '';
+                        const tailNo = extractBankTail(bankNo);
+                        extraHtml = `
+                            <div style="margin-top: 8px;">自动扣费银行卡：${bankName}${tailNo ? '（卡尾号 ' + tailNo + '）' : ''}</div>
+                            <div style="margin-top: 8px; padding: 8px; background-color: #fff7e6; border-radius: 4px; color: #d46b08; font-size: 13px;">只需确保账户有 ${fee} 元，系统会自动扣款。为避免余额不足导致扣款失败影响保单权益，请提前安排好资金</div>
+                        `;
+                    } else {
+                        let linkUrl = item.linkUrl || item.myLine || '';
+                        linkUrl = linkUrl.replace(/^`|`$/g, '').trim();
+                        if (linkUrl) {
+                            extraHtml = `
+                                <div style="margin-top: 8px;">续保链接：<a href="${linkUrl}" target="_blank" style="color: #1890ff; text-decoration: underline;">${linkUrl}</a></div>
+                                <div style="margin-top: 4px; color: #52c41a; font-size: 13px;">//点击即可续保</div>
+                            `;
+                        }
+                    }
+
+                    html += `
+                        <div class="renewal-item-card" style="margin-bottom: 12px; padding: 12px; border: 1px solid #e8e8e8; border-radius: 6px; background-color: #fafafa;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                                <div style="font-weight: 600; color: #333; font-size: 14px;">${toChineseNumber(num)}、${riskName}</div>
+                                <button class="copy-single-renewal-btn" data-text="${encodeURIComponent(singleText)}" style="padding: 4px 10px; background-color: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap;">复制本条</button>
+                            </div>
+                            <div style="font-size: 13px; color: #555; line-height: 1.8;">
+                                <div>保单号：${policyCode}</div>
+                                <div>投保人：${holderName}；被保人：${insuredName}</div>
+                                <div>续保日期：${formatRenewalDateCN(shouldGetDate)}</div>
+                                <div>保费：${fee} 元</div>
+                                ${extraHtml}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            outputList.innerHTML = html;
+
+            outputList.querySelectorAll('.copy-holder-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const text = decodeURIComponent(e.currentTarget.getAttribute('data-holder-text'));
+                    copyToClipboard(text, '该家庭全部内容复制成功');
+                });
+            });
+
+            outputList.querySelectorAll('.copy-single-renewal-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const text = decodeURIComponent(e.currentTarget.getAttribute('data-text'));
+                    copyToClipboard(text, '本条复制成功');
+                });
+            });
         }
 
         async function saveAllPolicies() {
