@@ -991,9 +991,6 @@
                         <span class="renewal-filter-chip" data-tag="不再续保" style="padding: 4px 12px; border: 1px solid #d9d9d9; border-radius: 14px; font-size: 12px; cursor: pointer; background-color: #fff; color: #666;">不再续保</span>
                         <span class="renewal-filter-chip" data-tag="已转投" style="padding: 4px 12px; border: 1px solid #d9d9d9; border-radius: 14px; font-size: 12px; cursor: pointer; background-color: #fff; color: #666;">已转投</span>
                     </div>
-                    <button id="exportRenewalBtn" style="padding: 6px 12px; font-size: 13px;">导出数据</button>
-                    <button id="importRenewalBtn" style="padding: 6px 12px; font-size: 13px; background-color: #52c41a;">导入数据</button>
-                    <input type="file" id="importRenewalFileInput" accept=".json" style="display: none;">
                 </div>
             </div>
             <div style="padding: 16px;">
@@ -1577,20 +1574,11 @@
                         const existing = request.result;
                         let data = { ...item };
                         if (existing) {
-                            data.status = existing.status || 'pending';
-                            data.tags = existing.tags || [];
-                            data.readTime = existing.readTime || null;
-                            data.sendTime = existing.sendTime || null;
-                            data.renewTime = existing.renewTime || null;
+                            data.createTime = existing.createTime || Date.now();
                         } else {
-                            data.status = 'pending';
-                            data.tags = [];
-                            data.readTime = null;
-                            data.sendTime = null;
-                            data.renewTime = null;
+                            data.createTime = Date.now();
                         }
                         data.updateTime = Date.now();
-                        if (!data.createTime) data.createTime = Date.now();
                         const putRequest = objectStore.put(data);
                         putRequest.onsuccess = () => {
                             count++;
@@ -4647,11 +4635,13 @@
             try {
                 const policies = await getAllPolicies();
                 const products = await getAllProducts();
+                const renewals = await getAllRenewals();
                 const exportData = {
                     version: '1.0',
                     exportTime: new Date().toISOString(),
                     policies: policies,
-                    products: products
+                    products: products,
+                    renewals: renewals
                 };
                 const jsonStr = JSON.stringify(exportData, null, 2);
                 const blob = new Blob([jsonStr], { type: 'application/json' });
@@ -4730,9 +4720,27 @@
                     }
                 }
 
+                if (importData.renewals && Array.isArray(importData.renewals)) {
+                    const transaction = db.transaction(['renewals'], 'readwrite');
+                    const objectStore = transaction.objectStore('renewals');
+                    await new Promise((resolve, reject) => {
+                        const clearRequest = objectStore.clear();
+                        clearRequest.onsuccess = resolve;
+                        clearRequest.onerror = () => reject(clearRequest.error);
+                    });
+                    for (const renewal of importData.renewals) {
+                        await new Promise((resolve, reject) => {
+                            const request = objectStore.put(renewal);
+                            request.onsuccess = resolve;
+                            request.onerror = () => reject(request.error);
+                        });
+                    }
+                }
+
                 showToast('数据导入成功');
                 loadPoliciesToManage();
                 loadProductsToManage();
+                await loadRenewalsFromDB();
             } catch (e) {
                 console.error('导入失败:', e);
                 showToast('导入失败：' + e.message);
