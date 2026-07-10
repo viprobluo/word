@@ -1000,6 +1000,9 @@
                 <div style="margin-bottom: 12px;">
                     <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #333;">续保数据 JSON（多条用 === 拼接）</label>
                     <textarea id="renewalJsonInput" rows="6" style="width: 100%; padding: 10px; border: 1px solid #d9d9d9; border-radius: 4px; font-family: monospace; font-size: 13px; resize: vertical;" placeholder="粘贴 queryRenewalTodoList 返回的 JSON 数据，多条用 === 分隔"></textarea>
+                    <div style="margin-top: 6px; padding: 8px 12px; background-color: #fff7e6; border: 1px solid #ffe58f; border-radius: 4px; color: #d48806; font-size: 12px; line-height: 1.6;">
+                        📌 <strong>数据来源：</strong>续期续保 → 未续汇总 → 未续保单 → <strong>queryRenewalTodoList</strong> 请求
+                    </div>
                 </div>
                 <div style="margin-bottom: 16px;">
                     <button id="parseRenewalBtn" class="btn-primary" style="margin-right: 10px;">解析并保存</button>
