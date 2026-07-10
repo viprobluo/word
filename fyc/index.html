@@ -982,6 +982,21 @@
         <div class="tab-content" id="renewal-remind-tab">
             <div class="policy-manage-header">
                 <h3>续保提醒</h3>
+                <div class="policy-manage-actions">
+                    <select id="renewalStatusFilter" class="status-select">
+                        <option value="all">全部状态</option>
+                        <option value="pending">待处理</option>
+                        <option value="read">已读</option>
+                        <option value="sent">已发送</option>
+                        <option value="renewed">已续保</option>
+                    </select>
+                    <select id="renewalTagFilter" class="status-select">
+                        <option value="all">全部标签</option>
+                    </select>
+                    <button id="exportRenewalBtn" style="padding: 6px 12px; font-size: 13px;">导出数据</button>
+                    <button id="importRenewalBtn" style="padding: 6px 12px; font-size: 13px; background-color: #52c41a;">导入数据</button>
+                    <input type="file" id="importRenewalFileInput" accept=".json" style="display: none;">
+                </div>
             </div>
             <div style="padding: 16px;">
                 <div style="margin-bottom: 12px;">
@@ -989,14 +1004,16 @@
                     <textarea id="renewalJsonInput" rows="6" style="width: 100%; padding: 10px; border: 1px solid #d9d9d9; border-radius: 4px; font-family: monospace; font-size: 13px; resize: vertical;" placeholder="粘贴 queryRenewalTodoList 返回的 JSON 数据，多条用 === 分隔"></textarea>
                 </div>
                 <div style="margin-bottom: 16px;">
-                    <button id="parseRenewalBtn" class="btn-primary" style="margin-right: 10px;">解析</button>
-                    <button id="clearRenewalBtn" style="padding: 8px 16px; background-color: #ff4d4f; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">清空</button>
+                    <button id="parseRenewalBtn" class="btn-primary" style="margin-right: 10px;">解析并保存</button>
+                    <button id="clearRenewalBtn" style="padding: 8px 16px; background-color: #ff4d4f; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">清空数据</button>
                 </div>
                 <div id="renewalResultSection" style="display: none;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h4 style="margin: 0; color: #333;">续保提醒内容（按投保人分组）</h4>
-                    </div>
                     <div id="renewalOutputList"></div>
+                </div>
+                <div id="renewalEmptyState" style="display: none; text-align: center; padding: 40px;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">📋</div>
+                    <div style="color: #666;">暂无续保数据</div>
+                    <div style="color: #999; font-size: 13px; margin-top: 8px;">请在上方输入 JSON 数据并点击"解析并保存"</div>
                 </div>
             </div>
         </div>
@@ -1317,7 +1334,7 @@
         }
 
         function initDB() {
-            const request = indexedDB.open('PolicyDB', 2);
+            const request = indexedDB.open('PolicyDB', 3);
             request.onerror = (event) => {
                 console.error('数据库打开失败:', event);
             };
@@ -1325,6 +1342,7 @@
                 db = event.target.result;
                 loadPoliciesToManage();
                 initDefaultProducts();
+                loadRenewalsFromDB();
             };
             request.onupgradeneeded = (event) => {
                 db = event.target.result;
@@ -1340,6 +1358,13 @@
                     productStore.createIndex('productKey', 'productKey', { unique: true });
                     productStore.createIndex('productName', 'productName', { unique: false });
                     productStore.createIndex('productType', 'productType', { unique: false });
+                }
+                if (!db.objectStoreNames.contains('renewals')) {
+                    const renewalStore = db.createObjectStore('renewals', { keyPath: 'policyCode' });
+                    renewalStore.createIndex('policyCode', 'policyCode', { unique: true });
+                    renewalStore.createIndex('holderName', 'holderName', { unique: false });
+                    renewalStore.createIndex('status', 'status', { unique: false });
+                    renewalStore.createIndex('tags', 'tags', { unique: false, multiEntry: true });
                 }
             };
         }
@@ -1501,6 +1526,116 @@
                 const transaction = db.transaction(['products'], 'readwrite');
                 const objectStore = transaction.objectStore('products');
                 const request = objectStore.delete(productKey);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getAllRenewals() {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject(new Error('数据库未初始化'));
+                    return;
+                }
+                const transaction = db.transaction(['renewals'], 'readonly');
+                const objectStore = transaction.objectStore('renewals');
+                const request = objectStore.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function getRenewalByPolicyCode(policyCode) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject(new Error('数据库未初始化'));
+                    return;
+                }
+                const transaction = db.transaction(['renewals'], 'readonly');
+                const objectStore = transaction.objectStore('renewals');
+                const request = objectStore.get(policyCode);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function saveRenewals(renewalItems) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject(new Error('数据库未初始化'));
+                    return;
+                }
+                const transaction = db.transaction(['renewals'], 'readwrite');
+                const objectStore = transaction.objectStore('renewals');
+                let count = 0;
+                const total = renewalItems.length;
+                
+                renewalItems.forEach(item => {
+                    const request = objectStore.get(item.policyCode);
+                    request.onsuccess = () => {
+                        const existing = request.result;
+                        let data = { ...item };
+                        if (existing) {
+                            data.status = existing.status || 'pending';
+                            data.tags = existing.tags || [];
+                            data.readTime = existing.readTime || null;
+                            data.sendTime = existing.sendTime || null;
+                            data.renewTime = existing.renewTime || null;
+                            data.notes = existing.notes || '';
+                        } else {
+                            data.status = 'pending';
+                            data.tags = [];
+                            data.readTime = null;
+                            data.sendTime = null;
+                            data.renewTime = null;
+                            data.notes = '';
+                        }
+                        data.updateTime = Date.now();
+                        if (!data.createTime) data.createTime = Date.now();
+                        const putRequest = objectStore.put(data);
+                        putRequest.onsuccess = () => {
+                            count++;
+                            if (count === total) resolve();
+                        };
+                        putRequest.onerror = () => reject(putRequest.error);
+                    };
+                });
+            });
+        }
+
+        function updateRenewalStatus(policyCode, updates) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject(new Error('数据库未初始化'));
+                    return;
+                }
+                const transaction = db.transaction(['renewals'], 'readwrite');
+                const objectStore = transaction.objectStore('renewals');
+                const getRequest = objectStore.get(policyCode);
+                getRequest.onsuccess = () => {
+                    const existing = getRequest.result;
+                    if (!existing) {
+                        reject(new Error('未找到该保单'));
+                        return;
+                    }
+                    const data = { ...existing, ...updates, updateTime: Date.now() };
+                    const putRequest = objectStore.put(data);
+                    putRequest.onsuccess = () => resolve(data);
+                    putRequest.onerror = () => reject(putRequest.error);
+                };
+                getRequest.onerror = () => reject(getRequest.error);
+            });
+        }
+
+        function deleteRenewal(policyCode) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject(new Error('数据库未初始化'));
+                    return;
+                }
+                const transaction = db.transaction(['renewals'], 'readwrite');
+                const objectStore = transaction.objectStore('renewals');
+                const request = objectStore.delete(policyCode);
                 request.onsuccess = () => resolve();
                 request.onerror = () => reject(request.error);
             });
@@ -2279,7 +2414,11 @@
 
             document.getElementById('parseRenewalBtn').addEventListener('click', parseRenewalData);
             document.getElementById('clearRenewalBtn').addEventListener('click', clearRenewalData);
-        }
+            document.getElementById('exportRenewalBtn').addEventListener('click', exportRenewalData);
+            document.getElementById('importRenewalBtn').addEventListener('click', () => document.getElementById('importRenewalFileInput').click());
+            document.getElementById('importRenewalFileInput').addEventListener('change', handleImportRenewalFile);
+            document.getElementById('renewalStatusFilter').addEventListener('change', loadRenewalsFromDB);
+            document.getElementById('renewalTagFilter').addEventListener('change', loadRenewalsFromDB);
 
         function clearAllInputs() {
             document.getElementById('policyJsonInput').value = '';
@@ -2299,10 +2438,8 @@
             showToast('已清空所有数据');
         }
 
-        function parseRenewalData() {
+        async function parseRenewalData() {
             const input = document.getElementById('renewalJsonInput').value.trim();
-            const resultSection = document.getElementById('renewalResultSection');
-            const outputList = document.getElementById('renewalOutputList');
 
             if (!input) {
                 showToast('请输入续保数据 JSON');
@@ -2328,37 +2465,177 @@
 
                 localStorage.setItem('renewal_raw_data', input);
 
-                const uniqueMap = new Map();
-                for (const item of allItems) {
+                const renewalItems = allItems.map(item => {
                     const policyCode = item.policyCode || item.policycode || '';
-                    if (policyCode && !uniqueMap.has(policyCode)) {
-                        uniqueMap.set(policyCode, item);
-                    }
-                }
-                const uniqueItems = Array.from(uniqueMap.values());
+                    if (!policyCode) return null;
+                    return {
+                        policyCode: policyCode,
+                        holderName: item.holderName || item.holdername || '',
+                        insuredName: item.insuredName || item.insuredname || '',
+                        riskName: item.riskName || item.riskname || '',
+                        fee: item.fee || item.prem || '0',
+                        shouldGetDate: item.shouldGetDate || '',
+                        renewalBankName: item.renewalBankName || '',
+                        renewalBankNo: item.renewalBankNo || '',
+                        linkUrl: (item.linkUrl || item.myLine || '').replace(/^`|`$/g, '').trim(),
+                        amnt: item.amnt || '',
+                        days: item.days || 0
+                    };
+                }).filter(Boolean);
 
-                const grouped = {};
-                for (const item of uniqueItems) {
-                    const holder = item.holderName || item.holdername || '未知投保人';
-                    if (!grouped[holder]) grouped[holder] = [];
-                    grouped[holder].push(item);
-                }
-
-                renderRenewalOutput(grouped);
-                resultSection.style.display = 'block';
-                showToast(`已解析 ${uniqueItems.length} 条续保数据`);
+                await saveRenewals(renewalItems);
+                showToast(`已保存 ${renewalItems.length} 条续保数据`);
+                await loadRenewalsFromDB();
             } catch (e) {
                 console.error('解析失败:', e);
                 showToast('JSON 解析失败，请检查数据格式');
             }
         }
 
-        function clearRenewalData() {
-            document.getElementById('renewalJsonInput').value = '';
-            document.getElementById('renewalResultSection').style.display = 'none';
-            document.getElementById('renewalOutputList').innerHTML = '';
-            localStorage.removeItem('renewal_raw_data');
-            showToast('已清空');
+        async function clearRenewalData() {
+            if (!confirm('确定要清空所有续保数据吗？此操作不可恢复！')) return;
+            
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(['renewals'], 'readwrite');
+                const objectStore = transaction.objectStore('renewals');
+                const request = objectStore.clear();
+                request.onsuccess = () => {
+                    document.getElementById('renewalJsonInput').value = '';
+                    document.getElementById('renewalResultSection').style.display = 'none';
+                    document.getElementById('renewalOutputList').innerHTML = '';
+                    document.getElementById('renewalEmptyState').style.display = 'block';
+                    localStorage.removeItem('renewal_raw_data');
+                    showToast('已清空所有续保数据');
+                    resolve();
+                };
+                request.onerror = () => {
+                    showToast('清空失败');
+                    reject(request.error);
+                };
+            });
+        }
+
+        async function loadRenewalsFromDB() {
+            try {
+                const allRenewals = await getAllRenewals();
+                const statusFilter = document.getElementById('renewalStatusFilter').value;
+                const tagFilter = document.getElementById('renewalTagFilter').value;
+
+                let filtered = allRenewals;
+                if (statusFilter !== 'all') {
+                    filtered = filtered.filter(r => r.status === statusFilter);
+                }
+                if (tagFilter !== 'all') {
+                    filtered = filtered.filter(r => r.tags && r.tags.includes(tagFilter));
+                }
+
+                updateTagFilterOptions(allRenewals);
+
+                if (filtered.length === 0) {
+                    document.getElementById('renewalResultSection').style.display = 'none';
+                    document.getElementById('renewalEmptyState').style.display = 'block';
+                    return;
+                }
+
+                document.getElementById('renewalEmptyState').style.display = 'none';
+                document.getElementById('renewalResultSection').style.display = 'block';
+
+                const grouped = {};
+                for (const item of filtered) {
+                    const holder = item.holderName || '未知投保人';
+                    if (!grouped[holder]) grouped[holder] = [];
+                    grouped[holder].push(item);
+                }
+
+                renderRenewalOutput(grouped);
+            } catch (e) {
+                console.error('加载失败:', e);
+            }
+        }
+
+        function updateTagFilterOptions(renewals) {
+            const allTags = new Set();
+            renewals.forEach(r => {
+                if (r.tags) {
+                    r.tags.forEach(t => allTags.add(t));
+                }
+            });
+
+            const select = document.getElementById('renewalTagFilter');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="all">全部标签</option>';
+            allTags.forEach(tag => {
+                const option = document.createElement('option');
+                option.value = tag;
+                option.textContent = tag;
+                select.appendChild(option);
+            });
+            if (allTags.has(currentValue)) {
+                select.value = currentValue;
+            }
+        }
+
+        async function exportRenewalData() {
+            try {
+                const renewals = await getAllRenewals();
+                const dataStr = JSON.stringify(renewals, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `renewals_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('导出成功');
+            } catch (e) {
+                console.error('导出失败:', e);
+                showToast('导出失败');
+            }
+        }
+
+        function handleImportRenewalFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    if (!Array.isArray(data)) {
+                        showToast('导入文件格式错误，应为数组');
+                        return;
+                    }
+
+                    const renewalItems = data.map(item => ({
+                        policyCode: item.policyCode || '',
+                        holderName: item.holderName || '',
+                        insuredName: item.insuredName || '',
+                        riskName: item.riskName || item.riskname || '',
+                        fee: item.fee || item.prem || '0',
+                        shouldGetDate: item.shouldGetDate || '',
+                        renewalBankName: item.renewalBankName || '',
+                        renewalBankNo: item.renewalBankNo || '',
+                        linkUrl: item.linkUrl || '',
+                        amnt: item.amnt || '',
+                        days: item.days || 0,
+                        status: item.status || 'pending',
+                        tags: item.tags || [],
+                        readTime: item.readTime || null,
+                        sendTime: item.sendTime || null,
+                        renewTime: item.renewTime || null,
+                        notes: item.notes || ''
+                    })).filter(item => item.policyCode);
+
+                    await saveRenewals(renewalItems);
+                    showToast(`已导入 ${renewalItems.length} 条数据（重复数据已跳过）`);
+                    await loadRenewalsFromDB();
+                } catch (err) {
+                    console.error('导入失败:', err);
+                    showToast('导入失败，请检查文件格式');
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
         }
 
         function getHolderSurname(holderName) {
@@ -2406,15 +2683,20 @@
             return chinese[tens] + '十' + (ones === 0 ? '' : chinese[ones]);
         }
 
-        function generateSingleItemText(item, num, holderName) {
+        function generateSingleItemText(item, num, holderName, showNumber = true) {
             const riskName = item.riskName || item.riskname || '-';
-            const policyCode = item.policyCode || item.policycode || '-';
-            const insuredName = item.insuredName || item.insuredname || '-';
+            const policyCode = item.policyCode || '-';
+            const insuredName = item.insuredName || '-';
             const shouldGetDate = item.shouldGetDate || '-';
-            const fee = formatRenewalFeeSmart(item.fee || item.prem);
+            const fee = formatRenewalFeeSmart(item.fee);
             const isLongTerm = !!(item.renewalBankName);
 
-            let text = `${toChineseNumber(num)}、${riskName}\n`;
+            let text = '';
+            if (showNumber) {
+                text = `${toChineseNumber(num)}、${riskName}\n`;
+            } else {
+                text = `${riskName}\n`;
+            }
             text += `保单号：${policyCode}\n`;
             text += `投保人：${holderName}；被保人：${insuredName}\n`;
             text += `续保日期：${formatRenewalDateCN(shouldGetDate)}\n`;
@@ -2427,8 +2709,7 @@
                 text += `自动扣费银行卡：${bankName}${tailNo ? '（卡尾号 ' + tailNo + '）' : ''}\n`;
                 text += `\n只需确保账户有 ${fee} 元，系统会自动扣款。为避免余额不足导致扣款失败影响保单权益，请提前安排好资金`;
             } else {
-                let linkUrl = item.linkUrl || item.myLine || '';
-                linkUrl = linkUrl.replace(/^`|`$/g, '').trim();
+                const linkUrl = item.linkUrl || '';
                 if (linkUrl) {
                     text += `续保链接：${linkUrl}\n`;
                     text += `//点击即可续保`;
@@ -2440,8 +2721,29 @@
 
         function generateHolderFullText(holderName, items) {
             const greeting = generateHolderGreeting(holderName);
-            const itemTexts = items.map((item, i) => generateSingleItemText(item, i + 1, holderName));
+            const showNumber = items.length > 1;
+            const itemTexts = items.map((item, i) => generateSingleItemText(item, i + 1, holderName, showNumber));
             return greeting + '\n\n' + itemTexts.join('\n\n');
+        }
+
+        function getStatusText(status) {
+            const map = {
+                pending: '待处理',
+                read: '已读',
+                sent: '已发送',
+                renewed: '已续保'
+            };
+            return map[status] || '待处理';
+        }
+
+        function getStatusClass(status) {
+            const map = {
+                pending: 'status-pending',
+                read: 'status-read',
+                sent: 'status-sent',
+                renewed: 'status-renewed'
+            };
+            return map[status] || 'status-pending';
         }
 
         function renderRenewalOutput(grouped) {
@@ -2452,7 +2754,7 @@
             for (const holderName of holderNames) {
                 const items = grouped[holderName];
                 const holderFullText = generateHolderFullText(holderName, items);
-                const holderId = 'holder_' + holderName.replace(/\s/g, '_');
+                const showNumber = items.length > 1;
 
                 html += `
                     <div class="renewal-holder-group" style="margin-bottom: 24px; padding: 16px; border: 1px solid #d9d9d9; border-radius: 8px; background-color: #fff;">
@@ -2467,14 +2769,16 @@
                     const item = items[i];
                     const num = i + 1;
                     const riskName = item.riskName || item.riskname || '-';
-                    const policyCode = item.policyCode || item.policycode || '-';
-                    const insuredName = item.insuredName || item.insuredname || '-';
+                    const policyCode = item.policyCode || '-';
+                    const insuredName = item.insuredName || '-';
                     const shouldGetDate = item.shouldGetDate || '-';
-                    const fee = formatRenewalFeeSmart(item.fee || item.prem);
+                    const fee = formatRenewalFeeSmart(item.fee);
                     const isLongTerm = !!(item.renewalBankName);
+                    const status = item.status || 'pending';
+                    const tags = item.tags || [];
 
                     const greeting = generateHolderGreeting(holderName);
-                    const singleText = greeting + '\n\n' + generateSingleItemText(item, num, holderName);
+                    const singleText = greeting + '\n\n' + generateSingleItemText(item, num, holderName, showNumber);
 
                     let extraHtml = '';
                     if (isLongTerm) {
@@ -2486,8 +2790,7 @@
                             <div style="margin-top: 8px; padding: 8px; background-color: #fff7e6; border-radius: 4px; color: #d46b08; font-size: 13px;">只需确保账户有 ${fee} 元，系统会自动扣款。为避免余额不足导致扣款失败影响保单权益，请提前安排好资金</div>
                         `;
                     } else {
-                        let linkUrl = item.linkUrl || item.myLine || '';
-                        linkUrl = linkUrl.replace(/^`|`$/g, '').trim();
+                        const linkUrl = item.linkUrl || '';
                         if (linkUrl) {
                             extraHtml = `
                                 <div style="margin-top: 8px;">续保链接：<a href="${linkUrl}" target="_blank" style="color: #1890ff; text-decoration: underline;">${linkUrl}</a></div>
@@ -2496,11 +2799,40 @@
                         }
                     }
 
+                    const tagHtml = tags.length > 0 ? 
+                        `<div style="margin-top: 8px;">${tags.map(t => `<span style="display: inline-block; margin-right: 6px; padding: 2px 8px; background-color: #e6f7ff; color: #1890ff; border-radius: 4px; font-size: 12px;">${t}</span>`).join('')}</div>` : '';
+
+                    const statusHtml = `
+                        <div style="display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap;">
+                            <button class="renewal-status-btn ${status === 'read' ? 'active' : ''}" data-policy-code="${policyCode}" data-status="read" style="padding: 3px 8px; font-size: 12px; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; background-color: ${status === 'read' ? '#1890ff' : '#fff'}; color: ${status === 'read' ? '#fff' : '#666'};">已读</button>
+                            <button class="renewal-status-btn ${status === 'sent' ? 'active' : ''}" data-policy-code="${policyCode}" data-status="sent" style="padding: 3px 8px; font-size: 12px; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; background-color: ${status === 'sent' ? '#fa8c16' : '#fff'}; color: ${status === 'sent' ? '#fff' : '#666'};">已发送</button>
+                            <button class="renewal-status-btn ${status === 'renewed' ? 'active' : ''}" data-policy-code="${policyCode}" data-status="renewed" style="padding: 3px 8px; font-size: 12px; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; background-color: ${status === 'renewed' ? '#52c41a' : '#fff'}; color: ${status === 'renewed' ? '#fff' : '#666'};">已续保</button>
+                        </div>
+                    `;
+
+                    const notesHtml = `
+                        <div style="margin-top: 8px;">
+                            <textarea class="renewal-notes-input" data-policy-code="${policyCode}" rows="2" placeholder="添加备注..." style="width: 100%; padding: 6px; border: 1px solid #e8e8e8; border-radius: 4px; font-size: 12px; resize: vertical;">${item.notes || ''}</textarea>
+                        </div>
+                    `;
+
+                    const tagInputHtml = `
+                        <div style="margin-top: 8px; display: flex; gap: 4px;">
+                            <input type="text" class="renewal-tag-input" data-policy-code="${policyCode}" placeholder="添加标签" style="flex: 1; padding: 4px 8px; border: 1px solid #e8e8e8; border-radius: 4px; font-size: 12px;">
+                            <button class="renewal-add-tag-btn" data-policy-code="${policyCode}" style="padding: 4px 12px; font-size: 12px; background-color: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer;">添加标签</button>
+                        </div>
+                    `;
+
+                    const numberPrefix = showNumber ? `${toChineseNumber(num)}、` : '';
+
                     html += `
                         <div class="renewal-item-card" style="margin-bottom: 12px; padding: 12px; border: 1px solid #e8e8e8; border-radius: 6px; background-color: #fafafa;">
                             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-                                <div style="font-weight: 600; color: #333; font-size: 14px;">${toChineseNumber(num)}、${riskName}</div>
-                                <button class="copy-single-renewal-btn" data-text="${encodeURIComponent(singleText)}" style="padding: 4px 10px; background-color: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap;">复制本条</button>
+                                <div style="font-weight: 600; color: #333; font-size: 14px;">${numberPrefix}${riskName}</div>
+                                <div style="display: flex; gap: 6px;">
+                                    <span class="renewal-status-badge ${getStatusClass(status)}" style="padding: 2px 8px; border-radius: 4px; font-size: 12px; background-color: ${status === 'renewed' ? '#f6ffed' : status === 'sent' ? '#fff7e6' : status === 'read' ? '#e6f7ff' : '#fff1f0'}; color: ${status === 'renewed' ? '#52c41a' : status === 'sent' ? '#fa8c16' : status === 'read' ? '#1890ff' : '#ff4d4f'};">${getStatusText(status)}</span>
+                                    <button class="copy-single-renewal-btn" data-text="${encodeURIComponent(singleText)}" style="padding: 4px 10px; background-color: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap;">复制本条</button>
+                                </div>
                             </div>
                             <div style="font-size: 13px; color: #555; line-height: 1.8;">
                                 <div>保单号：${policyCode}</div>
@@ -2508,6 +2840,10 @@
                                 <div>续保日期：${formatRenewalDateCN(shouldGetDate)}</div>
                                 <div>保费：${fee} 元</div>
                                 ${extraHtml}
+                                ${tagHtml}
+                                ${statusHtml}
+                                ${notesHtml}
+                                ${tagInputHtml}
                             </div>
                         </div>
                     `;
@@ -2532,6 +2868,63 @@
                 btn.addEventListener('click', (e) => {
                     const text = decodeURIComponent(e.currentTarget.getAttribute('data-text'));
                     copyToClipboard(text, '本条复制成功');
+                });
+            });
+
+            outputList.querySelectorAll('.renewal-status-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const policyCode = e.currentTarget.getAttribute('data-policy-code');
+                    const status = e.currentTarget.getAttribute('data-status');
+                    const now = Date.now();
+                    
+                    const updates = { status };
+                    if (status === 'read') updates.readTime = now;
+                    else if (status === 'sent') updates.sendTime = now;
+                    else if (status === 'renewed') updates.renewTime = now;
+
+                    try {
+                        await updateRenewalStatus(policyCode, updates);
+                        showToast('状态更新成功');
+                        await loadRenewalsFromDB();
+                    } catch (err) {
+                        showToast('状态更新失败');
+                    }
+                });
+            });
+
+            outputList.querySelectorAll('.renewal-notes-input').forEach(textarea => {
+                textarea.addEventListener('blur', async (e) => {
+                    const policyCode = e.currentTarget.getAttribute('data-policy-code');
+                    const notes = e.currentTarget.value;
+                    try {
+                        await updateRenewalStatus(policyCode, { notes });
+                    } catch (err) {
+                        console.error('保存备注失败:', err);
+                    }
+                });
+            });
+
+            outputList.querySelectorAll('.renewal-add-tag-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const policyCode = e.currentTarget.getAttribute('data-policy-code');
+                    const input = e.currentTarget.previousElementSibling;
+                    const tag = input.value.trim();
+                    if (!tag) return;
+
+                    try {
+                        const existing = await getRenewalByPolicyCode(policyCode);
+                        if (existing) {
+                            const tags = existing.tags || [];
+                            if (!tags.includes(tag)) {
+                                tags.push(tag);
+                                await updateRenewalStatus(policyCode, { tags });
+                            }
+                        }
+                        input.value = '';
+                        await loadRenewalsFromDB();
+                    } catch (err) {
+                        showToast('添加标签失败');
+                    }
                 });
             });
         }
