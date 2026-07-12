@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const clearButton = document.getElementById('clearButton');
     const xhButton = document.getElementById('xh');
     const cbzButton = document.getElementById('cbzButton');
+    const archiveButton = document.getElementById('archiveButton');
 
     // ---------- 数据存储 ----------
     const STORAGE_KEY = 'xzt_docs';
@@ -491,6 +492,65 @@ document.addEventListener('DOMContentLoaded', function () {
         window.open('https://xiezuocat.com/pro/8689953271362609152', '_blank');
     }
 
+    // ---------- 归档 ----------
+    async function archiveDoc() {
+        const text = editor.value;
+        if (!text.trim()) {
+            showAutoCloseAlert('文档为空，无法归档');
+            return;
+        }
+
+        const title = getFirstNonEmptyLine(text);
+        const now = new Date();
+        const dateStr = now.getFullYear() +
+            String(now.getMonth() + 1).padStart(2, '0') +
+            String(now.getDate()).padStart(2, '0');
+        const fileName = `${dateStr}_${title}.md`;
+        const archivePath = 'D:\\BaiduSyncdisk\\Adu-ai\\AduStyleLib';
+
+        // 复制路径到剪贴板
+        try {
+            await navigator.clipboard.writeText(archivePath);
+        } catch (e) {
+            const textArea = document.createElement('textarea');
+            textArea.value = archivePath;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+        }
+
+        // 尝试使用 File System Access API（让用户选择保存位置）
+        if (window.showSaveFilePicker) {
+            try {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: fileName,
+                    types: [{
+                        description: 'Markdown',
+                        accept: { 'text/markdown': ['.md'] }
+                    }]
+                });
+                const writable = await handle.createWritable();
+                await writable.write(text);
+                await writable.close();
+                showAutoCloseAlert('已归档，路径已复制到剪贴板');
+                return;
+            } catch (e) {
+                if (e.name === 'AbortError') return;
+            }
+        }
+
+        // 降级：直接下载
+        const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+        showAutoCloseAlert('已下载，路径已复制到剪贴板');
+    }
+
     // ---------- 清空 ----------
     function clear() {
         if (confirm('确定要清空当前文档吗？')) {
@@ -610,6 +670,7 @@ document.addEventListener('DOMContentLoaded', function () {
     xhButton.addEventListener('click', xhText);
     cleanMarkdownButton.addEventListener('click', cleanMarkdown);
     cbzButton.addEventListener('click', linkCbz);
+    archiveButton.addEventListener('click', archiveDoc);
 
     // Delete 键清空（仅当编辑器未聚焦时）
     document.addEventListener('keydown', function (e) {
