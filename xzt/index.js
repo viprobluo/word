@@ -492,63 +492,89 @@ document.addEventListener('DOMContentLoaded', function () {
         window.open('https://xiezuocat.com/pro/8689953271362609152', '_blank');
     }
 
-    // ---------- 归档 ----------
-    async function archiveDoc() {
-        const text = editor.value;
-        if (!text.trim()) {
-            showAutoCloseAlert('文档为空，无法归档');
-            return;
-        }
+    // ---------- 工具：清理文件名 ----------
+    function sanitizeFileName(name) {
+        return name.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim().slice(0, 100);
+    }
 
-        const title = getFirstNonEmptyLine(text);
-        const now = new Date();
-        const dateStr = now.getFullYear() +
-            String(now.getMonth() + 1).padStart(2, '0') +
-            String(now.getDate()).padStart(2, '0');
-        const fileName = `${dateStr}_${title}.md`;
-        const archivePath = 'D:\\BaiduSyncdisk\\Adu-ai\\AduStyleLib';
-
-        // 复制路径到剪贴板
+    // ---------- 工具：复制文本到剪贴板 ----------
+    async function copyToClipboard(text) {
         try {
-            await navigator.clipboard.writeText(archivePath);
+            await navigator.clipboard.writeText(text);
+            return true;
         } catch (e) {
-            const textArea = document.createElement('textarea');
-            textArea.value = archivePath;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-        }
-
-        // 优先使用 File System Access API（Chrome/Edge），弹出保存对话框
-        if (window.showSaveFilePicker) {
             try {
-                const handle = await window.showSaveFilePicker({
-                    suggestedName: fileName,
-                    types: [{
-                        description: 'Markdown',
-                        accept: { 'text/markdown': ['.md'] }
-                    }]
-                });
-                const writable = await handle.createWritable();
-                await writable.write(text);
-                await writable.close();
-                showAutoCloseAlert('已归档，路径已复制到剪贴板');
-                return;
-            } catch (e) {
-                if (e.name === 'AbortError') return;
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                return true;
+            } catch (e2) {
+                return false;
             }
         }
+    }
 
-        // 降级：直接下载
-        const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        a.click();
-        URL.revokeObjectURL(url);
-        showAutoCloseAlert('已下载，路径已复制到剪贴板');
+    // ---------- 归档 ----------
+    async function archiveDoc() {
+        try {
+            const text = editor.value;
+            if (!text.trim()) {
+                showAutoCloseAlert('文档为空，无法归档');
+                return;
+            }
+
+            const title = getFirstNonEmptyLine(text);
+            const cleanTitle = sanitizeFileName(title);
+            const now = new Date();
+            const dateStr = now.getFullYear() +
+                String(now.getMonth() + 1).padStart(2, '0') +
+                String(now.getDate()).padStart(2, '0');
+            const fileName = `${dateStr}_${cleanTitle}.md`;
+            const archivePath = 'D:\\BaiduSyncdisk\\Adu-ai\\AduStyleLib';
+
+            await copyToClipboard(archivePath);
+
+            // 优先使用 File System Access API（Chrome/Edge），弹出保存对话框
+            if (window.showSaveFilePicker) {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: fileName,
+                        types: [{
+                            description: 'Markdown',
+                            accept: { 'text/markdown': ['.md'] }
+                        }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(text);
+                    await writable.close();
+                    showAutoCloseAlert('已归档，路径已复制到剪贴板');
+                    return;
+                } catch (e) {
+                    if (e.name === 'AbortError') return;
+                    console.warn('showSaveFilePicker 失败，降级为下载:', e);
+                }
+            }
+
+            // 降级：直接下载
+            const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            showAutoCloseAlert('已下载，路径已复制到剪贴板');
+        } catch (e) {
+            console.error('归档失败:', e);
+            showAutoCloseAlert('归档失败，请查看控制台');
+        }
     }
 
     // ---------- 清空 ----------
