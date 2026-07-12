@@ -497,84 +497,90 @@ document.addEventListener('DOMContentLoaded', function () {
         return name.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim().slice(0, 100);
     }
 
-    // ---------- 工具：复制文本到剪贴板 ----------
-    async function copyToClipboard(text) {
-        try {
-            await navigator.clipboard.writeText(text);
-            return true;
-        } catch (e) {
+    // ---------- 工具：复制文本到剪贴板（不阻塞，不抛错） ----------
+    function copyToClipboardSafe(text) {
+        setTimeout(function () {
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).catch(function () { });
+                    return;
+                }
+            } catch (e) { }
             try {
                 const textArea = document.createElement('textarea');
                 textArea.value = text;
                 textArea.style.position = 'fixed';
                 textArea.style.opacity = '0';
                 document.body.appendChild(textArea);
+                textArea.focus();
                 textArea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
-                return true;
-            } catch (e2) {
-                return false;
-            }
-        }
+            } catch (e) { }
+        }, 0);
+    }
+
+    // ---------- 工具：触发文件下载 ----------
+    function triggerDownload(text, fileName) {
+        const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
     }
 
     // ---------- 归档 ----------
-    async function archiveDoc() {
-        try {
-            const text = editor.value;
-            if (!text.trim()) {
-                showAutoCloseAlert('文档为空，无法归档');
-                return;
-            }
-
-            const title = getFirstNonEmptyLine(text);
-            const cleanTitle = sanitizeFileName(title);
-            const now = new Date();
-            const dateStr = now.getFullYear() +
-                String(now.getMonth() + 1).padStart(2, '0') +
-                String(now.getDate()).padStart(2, '0');
-            const fileName = `${dateStr}_${cleanTitle}.md`;
-            const archivePath = 'D:\\BaiduSyncdisk\\Adu-ai\\AduStyleLib';
-
-            await copyToClipboard(archivePath);
-
-            // 优先使用 File System Access API（Chrome/Edge），弹出保存对话框
-            if (window.showSaveFilePicker) {
-                try {
-                    const handle = await window.showSaveFilePicker({
-                        suggestedName: fileName,
-                        types: [{
-                            description: 'Markdown',
-                            accept: { 'text/markdown': ['.md'] }
-                        }]
-                    });
-                    const writable = await handle.createWritable();
-                    await writable.write(text);
-                    await writable.close();
-                    showAutoCloseAlert('已归档，路径已复制到剪贴板');
-                    return;
-                } catch (e) {
-                    if (e.name === 'AbortError') return;
-                    console.warn('showSaveFilePicker 失败，降级为下载:', e);
-                }
-            }
-
-            // 降级：直接下载
-            const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-            showAutoCloseAlert('已下载，路径已复制到剪贴板');
-        } catch (e) {
-            console.error('归档失败:', e);
-            showAutoCloseAlert('归档失败，请查看控制台');
+    function archiveDoc() {
+        const text = editor.value;
+        if (!text.trim()) {
+            showAutoCloseAlert('文档为空，无法归档');
+            return;
         }
+
+        const title = getFirstNonEmptyLine(text);
+        const cleanTitle = sanitizeFileName(title);
+        const now = new Date();
+        const dateStr = now.getFullYear() +
+            String(now.getMonth() + 1).padStart(2, '0') +
+            String(now.getDate()).padStart(2, '0');
+        const fileName = `${dateStr}_${cleanTitle}.md`;
+        const archivePath = 'D:\\BaiduSyncdisk\\Adu-ai\\AduStyleLib';
+
+        // 优先使用 File System Access API（Chrome/Edge），弹出保存对话框
+        if (window.showSaveFilePicker) {
+            window.showSaveFilePicker({
+                suggestedName: fileName,
+                types: [{
+                    description: 'Markdown',
+                    accept: { 'text/markdown': ['.md'] }
+                }]
+            }).then(function (handle) {
+                return handle.createWritable().then(function (writable) {
+                    return writable.write(text).then(function () {
+                        return writable.close();
+                    });
+                });
+            }).then(function () {
+                copyToClipboardSafe(archivePath);
+                showAutoCloseAlert('已归档，路径已复制到剪贴板');
+            }).catch(function (e) {
+                if (e && e.name === 'AbortError') return;
+                console.warn('showSaveFilePicker 失败，降级为下载:', e);
+                triggerDownload(text, fileName);
+                copyToClipboardSafe(archivePath);
+                showAutoCloseAlert('已下载，路径已复制到剪贴板');
+            });
+            return;
+        }
+
+        // 不支持 showSaveFilePicker，直接下载
+        triggerDownload(text, fileName);
+        copyToClipboardSafe(archivePath);
+        showAutoCloseAlert('已下载，路径已复制到剪贴板');
     }
 
     // ---------- 清空 ----------
