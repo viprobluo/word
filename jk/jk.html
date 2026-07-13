@@ -1,816 +1,1300 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>即刻数据提取排序工具</title>
-<style>
-* { box-sizing: border-box; }
-body {
-    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
-    margin: 20px;
-    background: #f0f2f5;
-    color: #1e2a3a;
-}
-.container {
-    max-width: 1000px;
-    margin: auto;
-    background: #fff;
-    padding: 24px 28px;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-}
-h1 {
-    text-align: center;
-    font-weight: 600;
-    font-size: 26px;
-    color: #0b1a2b;
-    margin-top: 4px;
-    margin-bottom: 20px;
-    letter-spacing: 0.5px;
-}
-.drop-zone {
-    border: 2px dashed #c0c8d8;
-    border-radius: 12px;
-    padding: 32px 20px;
-    text-align: center;
-    background: #f8faff;
-    transition: background 0.2s, border-color 0.2s;
-    cursor: pointer;
-    margin-bottom: 18px;
-    min-height: 120px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-.drop-zone.dragover {
-    background: #e6f0ff;
-    border-color: #4a7cff;
-}
-.drop-zone p {
-    margin: 0;
-    color: #3d4a5c;
-    font-size: 17px;
-}
-.drop-zone .hint {
-    font-size: 14px;
-    color: #8a9aa8;
-    margin-top: 6px;
-}
-.drop-zone .file-info {
-    font-weight: 600;
-    color: #1a73e8;
-    margin-top: 8px;
-    font-size: 16px;
-}
-.filter {
-    margin: 14px 0;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-.filter label {
-    font-weight: 500;
-    color: #2c3e50;
-}
-.filter input {
-    width: 100px;
-    padding: 6px 10px;
-    border: 1px solid #d0d7e2;
-    border-radius: 8px;
-    font-size: 14px;
-    background: #fafcff;
-}
-.filter input:focus {
-    outline: none;
-    border-color: #4a7cff;
-    box-shadow: 0 0 0 2px rgba(74,124,255,0.15);
-}
-.btn-group {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 16px;
-}
-.btn {
-    padding: 8px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.05s;
-}
-.btn:active { transform: scale(0.97); }
-.btn-primary { background: #1a73e8; color: #fff; }
-.btn-primary:hover { background: #1557b0; }
-.btn-success { background: #1e8e3e; color: #fff; }
-.btn-success:hover { background: #166b2f; }
-.btn-danger { background: #d93025; color: #fff; }
-.btn-danger:hover { background: #b3261e; }
-.btn-outline { background: transparent; color: #3d4a5c; border: 1px solid #d0d7e2; }
-.btn-outline:hover { background: #f0f4fb; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>即刻APP个人主页提取</title>
+    <style>
+        /* ===== 全局重置 & 暗色主题 ===== */
+        * {
+            box-sizing: border-box;
+        }
 
-.output-area {
-    width: 100%;
-    height: 600px;
-    padding: 12px 16px;
-    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    overflow: auto;
-    background: #fafcff;
-    resize: vertical;
-    font-size: 15px;
-    line-height: 1.6;
-    color: #1e2a3a;
-}
+        :root {
+            --bg-body: #0d1117;
+            --bg-container: #161b22;
+            --bg-card: #1c2333;
+            --bg-card-hover: #242c3d;
+            --bg-input: #0d1117;
+            --bg-drop: #0d1117;
+            --bg-drop-hover: #1c2333;
+            --bg-code: #1c2333;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #484f58;
+            --text-link: #58a6ff;
+            --border-color: #30363d;
+            --border-light: #21262d;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            --blue: #58a6ff;
+            --blue-hover: #388bfd;
+            --green: #3fb950;
+            --green-hover: #2ea043;
+            --red: #f85149;
+            --red-hover: #da3633;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --font: -apple-system, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+            --max-width: 560px;
+        }
 
-/* ====== 每条动态卡片 ====== */
-.entry {
-    background: #ffffff;
-    border-radius: 10px;
-    padding: 12px 16px;
-    margin-bottom: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    border: 1px solid #edf2f7;
-    transition: box-shadow 0.1s;
-}
-.entry:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-}
-.entry .top-num-row {
-    font-weight: 600;
-    font-size: 14px;
-    color: #1a73e8;
-    letter-spacing: 0.2px;
-    margin-bottom: 4px;
-}
-.entry .title-row {
-    margin-bottom: 2px;
-}
-.entry .title-row .editable-title {
-    width: 100%;
-    border: none;
-    background: transparent;
-    font-weight: 600;
-    font-size: 16px;
-    color: #0b1a2b;
-    outline: none;
-    padding: 2px 4px;
-    border-radius: 4px;
-    resize: none;
-    font-family: inherit;
-    line-height: 1.4;
-    overflow: hidden;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-.entry .title-row .editable-title:hover {
-    background: #f0f4fb;
-}
-.entry .title-row .editable-title:focus {
-    background: #e6f0ff;
-    box-shadow: 0 0 0 2px rgba(74,124,255,0.2);
-}
-.entry .link-row {
-    margin: 2px 0 6px 0;
-}
-.entry .link-row a {
-    color: #1a73e8;
-    text-decoration: none;
-    font-weight: 500;
-    font-size: 14px;
-    word-break: break-all;
-    border-bottom: 1px solid transparent;
-    transition: border-color 0.15s;
-}
-.entry .link-row a:hover {
-    border-bottom-color: #1a73e8;
-}
-.entry .actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin: 6px 0 4px 0;
-    align-items: center;
-}
-.entry .actions .hint-text {
-    font-size: 12px;
-    color: #8a9aa8;
-    margin-left: 4px;
-    pointer-events: none;
-}
-.entry .actions .btn-sm {
-    padding: 3px 12px;
-    font-size: 12px;
-    border-radius: 6px;
-    border: 1px solid transparent;
-    background: #f0f4fb;
-    color: #2c3e50;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
-    font-weight: 500;
-}
-.entry .actions .btn-sm:hover {
-    background: #e2eaf5;
-}
-.entry .actions .btn-sm.copy-single {
-    background: #fef3d7;
-    color: #7a5800;
-}
-.entry .actions .btn-sm.copy-single:hover {
-    background: #fde6b0;
-}
-.entry .actions .btn-sm.copy-single.copied {
-    background: #d4edda;
-    color: #155724;
-}
-.entry .actions .btn-sm.toggle-body-btn {
-    background: #e8f0fe;
-    color: #1a5bb5;
-}
-.entry .actions .btn-sm.toggle-body-btn:hover {
-    background: #d2e3fc;
-}
-.entry .actions .btn-sm.hide-btn {
-    background: #fee8e6;
-    color: #b33a34;
-}
-.entry .actions .btn-sm.hide-btn:hover {
-    background: #fcd5d0;
-}
+        html {
+            scroll-behavior: smooth;
+        }
 
-/* ====== 正文样式（已优化） ====== */
-.entry .body-text {
-    margin-top: 8px;
-    padding: 10px 14px;
-    background: #f7f9fc;
-    border-radius: 8px;
-    border-left: 3px solid #1a73e8;
-    font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
-    font-size: 15px;
-    line-height: 1.7;
-    color: #1e2a3a;
-    word-wrap: break-word;
-    word-break: break-word;
-    white-space: pre-wrap;
-    max-width: 300px; /* 约21个汉字 */
-    cursor: text;
-}
-@media (max-width: 600px) {
-    .entry .body-text {
-        max-width: 100%;
-        font-size: 14px;
-        padding: 8px 10px;
-    }
-}
+        body {
+            font-family: var(--font);
+            margin: 16px;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px 12px;
+        }
 
-/* ====== 浮动 Toast ====== */
-#toast {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    background: #2c3e50;
-    color: #fff;
-    padding: 12px 24px;
-    border-radius: 10px;
-    font-size: 14px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-    opacity: 0;
-    transition: opacity 0.25s ease;
-    pointer-events: none;
-    z-index: 999;
-    max-width: 80%;
-    font-weight: 500;
-}
-#toast.show { opacity: 1; }
-#toast.success { background: #1e8e3e; }
-#toast.error { background: #d93025; }
+        .container {
+            max-width: var(--max-width);
+            width: 100%;
+            margin: 0 auto;
+            background: var(--bg-container);
+            padding: 22px 24px 28px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
+        }
 
-.info-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    margin-bottom: 18px;
-    padding: 12px 16px;
-    background: #f8faff;
-    border-radius: 10px;
-    border: 1px solid #e2e8f0;
-    align-items: center;
-}
-.info-bar .nickname-area {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-.info-label {
-    font-weight: 500;
-    color: #2c3e50;
-    white-space: nowrap;
-}
-#nicknameDisplay {
-    color: #1a73e8;
-    font-weight: 600;
-}
-</style>
+        /* ===== 标题与副标题 ===== */
+        .header {
+            text-align: center;
+            margin-bottom: 18px;
+        }
+        .header h1 {
+            font-weight: 600;
+            font-size: 24px;
+            color: var(--text-primary);
+            margin: 0 0 2px 0;
+            letter-spacing: 0.3px;
+        }
+        .header h1 span {
+            color: var(--blue);
+        }
+        .header .sub {
+            font-size: 12px;
+            color: var(--text-secondary);
+            letter-spacing: 0.3px;
+            margin-top: -4px;
+            opacity: 0.9;
+        }
+
+        /* ===== 信息栏（仅昵称） ===== */
+        .info-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 18px;
+            margin-bottom: 16px;
+            padding: 8px 14px;
+            background: var(--bg-card);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            align-items: center;
+        }
+        .info-bar .nickname-area {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .info-label {
+            font-weight: 500;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            font-size: 14px;
+        }
+        #nicknameDisplay {
+            color: var(--blue);
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        /* ===== 拖拽区域 ===== */
+        .drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius);
+            padding: 28px 16px;
+            text-align: center;
+            background: var(--bg-drop);
+            transition: background 0.2s, border-color 0.2s;
+            cursor: pointer;
+            margin-bottom: 16px;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .drop-zone.dragover {
+            background: var(--bg-drop-hover);
+            border-color: var(--blue);
+        }
+        .drop-zone p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+        .drop-zone .file-info {
+            display: none;
+        }
+        .drop-zone.loaded {
+            border-color: var(--green);
+            background: var(--bg-drop-hover);
+        }
+        .drop-zone.loaded p {
+            color: var(--text-primary);
+        }
+        .drop-zone .status-icon {
+            font-size: 20px;
+            margin-right: 6px;
+        }
+
+        /* ===== 筛选 ===== */
+        .filter {
+            margin: 12px 0 14px 0;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px 14px;
+        }
+        .filter label {
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        .filter input[type="number"] {
+            width: 90px;
+            padding: 5px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .filter input[type="date"] {
+            padding: 5px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            width: 150px;
+            font-family: var(--font);
+        }
+        .filter input:focus {
+            outline: none;
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+        }
+
+        /* ===== 按钮组 + 统计（sticky） ===== */
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 18px;
+            margin-bottom: 14px;
+            padding: 8px 0;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: var(--bg-container);
+            border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+            transition: box-shadow 0.2s;
+        }
+        .btn-group.is-stuck {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+            padding: 8px 4px;
+            margin-left: -4px;
+            margin-right: -4px;
+            padding-left: 4px;
+            padding-right: 4px;
+        }
+        .btn-group .btn {
+            padding: 7px 18px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.05s, box-shadow 0.15s;
+            font-family: var(--font);
+            flex-shrink: 0;
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+        .btn-copy {
+            background: var(--blue);
+            color: #fff;
+        }
+        .btn-copy:hover {
+            background: var(--blue-hover);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+        }
+        /* 清除启发按钮 */
+        .btn-clear启发 {
+            background: transparent;
+            color: var(--red);
+            border: 1px solid var(--red);
+        }
+        .btn-clear启发:hover {
+            background: var(--red);
+            color: #fff;
+            box-shadow: 0 0 0 3px rgba(248, 81, 73, 0.2);
+        }
+
+        /* 统计信息（在按钮右侧） */
+        .stats-inline {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            flex: 1;
+        }
+        .stats-inline .stat-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            white-space: nowrap;
+        }
+        .stats-inline .stat-number {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .stats-inline .stat-number.highlight {
+            color: var(--blue);
+            font-weight: 700;
+            font-size: 15px;
+        }
+        .stats-inline .stat-number.highlight-green {
+            color: var(--green);
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        /* ===== 输出区域 ===== */
+        .output-area {
+            width: 100%;
+            min-height: 500px;
+            max-height: 70vh;
+            padding: 12px 14px;
+            font-family: var(--font);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            overflow-y: auto;
+            background: var(--bg-drop);
+            resize: vertical;
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--text-primary);
+            scroll-behavior: smooth;
+        }
+        .output-area::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .output-area::-webkit-scrollbar-track {
+            background: var(--bg-body);
+            border-radius: 4px;
+        }
+        .output-area::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+        .output-area::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* ===== 每条动态卡片 ===== */
+        .entry {
+            background: var(--bg-card);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border-light);
+            transition: box-shadow 0.15s, border-color 0.15s;
+        }
+        .entry:hover {
+            border-color: var(--border-color);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .entry .top-num-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--blue);
+            letter-spacing: 0.2px;
+            margin-bottom: 2px;
+        }
+        .entry .top-num-row .time {
+            font-weight: 400;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .entry .title-row {
+            margin-bottom: 2px;
+        }
+        .entry .title-row .editable-title {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--text-primary);
+            outline: none;
+            padding: 2px 4px;
+            border-radius: 4px;
+            resize: none;
+            font-family: inherit;
+            line-height: 1.4;
+            overflow: hidden;
+            white-space: pre-wrap;
+            word-break: break-word;
+            transition: background 0.15s;
+        }
+        .entry .title-row .editable-title:hover {
+            background: var(--bg-card-hover);
+        }
+        .entry .title-row .editable-title:focus {
+            background: var(--bg-card-hover);
+            box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+        }
+
+        .entry .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 6px 0 4px 0;
+            align-items: center;
+        }
+        .entry .actions .btn-sm {
+            padding: 3px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            background: var(--bg-card-hover);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+            font-weight: 500;
+            font-family: var(--font);
+        }
+        .entry .actions .btn-sm:hover {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+        .entry .actions .btn-sm.copy-single {
+            background: #2d1f00;
+            color: #d29922;
+        }
+        .entry .actions .btn-sm.copy-single:hover {
+            background: #3d2a00;
+            color: #e3a92a;
+        }
+        .entry .actions .btn-sm.copy-single.copied {
+            background: #0d2a1a;
+            color: #3fb950;
+        }
+        .entry .actions .btn-sm.copy-single.copied:hover {
+            background: #143d24;
+            color: #4cce5a;
+        }
+        .entry .actions .btn-sm.toggle-body-btn {
+            background: #0d1f3d;
+            color: #58a6ff;
+        }
+        .entry .actions .btn-sm.toggle-body-btn:hover {
+            background: #142d5a;
+            color: #79b8ff;
+        }
+        .entry .actions .btn-sm.hide-btn {
+            background: #2d0d0d;
+            color: #f85149;
+        }
+        .entry .actions .btn-sm.hide-btn:hover {
+            background: #3d1414;
+            color: #ff6b63;
+        }
+
+        .entry .body-text {
+            margin-top: 8px;
+            padding: 10px 14px;
+            background: var(--bg-drop);
+            border-radius: var(--radius-sm);
+            border-left: 3px solid var(--blue);
+            font-family: var(--font);
+            font-size: 17px;
+            line-height: 1.7;
+            color: var(--text-primary);
+            word-wrap: break-word;
+            word-break: break-word;
+            white-space: pre-wrap;
+            max-width: 20em;
+            width: auto;
+            cursor: text;
+            transition: background 0.2s;
+        }
+        .entry .body-text:hover {
+            background: var(--bg-card-hover);
+        }
+
+        /* ===== Toast ===== */
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            padding: 12px 24px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            pointer-events: none;
+            z-index: 999;
+            max-width: 80%;
+            font-weight: 500;
+            border: 1px solid var(--border-color);
+        }
+        #toast.show {
+            opacity: 1;
+        }
+        #toast.success {
+            border-left: 4px solid var(--green);
+        }
+        #toast.error {
+            border-left: 4px solid var(--red);
+        }
+
+        /* ===== 空状态 ===== */
+        .empty-state {
+            color: var(--text-muted);
+            text-align: center;
+            padding: 40px 20px;
+            font-size: 15px;
+        }
+        .empty-state .icon {
+            font-size: 36px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 600px) {
+            :root {
+                --max-width: 100%;
+            }
+            body {
+                padding: 8px 4px;
+            }
+            .container {
+                padding: 14px 12px 20px;
+            }
+            .header h1 {
+                font-size: 20px;
+            }
+            .drop-zone {
+                padding: 20px 12px;
+                min-height: 70px;
+            }
+            .filter {
+                gap: 6px 10px;
+            }
+            .filter input[type="number"] {
+                width: 70px;
+            }
+            .filter input[type="date"] {
+                width: 130px;
+                font-size: 12px;
+                padding: 4px 6px;
+            }
+            .btn-group {
+                gap: 8px 12px;
+                padding: 6px 0;
+            }
+            .btn-group .btn {
+                padding: 6px 14px;
+                font-size: 13px;
+            }
+            .stats-inline {
+                font-size: 12px;
+                gap: 6px 10px;
+            }
+            .stats-inline .stat-number.highlight,
+            .stats-inline .stat-number.highlight-green {
+                font-size: 13px;
+            }
+            .entry {
+                padding: 10px 10px;
+            }
+            .entry .title-row .editable-title {
+                font-size: 14px;
+            }
+            .entry .body-text {
+                font-size: 15px;
+                max-width: 18em;
+                padding: 8px 10px;
+            }
+            #toast {
+                bottom: 16px;
+                right: 16px;
+                padding: 10px 18px;
+                font-size: 13px;
+                max-width: 90%;
+            }
+        }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            opacity: 0.5;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        input::placeholder {
+            color: var(--text-muted);
+        }
+
+        a {
+            color: var(--blue);
+        }
+        a:hover {
+            color: var(--blue-hover);
+        }
+
+        code {
+            background: var(--bg-code);
+            color: var(--text-secondary);
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+    </style>
 </head>
 <body>
-<div class="container">
-<h1>📊 即刻数据提取排序工具</h1>
 
-<div class="info-bar" id="infoBar">
-    <div class="nickname-area" id="nicknameArea">
-        <span class="info-label">⭐️ 优秀即友推荐</span>
-        <span id="nicknameDisplay">@-</span>
+    <div class="container">
+        <!-- 标题 + 副标题 -->
+        <div class="header">
+            <h1>即刻 App 个人主页提取</h1>
+            <div class="sub">Network→single</div>
+        </div>
+
+        <!-- 信息栏（仅昵称） -->
+        <div class="info-bar" id="infoBar">
+            <div class="nickname-area" id="nicknameArea">
+                <span class="info-label">⭐️ 优秀即友推荐</span>
+                <span id="nicknameDisplay">@-</span>
+            </div>
+        </div>
+
+        <!-- 拖拽区 -->
+        <div class="drop-zone" id="dropZone">
+            <p><span class="status-icon">📂</span> 拖拽文件到此处导入数据</p>
+            <input type="file" id="fileInput" accept=".txt" style="display:none;">
+            <div id="fileInfo" class="file-info"></div>
+        </div>
+
+        <!-- 筛选（点赞数 + 起始日期） -->
+        <div class="filter">
+            <label>👍 点赞数 ≥</label>
+            <input type="number" id="minLikeCount" value="100" min="0">
+            <label>📅 起始日期</label>
+            <input type="date" id="startDate" value="2026-01-01">
+        </div>
+
+        <!-- 按钮组 + 统计（sticky） -->
+        <div class="btn-group" id="stickyBar">
+            <button class="btn btn-copy" id="copyBtn">📋 复制</button>
+            <button class="btn btn-clear启发" id="clear启发Btn">✖ 清除启发</button>
+            <div class="stats-inline" id="statsInline">
+                <span class="stat-item">📦 共 <span class="stat-number" id="statTotal">0</span></span>
+                <span class="stat-item">🔍 筛选 <span class="stat-number highlight" id="statFiltered">0</span></span>
+                <span class="stat-item">💡 启发 <span class="stat-number highlight-green" id="statMarked">0</span></span>
+            </div>
+        </div>
+
+        <!-- 输出 -->
+        <div id="outputResult" class="output-area">
+            <div class="empty-state">
+                <span class="icon">📭</span>
+                拖拽 <code>.txt</code> 文件或点击上方区域上传<br>
+                即刻数据将在此展示
+            </div>
+        </div>
     </div>
-</div>
 
-<div class="drop-zone" id="dropZone">
-    <p>📂 拖拽 <code>.txt</code> 文件到此处</p>
-    <p class="hint">即刻API返回的JSON数据（自动识别单/多组对象）</p>
-    <input type="file" id="fileInput" accept=".txt" style="display:none;">
-    <div id="fileInfo" class="file-info"></div>
-</div>
+    <!-- Toast -->
+    <div id="toast"></div>
 
-<div class="filter">
-    <label>👍 点赞数 ≥</label>
-    <input type="number" id="minLikeCount" value="100" min="0">
-    <span style="font-size:14px;color:#8a9aa8;">（修改后自动重新提取）</span>
-</div>
+    <script>
+        (function() {
+            'use strict';
 
-<div class="btn-group">
-    <button class="btn btn-primary" id="processBtn">🔄 提取并排序</button>
-    <button class="btn btn-success" id="copyBtn">📋 复制结果（标题+链接）</button>
-    <button class="btn btn-danger" id="clearBtn">🗑 清空</button>
-</div>
+            // ===== 存储键名 =====
+            const STORAGE_KEY_RAW = 'jike_rawData';
+            const STORAGE_KEY_EDITED = 'jike_editedTitles';
+            const STORAGE_KEY_MARKED = 'jike_markedObj';
 
-<div id="outputResult" class="output-area" placeholder="拖拽文件后自动处理，结果将显示在这里..."></div>
-</div>
+            // ===== DOM 引用 =====
+            const outputEl = document.getElementById('outputResult');
+            const copyBtn = document.getElementById('copyBtn');
+            const clear启发Btn = document.getElementById('clear启发Btn');
+            const minLikeInput = document.getElementById('minLikeCount');
+            const startDateInput = document.getElementById('startDate');
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const fileInfo = document.getElementById('fileInfo');
+            const toast = document.getElementById('toast');
+            const nicknameDisplay = document.getElementById('nicknameDisplay');
+            const stickyBar = document.getElementById('stickyBar');
 
-<!-- 浮动 Toast -->
-<div id="toast"></div>
+            const statTotal = document.getElementById('statTotal');
+            const statFiltered = document.getElementById('statFiltered');
+            const statMarked = document.getElementById('statMarked');
 
-<script>
-const outputEl = document.getElementById('outputResult');
-const processBtn = document.getElementById('processBtn');
-const copyBtn = document.getElementById('copyBtn');
-const clearBtn = document.getElementById('clearBtn');
-const minLikeInput = document.getElementById('minLikeCount');
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
-const fileInfo = document.getElementById('fileInfo');
-const toast = document.getElementById('toast');
-const nicknameDisplay = document.getElementById('nicknameDisplay');
+            // ===== 全局状态 =====
+            let rawData = '';
+            let plainTitleLinkArray = [];
+            let marked = [];
+            let allPostsData = [];
+            let hiddenIds = new Set();
+            let userNickname = '';
+            let editedTitles = {};
+            let totalExtracted = 0;
 
-let rawData = '';
-let plainTitleLinkArray = [];
-let marked = [];
-let allPostsData = [];
-let hiddenIds = new Set();
-let userNickname = '';
-let editedTitles = {};  // 存储修改后的标题
+            // ===== 拖拽区域状态提示 =====
+            function setDropZoneStatus(loaded, fileName = '') {
+                if (loaded) {
+                    dropZone.classList.add('loaded');
+                    const p = dropZone.querySelector('p');
+                    p.innerHTML = `<span class="status-icon">✅</span> 已加载: ${fileName || '数据'}`;
+                } else {
+                    dropZone.classList.remove('loaded');
+                    const p = dropZone.querySelector('p');
+                    p.innerHTML = `<span class="status-icon">📂</span> 拖拽文件到此处导入数据`;
+                }
+            }
 
-// ============ Toast ============
-function showToast(msg, type = 'success', duration = 3000) {
-    toast.textContent = msg;
-    toast.className = type;
-    toast.classList.add('show');
-    clearTimeout(toast._timer);
-    toast._timer = setTimeout(() => {
-        toast.classList.remove('show');
-    }, duration);
-}
+            // ===== 持久化函数 =====
+            function saveState() {
+                try {
+                    if (rawData) {
+                        localStorage.setItem(STORAGE_KEY_RAW, rawData);
+                    } else {
+                        localStorage.removeItem(STORAGE_KEY_RAW);
+                    }
+                    localStorage.setItem(STORAGE_KEY_EDITED, JSON.stringify(editedTitles));
+                    const markedObj = {};
+                    allPostsData.forEach((p, i) => {
+                        if (marked[i]) {
+                            markedObj[p.id] = true;
+                        }
+                    });
+                    localStorage.setItem(STORAGE_KEY_MARKED, JSON.stringify(markedObj));
+                } catch (e) {
+                    console.warn('保存状态失败:', e);
+                }
+            }
 
-// ============ 拖拽 ============
-dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('dragover');
-});
-dropZone.addEventListener('dragleave', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
-});
-dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-        const file = files[0];
-        if (file.name.endsWith('.txt')) {
-            fileInfo.textContent = '📄 正在加载...';
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                rawData = ev.target.result;
-                autoProcess();
+            function loadState() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY_RAW);
+                    if (raw) rawData = raw;
+                    const edited = localStorage.getItem(STORAGE_KEY_EDITED);
+                    if (edited) editedTitles = JSON.parse(edited);
+                    const markedObj = localStorage.getItem(STORAGE_KEY_MARKED);
+                    if (markedObj) {
+                        return { markedObj: JSON.parse(markedObj) };
+                    }
+                } catch (e) {
+                    console.warn('读取状态失败:', e);
+                }
+                return null;
+            }
+
+            // ===== Toast =====
+            function showToast(msg, type = 'success', duration = 3000) {
+                toast.textContent = msg;
+                toast.className = type;
+                toast.classList.add('show');
+                clearTimeout(toast._timer);
+                toast._timer = setTimeout(() => {
+                    toast.classList.remove('show');
+                }, duration);
+            }
+
+            // ===== 格式化时间 =====
+            function formatCreatedAt(timestamp) {
+                if (!timestamp) return '';
+                let date;
+                if (typeof timestamp === 'number') {
+                    if (timestamp < 1e12) timestamp *= 1000;
+                    date = new Date(timestamp);
+                } else {
+                    date = new Date(timestamp);
+                }
+                if (isNaN(date.getTime())) return '';
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                const seconds = String(date.getSeconds()).padStart(2, '0');
+                return `${year}年${month}月${day}日${hours}:${minutes}:${seconds}`;
+            }
+
+            // ===== 更新统计（内联） =====
+            function updateStats() {
+                const filteredCount = allPostsData.length;
+                const markedCount = marked.filter(Boolean).length;
+                statTotal.textContent = totalExtracted;
+                statFiltered.textContent = filteredCount;
+                statMarked.textContent = markedCount;
+            }
+
+            // ===== 检测 sticky 状态 =====
+            function checkSticky() {
+                const rect = stickyBar.getBoundingClientRect();
+                if (rect.top <= 0) {
+                    stickyBar.classList.add('is-stuck');
+                } else {
+                    stickyBar.classList.remove('is-stuck');
+                }
+            }
+
+            // ===== 拖拽 / 上传 =====
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            dropZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.name.endsWith('.txt')) {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                            rawData = ev.target.result;
+                            saveState();
+                            setDropZoneStatus(true, file.name);
+                            autoProcess();
+                        };
+                        reader.onerror = () => {
+                            showToast('❌ 读取文件失败', 'error');
+                            setDropZoneStatus(false);
+                        };
+                        reader.readAsText(file, 'UTF-8');
+                    } else {
+                        showToast('⚠️ 请拖拽 .txt 文件', 'error');
+                    }
+                }
+            });
+            dropZone.addEventListener('click', () => {
+                fileInput.click();
+            });
+            fileInput.addEventListener('change', (e) => {
+                if (fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        rawData = ev.target.result;
+                        saveState();
+                        setDropZoneStatus(true, file.name);
+                        autoProcess();
+                    };
+                    reader.onerror = () => {
+                        showToast('❌ 读取文件失败', 'error');
+                        setDropZoneStatus(false);
+                    };
+                    reader.readAsText(file, 'UTF-8');
+                }
+            });
+
+            // ===== 筛选变更自动处理 =====
+            [minLikeInput, startDateInput].forEach(el => {
+                el.addEventListener('change', () => {
+                    if (rawData) autoProcess();
+                });
+            });
+
+            // ===== 滚动监听 =====
+            window.addEventListener('scroll', checkSticky, { passive: true });
+            window.addEventListener('resize', checkSticky, { passive: true });
+
+            // ===== 交互函数 =====
+            window.toggleBody = function(id, event) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                const body = document.getElementById('body-' + id);
+                if (!body) return;
+                const btn = document.querySelector(`.entry[data-id="${id}"] .toggle-body-btn`);
+                const entry = document.querySelector(`.entry[data-id="${id}"]`);
+                const isVisible = body.style.display !== 'none';
+
+                if (isVisible) {
+                    if (window.getSelection) {
+                        window.getSelection().removeAllRanges();
+                    }
+                    const outputEl2 = document.getElementById('outputResult');
+                    const entryRect = entry.getBoundingClientRect();
+                    const outputRect = outputEl2.getBoundingClientRect();
+                    const relativeTop = entryRect.top - outputRect.top + outputEl2.scrollTop - 20;
+                    body.style.display = 'none';
+                    if (btn) btn.textContent = '展开';
+                    const doScroll = () => {
+                        outputEl2.scrollTop = relativeTop;
+                    };
+                    doScroll();
+                    setTimeout(doScroll, 0);
+                    setTimeout(doScroll, 50);
+                    setTimeout(doScroll, 100);
+                } else {
+                    body.style.display = 'block';
+                    if (btn) btn.textContent = '折叠';
+                }
             };
-            reader.onerror = () => {
-                showToast('❌ 读取文件失败', 'error');
-                fileInfo.textContent = '❌ 读取失败';
+
+            window.hideItem = function(id) {
+                hiddenIds.add(id);
+                renderVisiblePosts();
+                updateStats();
+                showToast('已擦掉该条（刷新后重新出现）', 'success');
             };
-            reader.readAsText(file, 'UTF-8');
-        } else {
-            showToast('⚠️ 请拖拽 .txt 文件', 'error');
-        }
-    }
-});
-dropZone.addEventListener('click', () => {
-    fileInput.click();
-});
-fileInput.addEventListener('change', (e) => {
-    if (fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        fileInfo.textContent = '📄 正在加载...';
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            rawData = ev.target.result;
-            autoProcess();
-        };
-        reader.onerror = () => {
-            showToast('❌ 读取文件失败', 'error');
-            fileInfo.textContent = '❌ 读取失败';
-        };
-        reader.readAsText(file, 'UTF-8');
-    }
-});
 
-// ============ 交互函数 ============
-window.toggleBody = function(id, event) {
-    if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-    }
-    const body = document.getElementById('body-' + id);
-    if (!body) return;
-    const btn = document.querySelector(`.entry[data-id="${id}"] .toggle-body-btn`);
-    const entry = document.querySelector(`.entry[data-id="${id}"]`);
-    const isVisible = body.style.display !== 'none';
-
-    if (isVisible) {
-        if (window.getSelection) {
-            window.getSelection().removeAllRanges();
-        }
-        const outputEl = document.getElementById('outputResult');
-        const entryRect = entry.getBoundingClientRect();
-        const outputRect = outputEl.getBoundingClientRect();
-        const relativeTop = entryRect.top - outputRect.top + outputEl.scrollTop - 20;
-        body.style.display = 'none';
-        if (btn) btn.textContent = '展开';
-        const doScroll = () => {
-            outputEl.scrollTop = relativeTop;
-        };
-        doScroll();
-        setTimeout(doScroll, 0);
-        setTimeout(doScroll, 50);
-        setTimeout(doScroll, 100);
-    } else {
-        body.style.display = 'block';
-        if (btn) btn.textContent = '折叠';
-    }
-};
-
-window.hideItem = function(id) {
-    // 保存当前marked的post id
-    const visiblePostsBefore = allPostsData.filter(p => !hiddenIds.has(p.id));
-    const markedIds = [];
-    visiblePostsBefore.forEach((p, i) => {
-        if (marked[i]) markedIds.push(p.id);
-    });
-
-    hiddenIds.add(id);
-
-    // 重新渲染
-    const newVisiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
-    const newMarked = newVisiblePosts.map(p => markedIds.includes(p.id));
-
-    renderVisiblePosts();
-    marked = newMarked;
-
-    // 更新按钮状态
-    newVisiblePosts.forEach((p, i) => {
-        if (marked[i]) {
-            const btn = document.querySelector(`.entry[data-id="${p.id}"] .copy-single`);
-            if (btn) {
-                btn.textContent = '✅ 有启发';
-                btn.classList.add('copied');
-            }
-        }
-    });
-
-    showToast('已擦掉该条', 'success');
-};
-
-window.copySingle = function(id) {
-    const visiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
-    const visibleIndex = visiblePosts.findIndex(p => p.id === id);
-    if (visibleIndex < 0) {
-        showToast('❌ 未找到该条', 'error');
-        return;
-    }
-    const btn = document.querySelector(`.entry[data-id="${id}"] .copy-single`);
-
-    // 切换标记状态
-    marked[visibleIndex] = !marked[visibleIndex];
-
-    if (marked[visibleIndex]) {
-        if (btn) {
-            btn.textContent = '✅ 有启发';
-            btn.classList.add('copied');
-        }
-        showToast(`💡 第 ${visibleIndex+1} 条标记为有启发`, 'success');
-    } else {
-        if (btn) {
-            btn.textContent = '💡 有启发';
-            btn.classList.remove('copied');
-        }
-        showToast(`已取消第 ${visibleIndex+1} 条启发标记`, 'success');
-    }
-};
-
-// ============ 核心处理 ============
-function splitJsonText(text) {
-    try {
-        JSON.parse(text);
-        return [text];
-    } catch (e) {
-        const parts = [];
-        let braceCount = 0;
-        let start = 0;
-        for (let i = 0; i < text.length; i++) {
-            if (text[i] === '{') braceCount++;
-            else if (text[i] === '}') {
-                braceCount--;
-                if (braceCount === 0) {
-                    const part = text.substring(start, i+1).trim();
-                    if (part) parts.push(part);
-                    start = i+1;
+            window.copySingle = function(id) {
+                const visiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
+                const visibleIndex = visiblePosts.findIndex(p => p.id === id);
+                if (visibleIndex < 0) {
+                    showToast('❌ 未找到该条', 'error');
+                    return;
                 }
-            }
-        }
-        if (parts.length === 0) {
-            const sepParts = text.split(/\s*===\s*|\s*---\s*/).filter(s => s.trim().length > 0);
-            if (sepParts.length > 0) return sepParts;
-        }
-        return parts;
-    }
-}
+                const realIndex = allPostsData.findIndex(p => p.id === id);
+                if (realIndex < 0) return;
 
-function processData(raw) {
-    raw = raw.trim();
-    if (!raw) throw new Error('数据为空，请重新拖拽文件');
-
-    const minLike = parseInt(minLikeInput.value) || 0;
-    if (minLike < 0) throw new Error('最小值不能为负数');
-
-    const jsonParts = splitJsonText(raw);
-    if (jsonParts.length === 0) throw new Error('未能识别任何 JSON 数据片段');
-
-    let allPosts = [];
-    let parsedCount = 0;
-    let errorCount = 0;
-    userNickname = '';
-
-    jsonParts.forEach((part) => {
-        try {
-            const json = JSON.parse(part);
-            parsedCount++;
-
-            // 尝试提取用户昵称
-            if (!userNickname) {
-                if (json.data && json.data[0] && json.data[0].user && json.data[0].user.screenName) {
-                    userNickname = json.data[0].user.screenName;
+                marked[realIndex] = !marked[realIndex];
+                const btn = document.querySelector(`.entry[data-id="${id}"] .copy-single`);
+                if (marked[realIndex]) {
+                    if (btn) {
+                        btn.textContent = '✅ 有启发';
+                        btn.classList.add('copied');
+                    }
+                    showToast(`💡 标记为有启发`, 'success');
+                } else {
+                    if (btn) {
+                        btn.textContent = '💡 有启发';
+                        btn.classList.remove('copied');
+                    }
+                    showToast(`已取消启发标记`, 'success');
                 }
-                else if (json.data && json.data[0] && json.data[0].userInfo && json.data[0].userInfo.screenName) {
-                    userNickname = json.data[0].userInfo.screenName;
-                }
-                else if (json.user && json.user.screenName) {
-                    userNickname = json.user.screenName;
-                }
-                else if (json.userInfo && json.userInfo.screenName) {
-                    userNickname = json.userInfo.screenName;
-                }
-                else if (json.screenName) {
-                    userNickname = json.screenName;
-                }
-                else if (json.nickname) {
-                    userNickname = json.nickname;
-                }
-            }
+                updateStats();
+                saveState();
+            };
 
-            if (json.data && Array.isArray(json.data)) {
-                json.data.forEach(item => {
-                    if (item.id && item.likeCount !== undefined) {
-                        const like = Number(item.likeCount);
-                        if (!isNaN(like)) {
-                            const content = item.content !== undefined ? String(item.content) : '';
-                            allPosts.push({
-                                id: String(item.id).trim(),
-                                likeCount: like,
-                                content: content
-                            });
+            window.updateEditedTitle = function(id, newTitle) {
+                const post = allPostsData.find(p => p.id === id);
+                if (post) {
+                    const originalTitle = post.content.replace(/\n/g, '').slice(0, 40) || '无标题';
+                    if (newTitle !== originalTitle) {
+                        editedTitles[id] = newTitle;
+                    } else {
+                        delete editedTitles[id];
+                    }
+                    regenerateTitleLinkArray();
+                    saveState();
+                }
+            };
+
+            // ===== 核心处理 =====
+            function splitJsonText(text) {
+                try {
+                    JSON.parse(text);
+                    return [text];
+                } catch (e) {
+                    const parts = [];
+                    let braceCount = 0;
+                    let start = 0;
+                    for (let i = 0; i < text.length; i++) {
+                        if (text[i] === '{') braceCount++;
+                        else if (text[i] === '}') {
+                            braceCount--;
+                            if (braceCount === 0) {
+                                const part = text.substring(start, i + 1).trim();
+                                if (part) parts.push(part);
+                                start = i + 1;
+                            }
                         }
                     }
-                });
+                    if (parts.length === 0) {
+                        const sepParts = text.split(/\s*===\s*|\s*---\s*/).filter(s => s.trim().length > 0);
+                        if (sepParts.length > 0) return sepParts;
+                    }
+                    return parts;
+                }
             }
-        } catch (e) {
-            errorCount++;
-        }
-    });
 
-    if (allPosts.length === 0) {
-        throw new Error(`没有提取到任何有效帖子（成功解析 ${parsedCount} 个片段，失败 ${errorCount} 个）`);
-    }
+            function processData(raw) {
+                raw = raw.trim();
+                if (!raw) throw new Error('数据为空，请重新拖拽文件');
 
-    const filtered = allPosts.filter(p => p.likeCount >= minLike);
-    if (filtered.length === 0) {
-        throw new Error(`没有点赞≥${minLike}的帖子（总有效 ${allPosts.length} 条）`);
-    }
+                const minLike = parseInt(minLikeInput.value) || 0;
+                if (minLike < 0) throw new Error('最小值不能为负数');
 
-    filtered.sort((a, b) => b.likeCount - a.likeCount);
+                const startDateStr = startDateInput.value;
+                let startTimestamp = null;
+                if (startDateStr) {
+                    const d = new Date(startDateStr + 'T00:00:00');
+                    if (!isNaN(d.getTime())) startTimestamp = d.getTime();
+                }
 
-    allPostsData = filtered;
+                const jsonParts = splitJsonText(raw);
+                if (jsonParts.length === 0) throw new Error('未能识别任何 JSON 数据片段');
 
-    // 更新昵称显示
-    nicknameDisplay.textContent = userNickname ? '@' + userNickname : '@未找到';
+                let allPosts = [];
+                let parsedCount = 0;
+                let errorCount = 0;
+                userNickname = '';
 
-    const visible = renderVisiblePosts();
+                jsonParts.forEach((part) => {
+                    try {
+                        const json = JSON.parse(part);
+                        parsedCount++;
 
-    showToast(`✅ 共提取 ${allPosts.length} 条，过滤后保留 ${filtered.length} 条`, 'success', 4000);
-    
-    return {
-        total: allPosts.length,
-        filtered: filtered.length,
-        visible: visible
-    };
-}
+                        if (!userNickname) {
+                            if (json.data && json.data[0] && json.data[0].user && json.data[0].user
+                                .screenName) {
+                                userNickname = json.data[0].user.screenName;
+                            } else if (json.data && json.data[0] && json.data[0].userInfo && json.data[0]
+                                .userInfo.screenName) {
+                                userNickname = json.data[0].userInfo.screenName;
+                            } else if (json.user && json.user.screenName) {
+                                userNickname = json.user.screenName;
+                            } else if (json.userInfo && json.userInfo.screenName) {
+                                userNickname = json.userInfo.screenName;
+                            } else if (json.screenName) {
+                                userNickname = json.screenName;
+                            } else if (json.nickname) {
+                                userNickname = json.nickname;
+                            }
+                        }
 
-function renderVisiblePosts() {
-    const visiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
+                        if (json.data && Array.isArray(json.data)) {
+                            json.data.forEach(item => {
+                                if (item.id && item.likeCount !== undefined) {
+                                    const like = Number(item.likeCount);
+                                    if (!isNaN(like)) {
+                                        const content = item.content !== undefined ? String(item.content) :
+                                            '';
+                                        let createdAt = item.createdAt || item.createTime || null;
+                                        let createdTime = null;
+                                        if (createdAt) {
+                                            if (typeof createdAt === 'number') {
+                                                createdTime = createdAt;
+                                            } else if (typeof createdAt === 'string') {
+                                                const d = new Date(createdAt);
+                                                if (!isNaN(d.getTime())) {
+                                                    createdTime = d.getTime();
+                                                }
+                                            }
+                                        }
+                                        allPosts.push({
+                                            id: String(item.id).trim(),
+                                            likeCount: like,
+                                            content: content,
+                                            createdAt: createdAt,
+                                            createdTime: createdTime
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    } catch (e) {
+                        errorCount++;
+                    }
+                });
 
-    let htmlResult = '';
-    let titleLinkArray = [];
+                if (allPosts.length === 0) {
+                    throw new Error(`没有提取到任何有效帖子（成功解析 ${parsedCount} 个片段，失败 ${errorCount} 个）`);
+                }
 
-    visiblePosts.forEach((p, index) => {
-        const cleanContent = p.content.replace(/\n/g, '');
-        const originalTitle = cleanContent.slice(0, 18) || '无标题';
-        const title = editedTitles[p.id] || originalTitle;
-        const link = `https://m.okjike.com/originalPosts/${p.id}`;
-        const topNum = String(index + 1).padStart(3, '0');
-        const totalChars = (title + cleanContent).length;
-        const titleLink = `TOP ${topNum} （${p.likeCount}）${title}\n${link}`;
-        titleLinkArray.push(titleLink);
+                let dateFiltered = allPosts;
+                if (startTimestamp !== null) {
+                    dateFiltered = allPosts.filter(p => {
+                        if (p.createdTime === null) return true;
+                        return p.createdTime >= startTimestamp;
+                    });
+                }
 
-        const safeContent = p.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const filtered = dateFiltered.filter(p => p.likeCount >= minLike);
+                if (filtered.length === 0) {
+                    throw new Error(`没有点赞≥${minLike}且符合起始日期的帖子（总有效 ${allPosts.length} 条）`);
+                }
 
-        htmlResult += `<div class="entry" data-id="${p.id}" data-visible-index="${index}">
-    <div class="top-num-row">TOP ${topNum} （${p.likeCount}）全文 ${totalChars} 字</div>
-    <div class="title-row">
-        <textarea class="editable-title" data-id="${p.id}" onchange="updateEditedTitle('${p.id}', this.value)" rows="1" style="width:100%; border:none; background:transparent; font-weight:600; font-size:16px; color:#0b1a2b; outline:none; resize:none; font-family:inherit; line-height:1.4; padding:2px 4px; border-radius:4px; min-height:24px; overflow:hidden;">${title.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
-    </div>
-    <div class="link-row"><a href="${link}" target="_blank">${link}</a></div>
-    <div class="actions">
-        <button class="btn-sm copy-single" onclick="copySingle('${p.id}')">💡 有启发</button>
-        <button class="btn-sm toggle-body-btn" onclick="toggleBody('${p.id}')">展开</button>
-        <button class="btn-sm hide-btn" onclick="hideItem('${p.id}')">✕</button>
-        <span class="hint-text">双击正文折叠</span>
-    </div>
-    <div id="body-${p.id}" class="body-text" style="display:none;" ondblclick="event.preventDefault(); toggleBody('${p.id}', event);">${safeContent}</div>
-</div>\n\n`;
-    });
+                filtered.sort((a, b) => b.likeCount - a.likeCount);
 
-    plainTitleLinkArray = titleLinkArray;
-    outputEl.innerHTML = htmlResult;
+                totalExtracted = allPosts.length;
+                allPostsData = filtered;
 
-    // 初始化 textarea 自动高度
-    setTimeout(() => {
-        document.querySelectorAll('.editable-title').forEach(ta => {
-            ta.style.height = 'auto';
-            ta.style.height = ta.scrollHeight + 'px';
-            ta.addEventListener('input', function() {
-                this.style.height = 'auto';
-                this.style.height = this.scrollHeight + 'px';
+                let markedObj = {};
+                try {
+                    const stored = localStorage.getItem(STORAGE_KEY_MARKED);
+                    if (stored) markedObj = JSON.parse(stored);
+                } catch (e) {}
+
+                marked = new Array(filtered.length).fill(false);
+                filtered.forEach((p, i) => {
+                    if (markedObj[p.id]) {
+                        marked[i] = true;
+                    }
+                });
+
+                nicknameDisplay.textContent = userNickname ? '@' + userNickname : '@未找到';
+
+                hiddenIds.clear();
+
+                const visible = renderVisiblePosts();
+                updateStats();
+                saveState();
+
+                showToast(`✅ 共提取 ${allPosts.length} 条，过滤后保留 ${filtered.length} 条`, 'success', 4000);
+
+                return {
+                    total: allPosts.length,
+                    filtered: filtered.length,
+                    visible: visible
+                };
+            }
+
+            // ===== 渲染卡片 =====
+            function renderVisiblePosts() {
+                const visiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
+
+                let htmlResult = '';
+                let titleLinkArray = [];
+
+                visiblePosts.forEach((p, index) => {
+                    const cleanContent = p.content.replace(/\n/g, '');
+                    const originalTitle = cleanContent.slice(0, 40) || '无标题';
+                    const title = editedTitles[p.id] || originalTitle;
+                    const link = `https://m.okjike.com/originalPosts/${p.id}`;
+                    const topNum = String(index + 1).padStart(3, '0');
+                    const totalChars = (title + cleanContent).length;
+                    const titleLink = `TOP ${topNum} （${p.likeCount}）${title}\n${link}`;
+                    titleLinkArray.push(titleLink);
+
+                    const safeContent = p.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    const timeStr = formatCreatedAt(p.createdAt);
+
+                    const realIndex = allPostsData.findIndex(item => item.id === p.id);
+                    const isMarked = (realIndex >= 0 && marked[realIndex]);
+
+                    htmlResult += `<div class="entry" data-id="${p.id}" data-visible-index="${index}">
+                <div class="top-num-row">
+                    <span>TOP ${topNum} （${p.likeCount}）${totalChars} 字</span>
+                    ${timeStr ? `<span class="time">🕒 ${timeStr}</span>` : ''}
+                </div>
+                <div class="title-row">
+                    <textarea class="editable-title" data-id="${p.id}" onchange="updateEditedTitle('${p.id}', this.value)" rows="1" style="width:100%; border:none; background:transparent; font-weight:600; font-size:16px; color:var(--text-primary); outline:none; resize:none; font-family:inherit; line-height:1.4; padding:2px 4px; border-radius:4px; min-height:24px; overflow:hidden;">${title.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+                </div>
+                <div class="actions">
+                    <button class="btn-sm copy-single ${isMarked ? 'copied' : ''}" onclick="copySingle('${p.id}')">${isMarked ? '✅ 有启发' : '💡 有启发'}</button>
+                    <button class="btn-sm toggle-body-btn" onclick="toggleBody('${p.id}')">展开</button>
+                    <button class="btn-sm hide-btn" onclick="hideItem('${p.id}')">✕</button>
+                    <button class="btn-sm" onclick="window.open('${link}','_blank')">🔗 看原文</button>
+                </div>
+                <div id="body-${p.id}" class="body-text" style="display:none;" ondblclick="event.preventDefault(); toggleBody('${p.id}', event);">${safeContent}</div>
+            </div>\n\n`;
+                });
+
+                plainTitleLinkArray = titleLinkArray;
+                outputEl.innerHTML = htmlResult;
+
+                setTimeout(() => {
+                    document.querySelectorAll('.editable-title').forEach(ta => {
+                        ta.style.height = 'auto';
+                        ta.style.height = ta.scrollHeight + 'px';
+                        ta.addEventListener('input', function() {
+                            this.style.height = 'auto';
+                            this.style.height = this.scrollHeight + 'px';
+                        });
+                    });
+                }, 0);
+
+                return visiblePosts.length;
+            }
+
+            function regenerateTitleLinkArray() {
+                const visiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
+                const newTitleLinkArray = [];
+
+                visiblePosts.forEach((p, visibleIndex) => {
+                    const cleanContent = p.content.replace(/\n/g, '');
+                    const originalTitle = cleanContent.slice(0, 40) || '无标题';
+                    const title = editedTitles[p.id] || originalTitle;
+                    const link = `https://m.okjike.com/originalPosts/${p.id}`;
+                    const topNum = String(visibleIndex + 1).padStart(3, '0');
+                    const titleLine = `TOP ${topNum} （${p.likeCount}）${title}`;
+                    newTitleLinkArray.push(`${titleLine}\n${link}`);
+                });
+
+                plainTitleLinkArray = newTitleLinkArray;
+            }
+
+            function autoProcess() {
+                if (!rawData) {
+                    showToast('请先拖拽 .txt 文件', 'error');
+                    return;
+                }
+                try {
+                    processData(rawData);
+                } catch (err) {
+                    showToast('错误：' + err.message, 'error');
+                    outputEl.innerHTML =
+                        `<div class="empty-state"><span class="icon">⚠️</span>${err.message}</div>`;
+                    plainTitleLinkArray = [];
+                    marked = [];
+                    allPostsData = [];
+                    hiddenIds.clear();
+                    totalExtracted = 0;
+                    updateStats();
+                    setDropZoneStatus(false);
+                }
+            }
+
+            // ===== 一键清除所有有启发 =====
+            function clearAllMarked() {
+                if (marked.length === 0 || marked.every(v => v === false)) {
+                    showToast('没有需要清除的启发标记', 'success');
+                    return;
+                }
+                marked.fill(false);
+                renderVisiblePosts();
+                updateStats();
+                saveState();
+                showToast('已清除所有启发标记', 'success');
+            }
+
+            clear启发Btn.addEventListener('click', clearAllMarked);
+
+            // ===== 复制（重写：重新生成序号，保证连续） =====
+            copyBtn.addEventListener('click', async () => {
+                // 获取可见帖子（按显示顺序）
+                const visiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
+                if (visiblePosts.length === 0) {
+                    showToast('没有可复制的内容', 'error');
+                    return;
+                }
+
+                // 构建可见帖子的标记状态
+                const visibleMarked = visiblePosts.map(p => {
+                    const idx = allPostsData.findIndex(item => item.id === p.id);
+                    return marked[idx] || false;
+                });
+
+                // 决定复制哪些帖子
+                const hasMarked = visibleMarked.some(v => v);
+                let selectedPosts;
+                if (hasMarked) {
+                    selectedPosts = visiblePosts.filter((p, i) => visibleMarked[i]);
+                } else {
+                    selectedPosts = visiblePosts.slice(); // 全部
+                }
+
+                if (selectedPosts.length === 0) {
+                    showToast('没有可复制的内容', 'error');
+                    return;
+                }
+
+                // 重新构建文本，按选中顺序重新编号
+                const lines = selectedPosts.map((p, idx) => {
+                    const cleanContent = p.content.replace(/\n/g, '');
+                    const originalTitle = cleanContent.slice(0, 40) || '无标题';
+                    const title = editedTitles[p.id] || originalTitle;
+                    const link = `https://m.okjike.com/originalPosts/${p.id}`;
+                    const topNum = String(idx + 1).padStart(3, '0');
+                    return `TOP ${topNum} （${p.likeCount}）${title}\n${link}`;
+                });
+
+                const nickname = userNickname ? '@' + userNickname : '@未知';
+                const part1 = `⭐️ 优秀即友推荐 ${nickname}`;
+                const part2 = '▍2026 上半年高赞动态';
+                const part3 = lines.join('\n\n');
+
+                const result = `${part1}\n\n${part2}\n\n${part3}`;
+
+                try {
+                    await navigator.clipboard.writeText(result);
+                    showToast('已复制到剪贴板', 'success');
+                } catch (_) {
+                    const temp = document.createElement('textarea');
+                    temp.value = result;
+                    document.body.appendChild(temp);
+                    temp.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(temp);
+                    showToast('已复制到剪贴板', 'success');
+                }
             });
-        });
-    }, 0);
 
-    return visiblePosts.length;
-}
+            // ===== 页面加载时恢复数据 =====
+            function restoreFromLocal() {
+                const storedRaw = localStorage.getItem(STORAGE_KEY_RAW);
+                if (storedRaw) {
+                    rawData = storedRaw;
+                    const state = loadState();
+                    if (state) {
+                        // editedTitles 已由 loadState 填充
+                    }
+                    try {
+                        processData(rawData);
+                        setDropZoneStatus(true, '已恢复');
+                    } catch (e) {
+                        console.warn('恢复数据失败:', e);
+                        localStorage.removeItem(STORAGE_KEY_RAW);
+                        rawData = '';
+                        setDropZoneStatus(false);
+                    }
+                } else {
+                    localStorage.removeItem(STORAGE_KEY_EDITED);
+                    localStorage.removeItem(STORAGE_KEY_MARKED);
+                    setDropZoneStatus(false);
+                }
+                setTimeout(checkSticky, 100);
+            }
 
-// 更新修改后的标题
-function updateEditedTitle(id, newTitle) {
-    const post = allPostsData.find(p => p.id === id);
-    if (post) {
-        const originalTitle = post.content.replace(/\n/g, '').slice(0, 18) || '无标题';
-        if (newTitle !== originalTitle) {
-            editedTitles[id] = newTitle;
-        } else {
-            delete editedTitles[id];
-        }
-        // 重新生成复制内容
-        regenerateTitleLinkArray();
-    }
-}
+            restoreFromLocal();
 
-// 重新生成标题链接数组（使用修改后的标题）
-function regenerateTitleLinkArray() {
-    const visiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
-    const newTitleLinkArray = [];
+        })();
+    </script>
 
-    visiblePosts.forEach((p, visibleIndex) => {
-        const cleanContent = p.content.replace(/\n/g, '');
-        const originalTitle = cleanContent.slice(0, 18) || '无标题';
-        const title = editedTitles[p.id] || originalTitle;
-        const link = `https://m.okjike.com/originalPosts/${p.id}`;
-        const topNum = String(visibleIndex + 1).padStart(3, '0');
-        const titleLine = `TOP ${topNum} （${p.likeCount}）${title}`;
-
-        newTitleLinkArray.push(`${titleLine}\n${link}`);
-    });
-
-    plainTitleLinkArray = newTitleLinkArray;
-}
-
-function autoProcess() {
-    if (!rawData) {
-        showToast('请先拖拽 .txt 文件', 'error');
-        return;
-    }
-    try {
-        hiddenIds.clear();
-        const res = processData(rawData);
-        fileInfo.textContent = `✅ 共提取 ${res.total} 条动态`;
-        if (res.filtered < res.total) {
-            fileInfo.textContent += `（筛选后保留 ${res.filtered} 条）`;
-        }
-    } catch (err) {
-        showToast('错误：' + err.message, 'error');
-        outputEl.innerHTML = '';
-        fileInfo.textContent = '❌ 解析失败，请检查文件内容';
-        plainTitleLinkArray = [];
-        marked = [];
-        allPostsData = [];
-        hiddenIds.clear();
-    }
-}
-
-// ============ 事件绑定 ============
-processBtn.addEventListener('click', autoProcess);
-
-minLikeInput.addEventListener('change', () => {
-    if (rawData) autoProcess();
-});
-
-copyBtn.addEventListener('click', async () => {
-    if (plainTitleLinkArray.length === 0) {
-        showToast('没有可复制的内容', 'error');
-        return;
-    }
-    const markedIndexes = [];
-    marked.forEach((m, i) => { if (m) markedIndexes.push(i); });
-    let copyIndexes = markedIndexes.length > 0 ? markedIndexes : plainTitleLinkArray.map((_, i) => i);
-    const texts = copyIndexes.map(idx => plainTitleLinkArray[idx]);
-
-    // 组装三部分内容
-    const nickname = userNickname ? '@' + userNickname : '@未知';
-    const part1 = `⭐️优秀即友推荐 ${nickname}`;
-    const part2 = '▍2026 上半年高赞动态';
-    const part3 = texts.join('\n\n');
-
-    const result = `${part1}\n\n${part2}\n\n${part3}`;
-
-    if (!result) {
-        showToast('没有可复制的内容', 'error');
-        return;
-    }
-    try {
-        await navigator.clipboard.writeText(result);
-        showToast('已复制纯文本到剪贴板', 'success');
-    } catch (_) {
-        const temp = document.createElement('textarea');
-        temp.value = result;
-        document.body.appendChild(temp);
-        temp.select();
-        document.execCommand('copy');
-        document.body.removeChild(temp);
-        showToast('已复制纯文本到剪贴板', 'success');
-    }
-});
-
-clearBtn.addEventListener('click', () => {
-    rawData = '';
-    outputEl.innerHTML = '';
-    plainTitleLinkArray = [];
-    marked = [];
-    allPostsData = [];
-    hiddenIds.clear();
-    minLikeInput.value = '100';
-    fileInfo.textContent = '';
-    nicknameDisplay.textContent = '@-';
-    userNickname = '';
-    editedTitles = {};
-    toast.classList.remove('show');
-});
-</script>
 </body>
 </html>
