@@ -765,10 +765,16 @@
                 return `${year}年${month}月${day}日${hours}:${minutes}:${seconds}`;
             }
 
-            // ===== 更新统计（内联） =====
+            // ===== 更新统计（内联）=====
             function updateStats() {
-                const filteredCount = allPostsData.length;
-                const markedCount = marked.filter(Boolean).length;
+                // 只统计可见帖子（未被隐藏的）
+                const visiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
+                const filteredCount = visiblePosts.length;
+                // 启发数只统计可见帖子中标记为有启发的
+                const markedCount = visiblePosts.filter(p => {
+                    const idx = allPostsData.findIndex(item => item.id === p.id);
+                    return marked[idx] || false;
+                }).length;
                 statTotal.textContent = totalExtracted;
                 statFiltered.textContent = filteredCount;
                 statMarked.textContent = markedCount;
