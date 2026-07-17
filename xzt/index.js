@@ -443,8 +443,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 return match;
             });
 
-            // 保护 中文(至少2字)+大写英文（如 张三Koji, 刘晓伟Pro）- 1字中文不保护（如 用Python）
-            text = text.replace(/[\u4e00-\u9fa5]{2,}[A-Z][a-zA-Z]*/g, function(match) {
+            // 保护 中文(至少2字)+首字母大写英文（如 张三Koji, 刘晓伟Pro）- 全大写不保护（DRG是专有名词，需加空格）
+            text = text.replace(/[\u4e00-\u9fa5]{2,}[A-Z][a-z]+/g, function(match) {
                 urlPlaceholders.push(match);
                 return String.fromCharCode(0xE000 + urlPlaceholders.length - 1);
             });
@@ -454,10 +454,14 @@ document.addEventListener('DOMContentLoaded', function () {
             text = text.replace(/。[ \t]*$/gm, '');
             // 中文-英文（所有）：加空格（被保护的不走这里）
             text = text.replace(/([\u4e00-\u9fa5])([A-Za-z]+)/g, '$1 $2');
-            // 英文-中文：全小写英文加空格；大写开头不加空格（保护 Pro版, Koji张三 等昵称/术语）
+            // 英文-中文：
+            // - 全小写：加空格（hello世界）
+            // - 全大写(≥2字母)：加空格（DRG付费 → DRG 付费，专有名词/缩写）
+            // - 首字母大写+小写混合：不加空格（Pro版, Koji张三，保护昵称/品牌名）
             text = text.replace(/([A-Za-z]+)([\u4e00-\u9fa5]+)/g, function(match, eng, chi) {
-                if (eng[0] >= 'A' && eng[0] <= 'Z') return match;
-                return eng + ' ' + chi;
+                if (/^[a-z]+$/.test(eng)) return eng + ' ' + chi;
+                if (/^[A-Z]{2,}$/.test(eng)) return eng + ' ' + chi;
+                return match;
             });
 
             // 中文-数字：加空格
