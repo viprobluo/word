@@ -413,15 +413,58 @@ document.addEventListener('DOMContentLoaded', function () {
                 return String.fromCharCode(0xE000 + urlPlaceholders.length - 1);
             });
 
+            // 保护 @ 开头的昵称
+            // 情况1: @英文开头，后跟英文/中文（如 @TomXu在减肥）- 到非字母非中文字符自然截断
+            // 情况2: @中文+英文（如 @小明Pro）- 英文后不跟中文，避免吃掉后续中文
+            text = text.replace(/@[A-Za-z][A-Za-z\u4e00-\u9fa5]*|@[\u4e00-\u9fa5]+[A-Za-z]+/g, function(match) {
+                urlPlaceholders.push(match);
+                return String.fromCharCode(0xE000 + urlPlaceholders.length - 1);
+            });
+
+            // 保护字母数字混合词（如 p2p, B2C, 3D, 4K, iPhone13）
+            text = text.replace(/[A-Za-z0-9]+/g, function(match) {
+                if (/[A-Za-z]/.test(match) && /\d/.test(match)) {
+                    urlPlaceholders.push(match);
+                    return String.fromCharCode(0xE000 + urlPlaceholders.length - 1);
+                }
+                return match;
+            });
+
+            // 保护复合名称：英文+中文+英文，且至少一个英文以大写开头（如 Rock新体验馆lab）
+            text = text.replace(/[A-Za-z]+[\u4e00-\u9fa5]+[A-Za-z]+/g, function(match) {
+                var engParts = match.match(/[A-Za-z]+/g);
+                var hasUppercase = engParts.some(function(p) {
+                    return p[0] >= 'A' && p[0] <= 'Z';
+                });
+                if (hasUppercase) {
+                    urlPlaceholders.push(match);
+                    return String.fromCharCode(0xE000 + urlPlaceholders.length - 1);
+                }
+                return match;
+            });
+
+            // 保护 中文(至少2字)+大写英文（如 张三Koji, 刘晓伟Pro）- 1字中文不保护（如 用Python）
+            text = text.replace(/[\u4e00-\u9fa5]{2,}[A-Z][a-zA-Z]*/g, function(match) {
+                urlPlaceholders.push(match);
+                return String.fromCharCode(0xE000 + urlPlaceholders.length - 1);
+            });
+
             text = text.replace(/,/g, '，').replace(/:/g, '：');
             text = text.replace(/(\d+%?)-(\d+%?)/g, '$1~$2');
             text = text.replace(/。[ \t]*$/gm, '');
-            text = text.replace(/([\u4e00-\u9fa5])([A-Za-z0-9])/g, '$1 $2');
-            text = text.replace(/([A-Za-z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
+            // 中文-英文（所有）：加空格（被保护的不走这里）
+            text = text.replace(/([\u4e00-\u9fa5])([A-Za-z]+)/g, '$1 $2');
+            // 英文-中文：全小写英文加空格；大写开头不加空格（保护 Pro版, Koji张三 等昵称/术语）
+            text = text.replace(/([A-Za-z]+)([\u4e00-\u9fa5]+)/g, function(match, eng, chi) {
+                if (eng[0] >= 'A' && eng[0] <= 'Z') return match;
+                return eng + ' ' + chi;
+            });
+
+            // 中文-数字：加空格
             text = text.replace(/([\u4e00-\u9fa5])(\d)/g, '$1 $2');
             text = text.replace(/(\d)([\u4e00-\u9fa5])/g, '$1 $2');
-            text = text.replace(/(\d)([A-Za-z])/g, '$1 $2');
-            text = text.replace(/([A-Za-z])(\d)/g, '$1 $2');
+
+            // 注意：不再在数字和字母之间加空格（p2p, B2C, 3D 等保持完整）
             text = text.replace(/“/g, '「').replace(/”/g, '」');
             text = text.replace(/"([^"]+)"/g, '「$1」');
             text = text.replace(/%([\u4e00-\u9fa5])/g, '% $1');
@@ -431,6 +474,14 @@ document.addEventListener('DOMContentLoaded', function () {
             text = text.replace(/^\s+/, '');
             text = text.replace(/(\n\s*){2,}/g, '\n\n');
             text = removeTrailingEmptyLines(text);
+
+            // 占位符与周围中文/数字/小写英文之间加空格
+            text = text.replace(/([\u4e00-\u9fa5])([\uE000-\uE7FF])/g, '$1 $2');
+            text = text.replace(/([\uE000-\uE7FF])([\u4e00-\u9fa5])/g, '$1 $2');
+            text = text.replace(/(\d)([\uE000-\uE7FF])/g, '$1 $2');
+            text = text.replace(/([\uE000-\uE7FF])(\d)/g, '$1 $2');
+            text = text.replace(/([a-z])([\uE000-\uE7FF])/g, '$1 $2');
+            text = text.replace(/([\uE000-\uE7FF])([a-z])/g, '$1 $2');
 
             text = text.replace(/[\uE000-\uE7FF]/g, function(ch) {
                 const idx = ch.charCodeAt(0) - 0xE000;
@@ -473,6 +524,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // ---------- 清除 Markdown ----------
     function cleanMarkdown() {
         saveState();
+        const isMobile = window.innerWidth <= 768;
+        const savedScrollTop = isMobile ? editor.scrollTop : 0;
         let text = editor.value;
         text = text.replace(/\*\*/g, '');
         text = text.replace(/#+/g, '\n\n');
@@ -483,7 +536,11 @@ document.addEventListener('DOMContentLoaded', function () {
         text = removeTrailingEmptyLines(text);
         editor.value = text;
         reformatText(false);
-        scrollTop();
+        if (isMobile) {
+            editor.scrollTop = savedScrollTop;
+        } else {
+            scrollTop();
+        }
     }
 
     // ---------- 跳转写作猫 ----------
