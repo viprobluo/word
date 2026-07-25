@@ -181,6 +181,43 @@
             outline: none;
             border-color: #4b8bf7;
         }
+        .filter-area #recent7Btn {
+            transition: all 0.15s ease;
+            cursor: pointer;
+        }
+        .filter-area #recent7Btn.inactive {
+            background: #2a2a2a !important;
+            color: #888 !important;
+            border-color: #333 !important;
+        }
+        .day-btns {
+            display: flex;
+            gap: 4px;
+            background: #1a1a1a;
+            padding: 3px;
+            border-radius: 30px;
+            border: 1px solid #333;
+        }
+        .day-btn {
+            padding: 4px 12px;
+            font-size: 13px;
+            border-radius: 30px;
+            background: transparent;
+            color: #888;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+        .day-btn:hover {
+            color: #b0b0b0;
+        }
+        .day-btn.active {
+            background: #1a3a2a;
+            color: #70d090;
+            font-weight: 600;
+        }
 
         /* 吸顶统计条 */
         .stats-bar {
@@ -594,8 +631,16 @@
                     <button class="btn btn-danger" id="clearBtn">🗑️ 清空</button>
                 </div>
                 <div class="filter-area">
-                    <label>点赞 ≥</label>
+                    <div class="day-btns" id="dayBtns">
+                        <button class="day-btn" data-days="1">1天</button>
+                        <button class="day-btn" data-days="2">2天</button>
+                        <button class="day-btn" data-days="3">3天</button>
+                        <button class="day-btn active" data-days="7">7天</button>
+                    </div>
+                    <label>赞 ≥</label>
                     <input type="number" id="filterInput" value="200" min="0" step="1" />
+                    <label>字 ≥</label>
+                    <input type="number" id="filterWordInput" value="200" min="0" step="1" />
                 </div>
             </div>
         </div>
@@ -624,6 +669,8 @@
             const clearBtn = document.getElementById('clearBtn');
             const copyBtn = document.getElementById('copyBtn');
             const filterInput = document.getElementById('filterInput');
+            const filterWordInput = document.getElementById('filterWordInput');
+            const dayBtns = document.getElementById('dayBtns');
             const feedContainer = document.getElementById('feedContainer');
             const statsInfo = document.getElementById('statsInfo');
             const toast = document.getElementById('toast');
@@ -635,6 +682,7 @@
             let editedTitles = {};
             let isRestoring = false;
             let currentFileName = '';
+            let filterDays = 7;
 
             // ============ Toast ============
             let toastTimer = null;
@@ -655,7 +703,9 @@
                         marked,
                         editedTitles,
                         minLike: filterInput.value,
+                        minWords: filterWordInput.value,
                         fileName: currentFileName,
+                        filterDays,
                     };
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
                 } catch (e) { /* ignore */ }
@@ -673,6 +723,12 @@
                     marked = state.marked || [];
                     editedTitles = state.editedTitles || {};
                     if (state.minLike !== undefined) filterInput.value = state.minLike;
+                    if (state.minWords !== undefined) filterWordInput.value = state.minWords;
+                    if (state.filterDays !== undefined) {
+                        filterDays = state.filterDays;
+                    } else if (state.filterRecent7Days !== undefined) {
+                        filterDays = state.filterRecent7Days ? 7 : 0;
+                    }
                     currentFileName = state.fileName || '';
                     return true;
                 } catch (e) {
@@ -723,6 +779,20 @@
                 return user?.screenName || '';
             }
 
+            function isWithinDays(isoString, days) {
+                if (!isoString || !days) return true;
+                try {
+                    const postDate = new Date(isoString);
+                    if (isNaN(postDate.getTime())) return false;
+                    const now = new Date();
+                    const diffMs = now - postDate;
+                    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+                    return diffDays <= days;
+                } catch (_) {
+                    return false;
+                }
+            }
+
             // ============ 更新上传状态 ============
             function setUploadStatus(text, type = '') {
                 uploadStatus.textContent = text;
@@ -732,15 +802,23 @@
             // ============ 统计信息更新 ============
             function updateStats() {
                 const threshold = parseInt(filterInput.value) || 0;
-                const visiblePosts = allPosts.filter(p => !hiddenIds.has(p.id) && (p.likeCount || 0) >= threshold);
+                const minWords = parseInt(filterWordInput.value) || 0;
+                const visiblePosts = allPosts.filter(p => {
+                    if (hiddenIds.has(p.id)) return false;
+                    if ((p.likeCount || 0) < threshold) return false;
+                    if (filterDays > 0 && !isWithinDays(p.createdAt, filterDays)) return false;
+                    if (countWords(p.content) < minWords) return false;
+                    return true;
+                });
                 const total = allPosts.length;
                 const filteredCount = visiblePosts.length;
                 const inspired = visiblePosts.filter(p => {
                     const idx = allPosts.findIndex(q => q.id === p.id);
                     return marked[idx] || false;
                 }).length;
+                const timeLabel = filterDays > 0 ? `最近${filterDays}天 · ` : '';
                 statsInfo.innerHTML =
-                    `总数 ${total} 条 · 过滤后 <span class="highlight">${filteredCount}</span> 条 · 有启发 <span class="highlight">${inspired}</span> 条`;
+                    `${timeLabel}总数 ${total} 条 · 过滤后 <span class="highlight">${filteredCount}</span> 条 · 有启发 <span class="highlight">${inspired}</span> 条`;
             }
 
             // ============ 解析器 ============
@@ -857,8 +935,9 @@
                 const total = allPosts.length;
                 const filteredCount = posts.length;
                 const inspired = markArray.filter(m => m === true).length;
+                const timeLabel = filterDays > 0 ? `最近${filterDays}天 · ` : '';
                 statsInfo.innerHTML =
-                    `总数 ${total} 条 · 过滤后 <span class="highlight">${filteredCount}</span> 条 · 有启发 <span class="highlight">${inspired}</span> 条`;
+                    `${timeLabel}总数 ${total} 条 · 过滤后 <span class="highlight">${filteredCount}</span> 条 · 有启发 <span class="highlight">${inspired}</span> 条`;
 
                 let html = '';
                 posts.forEach((post, index) => {
@@ -997,7 +1076,14 @@
             // ============ 筛选 + 排序 ============
             function renderWithFilter() {
                 const threshold = parseInt(filterInput.value) || 0;
-                const visible = allPosts.filter(p => !hiddenIds.has(p.id) && (p.likeCount || 0) >= threshold);
+                const minWords = parseInt(filterWordInput.value) || 0;
+                const visible = allPosts.filter(p => {
+                    if (hiddenIds.has(p.id)) return false;
+                    if ((p.likeCount || 0) < threshold) return false;
+                    if (filterDays > 0 && !isWithinDays(p.createdAt, filterDays)) return false;
+                    if (countWords(p.content) < minWords) return false;
+                    return true;
+                });
                 const sorted = visible.slice().sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0));
                 const newMarked = sorted.map(p => {
                     const idx = allPosts.findIndex(q => q.id === p.id);
@@ -1126,7 +1212,14 @@
             // ============ 复制功能 ============
             copyBtn.addEventListener('click', async () => {
                 const threshold = parseInt(filterInput.value) || 0;
-                let visiblePosts = allPosts.filter(p => !hiddenIds.has(p.id) && (p.likeCount || 0) >= threshold);
+                const minWords = parseInt(filterWordInput.value) || 0;
+                let visiblePosts = allPosts.filter(p => {
+                    if (hiddenIds.has(p.id)) return false;
+                    if ((p.likeCount || 0) < threshold) return false;
+                    if (filterDays > 0 && !isWithinDays(p.createdAt, filterDays)) return false;
+                    if (countWords(p.content) < minWords) return false;
+                    return true;
+                });
                 if (visiblePosts.length === 0) {
                     showToast('没有可复制的内容', 2500);
                     return;
@@ -1194,11 +1287,38 @@
             });
 
             filterInput.addEventListener('input', renderWithFilter);
+            filterWordInput.addEventListener('input', renderWithFilter);
+
+            // ============ 天数筛选按钮 ============
+            function updateDayBtnsUI() {
+                const buttons = dayBtns.querySelectorAll('.day-btn');
+                buttons.forEach(btn => {
+                    const days = parseInt(btn.dataset.days);
+                    if (days === filterDays) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            }
+
+            dayBtns.addEventListener('click', (e) => {
+                const btn = e.target.closest('.day-btn');
+                if (!btn) return;
+                const days = parseInt(btn.dataset.days);
+                if (isNaN(days)) return;
+                filterDays = days;
+                updateDayBtnsUI();
+                renderWithFilter();
+                autoSave();
+                showToast(`已切换至最近${days}天`, 1500);
+            });
 
             // ============ 初始化 ============
             window.addEventListener('DOMContentLoaded', function() {
                 isRestoring = true;
                 const hasSaved = loadState();
+                updateDayBtnsUI();
                 if (hasSaved) {
                     renderWithFilter();
                     if (currentFileName) {
@@ -1216,6 +1336,7 @@
                     `;
                     statsInfo.textContent = '等待数据…';
                     setUploadStatus('未上传');
+                    updateDayBtnsUI();
                 }
                 isRestoring = false;
             });
