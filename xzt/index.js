@@ -18,9 +18,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const cbzButton = document.getElementById('cbzButton');
     const archiveButton = document.getElementById('archiveButton');
 
-    // ---------- 数据存储 ----------
-    const STORAGE_KEY = 'xzt_docs';
-    const OLD_KEY = 'xzt';
+    // ---------- 数据存储（固定键名） ----------
+    const STORAGE_KEY = 'xzt';
 
     // ---------- 数据模型 ----------
     let docs = [];
@@ -55,48 +54,67 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ---------- 加载 / 保存数据 ----------
     function loadDocs() {
-        let data = localStorage.getItem(STORAGE_KEY);
-        if (data) {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        console.log('读取到原始数据:', raw);
+        if (raw) {
             try {
-                const parsed = JSON.parse(data);
-                docs = parsed.docs || [];
-                currentId = parsed.currentId || null;
+                const parsed = JSON.parse(raw);
+                console.log('解析后的数据:', parsed);
+                // 检查是否为新格式（包含 docs 和 currentId）
+                if (parsed.docs && Array.isArray(parsed.docs)) {
+                    docs = parsed.docs;
+                    // 如果 currentId 存在且有效，则使用；否则取第一个文档的 id
+                    if (parsed.currentId && docs.some(d => d.id === parsed.currentId)) {
+                        currentId = parsed.currentId;
+                    } else if (docs.length > 0) {
+                        currentId = docs[0].id;
+                    } else {
+                        // 如果 docs 为空，创建默认文档
+                        const id = generateId();
+                        docs = [{ id: id, title: '无标题', content: '' }];
+                        currentId = id;
+                        saveDocs();
+                    }
+                    // 初始化撤销栈
+                    docs.forEach(doc => {
+                        if (!undoStacks[doc.id]) undoStacks[doc.id] = [];
+                    });
+                    console.log('成功加载新格式数据，docs:', docs, 'currentId:', currentId);
+                    return;
+                }
             } catch (e) {
-                docs = [];
-                currentId = null;
+                console.warn('JSON解析失败，尝试作为旧数据:', e);
             }
-        } else {
-            const old = localStorage.getItem(OLD_KEY);
-            if (old) {
-                const id = generateId();
-                docs = [{ id: id, title: getFirstNonEmptyLine(old), content: old }];
-                currentId = id;
-                localStorage.removeItem(OLD_KEY);
-                saveDocs();
-            } else {
-                const id = generateId();
-                docs = [{ id: id, title: '无标题', content: '' }];
-                currentId = id;
-                saveDocs();
-            }
+            // 如果数据不是 JSON 或解析失败，作为旧格式（纯文本）处理
+            const id = generateId();
+            const title = getFirstNonEmptyLine(raw);
+            docs = [{ id: id, title: title, content: raw }];
+            currentId = id;
+            saveDocs(); // 转换为新格式保存
+            docs.forEach(doc => {
+                if (!undoStacks[doc.id]) undoStacks[doc.id] = [];
+            });
+            console.log('迁移旧数据，docs:', docs);
+            return;
         }
-        if (!docs.some(d => d.id === currentId)) {
-            if (docs.length) currentId = docs[0].id;
-            else {
-                const id = generateId();
-                docs.push({ id, title: '无标题', content: '' });
-                currentId = id;
-                saveDocs();
-            }
+
+        // 没有任何数据，创建默认文档
+        if (docs.length === 0) {
+            const id = generateId();
+            docs = [{ id: id, title: '无标题', content: '' }];
+            currentId = id;
+            saveDocs();
+            docs.forEach(doc => {
+                if (!undoStacks[doc.id]) undoStacks[doc.id] = [];
+            });
+            console.log('创建默认文档');
         }
-        docs.forEach(doc => {
-            if (!undoStacks[doc.id]) undoStacks[doc.id] = [];
-        });
     }
 
     function saveDocs() {
         const data = JSON.stringify({ docs, currentId });
         localStorage.setItem(STORAGE_KEY, data);
+        console.log('保存数据:', data);
     }
 
     function getCurrentDoc() {
@@ -282,17 +300,33 @@ document.addEventListener('DOMContentLoaded', function () {
         showAutoCloseAlert('已撤销');
     }
 
+    // ---------- 快捷键 ----------
     document.addEventListener('keydown', function (e) {
         if (e.ctrlKey && e.key === 'z' && document.activeElement === editor) {
             e.preventDefault();
             undo();
+            return;
         }
-    });
-    document.addEventListener('keydown', function (e) {
-        if (e.altKey && e.key === '1') { e.preventDefault(); scrollTop(); }
-        if (e.altKey && e.key === '4') { e.preventDefault(); numBig(); }
-        if (e.altKey && e.key.toLowerCase() === 'c') { e.preventDefault(); copy(); }
-        if (e.ctrlKey && e.key.toLowerCase() === 's') { e.preventDefault(); reformatText(); }
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            reformatText();
+            return;
+        }
+        if (e.altKey && e.key === '1') {
+            e.preventDefault();
+            scrollTop();
+            return;
+        }
+        if (e.altKey && e.key === '4') {
+            e.preventDefault();
+            numBig();
+            return;
+        }
+        if (e.altKey && e.key.toLowerCase() === 'c') {
+            e.preventDefault();
+            copy();
+            return;
+        }
     });
 
     // ---------- 数字加粗 ----------
@@ -425,16 +459,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 return urlPlaceholders[idx] || ch;
             });
 
-            // ---- 新增：链接后补空行 ----
+            // 链接后补空行
             const lines = text.split('\n');
             const resultLines = [];
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
                 resultLines.push(line);
-                // 判断是否为独立链接行（trim后以 http:// 或 https:// 开头）
                 if (/^\s*https?:\/\/\S+\s*$/.test(line)) {
                     const nextLine = lines[i + 1];
-                    // 如果下一行存在且非空，则插入一个空行
                     if (nextLine !== undefined && nextLine.trim() !== '') {
                         resultLines.push('');
                     }
@@ -442,7 +474,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             text = resultLines.join('\n');
 
-            // 压缩多余空行（连续3个及以上换行合并为2个，即保留一个空行）
+            // 压缩多余空行
             text = text.replace(/\n{3,}/g, '\n\n');
 
             setEditorContent(text);
@@ -677,14 +709,12 @@ document.addEventListener('DOMContentLoaded', function () {
         saveCurrentContent();
     });
 
-    // 粘贴只保留纯文本
     editor.addEventListener('paste', function (e) {
         e.preventDefault();
         const text = (e.clipboardData || window.clipboardData).getData('text/plain');
         document.execCommand('insertText', false, text);
     });
 
-    // 点击链接跳转
     editor.addEventListener('click', function (e) {
         const target = e.target.closest('a');
         if (target && target.href) {
