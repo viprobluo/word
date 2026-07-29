@@ -194,6 +194,8 @@
             height: 100%;
             padding-bottom: 20px;
             flex: 1;
+            min-height: 0;
+            overflow: hidden;
             margin-top: 0;
             position: relative;
 
@@ -210,6 +212,75 @@
             user-select: none;
             padding-left: 0;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #readStats {
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        #readRight {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        #authorInput,
+        #sloganInput {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-color: transparent;
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath fill='%23faebd7' fill-opacity='0.4' d='M0 0l4 5 4-5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right center;
+            border: 0 solid transparent;
+            border-radius: 0;
+            box-shadow: none;
+            color: rgba(250, 235, 215, 0.406);
+            font-family: 'HarmonyOS Sans SC', sans-serif;
+            font-size: 12px;
+            font-weight: normal;
+            line-height: normal;
+            padding: 0 14px 0 0;
+            margin: 0;
+            outline: 0 none transparent;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        #authorInput:focus,
+        #authorInput:active,
+        #authorInput:hover,
+        #sloganInput:focus,
+        #sloganInput:active,
+        #sloganInput:hover {
+            border: 0 solid transparent;
+            box-shadow: none;
+            outline: 0 none transparent;
+            background-color: transparent;
+        }
+
+        #authorInput {
+            width: 150px;
+            text-align: right;
+            background-position: right center;
+        }
+
+        #sloganInput {
+            width: 170px;
+            text-align: right;
+        }
+
+        #authorInput option,
+        #sloganInput option {
+            background: #2a2a2a;
+            color: #ddd;
         }
 
         #cbzButton {
@@ -232,6 +303,7 @@
             outline: none;
             line-height: 1.6em;
             flex: 1;
+            min-height: 0;
             white-space: pre-wrap;
             /* 保留换行 */
             word-wrap: break-word;
@@ -241,6 +313,12 @@
             color: #8cf;
             text-decoration: underline;
             cursor: pointer;
+        }
+
+        #editor b,
+        #editor strong {
+            color: #feda05;
+            font-weight: bold;
         }
 
         #editor a:hover {
@@ -476,11 +554,29 @@
                 width: 100%;
             }
 
+            #authorInput {
+                font-size: 10px;
+                width: 100px;
+            }
+
+            #sloganInput {
+                font-size: 10px;
+                width: 110px;
+            }
+
             #cbzButton {
                 display: none;
             }
 
             #archiveButton {
+                display: none;
+            }
+
+            #xh {
+                display: none;
+            }
+
+            #clearButton {
                 display: none;
             }
 
@@ -521,14 +617,24 @@
             <button id="cleanMarkdown" data-mobile="🎉">排版</button>
             <button id="xh" data-mobile="序">序号</button>
             <button id="numBigButton" data-mobile="A">字体</button>
+            <button id="boldButton" data-mobile="粗">加粗</button>
             <button id="copyButton" data-mobile="C">复制</button>
             <button id="clearButton" data-mobile="空">清空</button>
             <button id="cbzButton">错别字</button>
+            <button id="exportImgButton" data-mobile="图">导出图片</button>
             <button id="archiveButton">归档</button>
         </div>
 
         <div id="editor-container">
-            <div id="read">全文 0 字 预计 0 分钟</div>
+            <div id="read"><span id="readStats">全文 0 字 预计 0 分钟</span>
+                <div id="readRight"><select id="sloganInput">
+                        <option value="指导选品 健康告知 理赔">指导选品 健康告知 理赔</option>
+                        <option value="存钱的人先享受世界">存钱的人先享受世界</option>
+                    </select><select id="authorInput">
+                        <option value="杜林 保险专家">杜林 保险专家</option>
+                        <option value="罗小布 保险专家">罗小布 保险专家</option>
+                    </select></div>
+            </div>
             <div id="editor" contenteditable="true" autofocus></div>
         </div>
     </div>
@@ -546,6 +652,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="index.js"></script>
 </body>
 
