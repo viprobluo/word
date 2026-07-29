@@ -887,7 +887,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     var gap = document.createElement('span');
                     gap.style.display = 'block';
                     //空行间距
-                    gap.style.height = '40px';
+                    gap.style.height = '50px';
                     container.appendChild(gap);
                 } else if (n.type === 'bold') {
                     renderNodes(container, n.children, true);
@@ -996,7 +996,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 var bodyEl = document.createElement('div');
                 bodyEl.style.fontSize = bodyFontSize + 'px';
                 //文字间距
-                bodyEl.style.lineHeight = '1.8';
+                bodyEl.style.lineHeight = '1.5';
                 bodyEl.style.color = '#fff';
                 bodyEl.style.wordWrap = 'break-word';
                 bodyEl.style.whiteSpace = 'pre-wrap';
