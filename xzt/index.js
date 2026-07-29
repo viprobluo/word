@@ -55,11 +55,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // ---------- 加载 / 保存数据 ----------
     function loadDocs() {
         const raw = localStorage.getItem(STORAGE_KEY);
-        console.log('读取到原始数据:', raw);
+        // console.log('读取到原始数据:', raw);
         if (raw) {
             try {
                 const parsed = JSON.parse(raw);
-                console.log('解析后的数据:', parsed);
+                // console.log('解析后的数据:', parsed);
                 // 检查是否为新格式（包含 docs 和 currentId）
                 if (parsed.docs && Array.isArray(parsed.docs)) {
                     docs = parsed.docs;
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     docs.forEach(doc => {
                         if (!undoStacks[doc.id]) undoStacks[doc.id] = [];
                     });
-                    console.log('成功加载新格式数据，docs:', docs, 'currentId:', currentId);
+                    // console.log('成功加载新格式数据，docs:', docs, 'currentId:', currentId);
                     return;
                 }
             } catch (e) {
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function () {
             docs.forEach(doc => {
                 if (!undoStacks[doc.id]) undoStacks[doc.id] = [];
             });
-            console.log('迁移旧数据，docs:', docs);
+            // console.log('迁移旧数据，docs:', docs);
             return;
         }
 
@@ -107,14 +107,14 @@ document.addEventListener('DOMContentLoaded', function () {
             docs.forEach(doc => {
                 if (!undoStacks[doc.id]) undoStacks[doc.id] = [];
             });
-            console.log('创建默认文档');
+            // console.log('创建默认文档');
         }
     }
 
     function saveDocs() {
         const data = JSON.stringify({ docs, currentId });
         localStorage.setItem(STORAGE_KEY, data);
-        console.log('保存数据:', data);
+        // console.log('保存数据:', data);
     }
 
     function getCurrentDoc() {

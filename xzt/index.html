@@ -64,6 +64,7 @@
             padding: 0 4px;
             line-height: 1;
         }
+
         #newDocBtn:hover {
             color: #8cf;
         }
@@ -83,9 +84,11 @@
             border-bottom: 1px solid #3a3a3a;
             transition: background 0.15s;
         }
+
         .doc-item:hover {
             background-color: #3a3a3a;
         }
+
         .doc-item.active {
             background-color: #4a4a4a;
             border-left: 3px solid #8cf;
@@ -99,6 +102,7 @@
             font-size: 14px;
             color: #ddd;
         }
+
         .doc-item.active .doc-title {
             color: #fff;
         }
@@ -114,6 +118,7 @@
             flex-shrink: 0;
             margin-left: 8px;
         }
+
         .doc-delete:hover {
             color: #f66;
         }
@@ -163,6 +168,7 @@
             white-space: nowrap;
             flex-shrink: 0;
         }
+
         .button-container button:hover {
             background-color: #555;
         }
@@ -190,6 +196,7 @@
             flex: 1;
             margin-top: 0;
             position: relative;
+
         }
 
         #read {
@@ -225,14 +232,18 @@
             outline: none;
             line-height: 1.6em;
             flex: 1;
-            white-space: pre-wrap;  /* 保留换行 */
+            white-space: pre-wrap;
+            /* 保留换行 */
             word-wrap: break-word;
+            margin-bottom: 60px;
         }
+
         #editor a {
             color: #8cf;
             text-decoration: underline;
             cursor: pointer;
         }
+
         #editor a:hover {
             color: #adf;
         }
@@ -240,9 +251,11 @@
         #editor::-webkit-scrollbar {
             width: 8px;
         }
+
         #editor::-webkit-scrollbar-track {
             background-color: #333;
         }
+
         #editor::-webkit-scrollbar-thumb {
             background-color: #555;
             border-radius: 10px;
@@ -260,6 +273,7 @@
             justify-content: center;
             align-items: flex-end;
         }
+
         #mobile-overlay.show {
             display: flex;
         }
@@ -275,10 +289,12 @@
             overflow: hidden;
             animation: slideUp 0.25s ease;
         }
+
         @keyframes slideUp {
             from {
                 transform: translateY(100%);
             }
+
             to {
                 transform: translateY(0);
             }
@@ -292,11 +308,13 @@
             border-bottom: 1px solid #444;
             flex-shrink: 0;
         }
+
         #mobile-drawer-header h3 {
             font-size: 16px;
             font-weight: normal;
             color: #ccc;
         }
+
         #mobileNewDocBtn {
             background: none;
             border: none;
@@ -305,9 +323,11 @@
             cursor: pointer;
             padding: 0 4px;
         }
+
         #mobileNewDocBtn:hover {
             color: #8cf;
         }
+
         #mobileDrawerClose {
             background: none;
             border: none;
@@ -331,16 +351,20 @@
             cursor: pointer;
             border-bottom: 1px solid #3a3a3a;
         }
+
         .mobile-doc-item.active {
             background-color: #4a4a4a;
         }
+
         .mobile-doc-item .doc-title {
             font-size: 15px;
             color: #ddd;
         }
+
         .mobile-doc-item .doc-delete {
             color: #888;
         }
+
         .mobile-doc-item .doc-delete:hover {
             color: #f66;
         }
@@ -416,6 +440,7 @@
             .button-container button[data-mobile] {
                 font-size: 0;
             }
+
             .button-container button[data-mobile]::before {
                 content: attr(data-mobile);
                 font-size: 12px;
@@ -442,6 +467,7 @@
                 padding: 12px;
                 flex: 1;
                 min-height: 0;
+                margin-bottom: 6px;
             }
 
             #read {
@@ -471,6 +497,7 @@
                 font-size: 11px;
                 margin: 2px 2px;
             }
+
             #editor {
                 font-size: 15px;
                 padding: 10px;
