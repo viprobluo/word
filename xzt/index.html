@@ -287,6 +287,10 @@
             display: none;
         }
 
+        #boldButton {
+            display: none;
+        }
+
         /* 编辑器改为 contenteditable div */
         #editor {
             width: 100%;
@@ -583,6 +587,11 @@
             #newDocBtn {
                 display: none;
             }
+
+            /* 手机端强制显示加粗按钮 */
+            #boldButton {
+                display: inline-block;
+            }
         }
 
         @media (max-width: 480px) {
@@ -621,7 +630,7 @@
             <button id="copyButton" data-mobile="C">复制</button>
             <button id="clearButton" data-mobile="空">清空</button>
             <button id="cbzButton">错别字</button>
-            <button id="exportImgButton" data-mobile="图">导出图片</button>
+            <button id="exportImgButton" data-mobile="图">生图</button>
             <button id="archiveButton">归档</button>
         </div>
 

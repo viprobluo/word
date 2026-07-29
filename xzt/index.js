@@ -1200,7 +1200,21 @@ document.addEventListener('DOMContentLoaded', function () {
     cbzButton.addEventListener('click', linkCbz);
     if (exportImgButton) exportImgButton.addEventListener('click', exportImage);
     archiveButton.addEventListener('click', archiveDoc);
+    var savedRange = null;
+    document.addEventListener('selectionchange', function () {
+        var sel = window.getSelection();
+        if (sel.rangeCount > 0 && editor.contains(sel.anchorNode)) {
+            savedRange = sel.getRangeAt(0);
+        }
+    });
+
     if (boldButton) boldButton.addEventListener('click', function () {
+        editor.focus();
+        var sel = window.getSelection();
+        if (savedRange) {
+            sel.removeAllRanges();
+            sel.addRange(savedRange);
+        }
         document.execCommand('bold');
     });
 
