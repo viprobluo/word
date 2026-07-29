@@ -874,10 +874,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ---------- 导出图片 ----------
     function exportImage() {
-        if (window.innerWidth <= 768) {
-            showAutoCloseAlert('手机端暂不支持导出图片');
-            return;
-        }
         if (!editor.innerText.trim()) {
             showAutoCloseAlert('文档为空，无法导出');
             return;
@@ -1204,19 +1200,34 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('selectionchange', function () {
         var sel = window.getSelection();
         if (sel.rangeCount > 0 && editor.contains(sel.anchorNode)) {
-            savedRange = sel.getRangeAt(0);
+            savedRange = sel.getRangeAt(0).cloneRange();
         }
     });
 
-    if (boldButton) boldButton.addEventListener('click', function () {
-        editor.focus();
-        var sel = window.getSelection();
-        if (savedRange) {
-            sel.removeAllRanges();
-            sel.addRange(savedRange);
-        }
-        document.execCommand('bold');
-    });
+    if (boldButton) {
+        boldButton.addEventListener('touchstart', function (e) {
+            e.preventDefault();
+            var sel = window.getSelection();
+            if (sel.rangeCount > 0 && editor.contains(sel.anchorNode)) {
+                savedRange = sel.getRangeAt(0).cloneRange();
+            }
+        }, { passive: false });
+
+        boldButton.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+        });
+
+        boldButton.addEventListener('click', function () {
+            editor.focus();
+            if (savedRange) {
+                var sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(savedRange);
+            }
+            document.execCommand('bold');
+            savedRange = null;
+        });
+    }
 
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Delete' && document.activeElement !== editor) {
