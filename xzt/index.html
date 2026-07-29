@@ -213,8 +213,8 @@
             padding-left: 0;
             flex-shrink: 0;
             display: flex;
-            align-items: center;
-            gap: 12px;
+            align-items: flex-end;
+            /* gap: 12px; */
         }
 
         #readStats {
@@ -226,7 +226,7 @@
             margin-left: auto;
             display: flex;
             align-items: center;
-            gap: 12px;
+            /* gap: 0px; */
             flex-shrink: 0;
         }
 
@@ -247,7 +247,7 @@
             font-size: 12px;
             font-weight: normal;
             line-height: normal;
-            padding: 0 14px 0 0;
+            padding: 0 10px 0 0;
             margin: 0;
             outline: 0 none transparent;
             flex-shrink: 0;
@@ -289,11 +289,6 @@
 
         #boldButton {
             display: none;
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
-            touch-action: manipulation;
         }
 
         /* 编辑器改为 contenteditable div */
@@ -581,9 +576,10 @@
                 display: none;
             }
 
+            /* 
             #xh {
                 display: none;
-            }
+            } */
 
             #clearButton {
                 display: none;
@@ -591,11 +587,6 @@
 
             #newDocBtn {
                 display: none;
-            }
-
-            /* 手机端强制显示加粗按钮 */
-            #boldButton {
-                display: inline-block;
             }
         }
 

@@ -828,6 +828,32 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         collectNodesFrom(doc.body, nodes, true);
 
+        // Collapse consecutive br nodes: single br = line break, 2+ br = small blank gap
+        var collapsedNodes = [];
+        var brCount = 0;
+        for (var ci = 0; ci < nodes.length; ci++) {
+            if (nodes[ci].type === 'br') {
+                brCount++;
+            } else {
+                if (brCount > 0) {
+                    if (brCount === 1) {
+                        collapsedNodes.push({ type: 'br' });
+                    } else {
+                        collapsedNodes.push({ type: 'blank' });
+                    }
+                    brCount = 0;
+                }
+                collapsedNodes.push(nodes[ci]);
+            }
+        }
+        if (brCount > 0) {
+            if (brCount === 1) {
+                collapsedNodes.push({ type: 'br' });
+            } else {
+                collapsedNodes.push({ type: 'blank' });
+            }
+        }
+
         var lineCount = 0;
         var skipDone = false;
         var skipTarget = skipLines || 0;
@@ -857,6 +883,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else if (n.type === 'br') {
                     container.appendChild(document.createElement('br'));
                     lineCount++;
+                } else if (n.type === 'blank') {
+                    var gap = document.createElement('span');
+                    gap.style.display = 'block';
+                    //空行间距
+                    gap.style.height = '40px';
+                    container.appendChild(gap);
                 } else if (n.type === 'bold') {
                     renderNodes(container, n.children, true);
                 } else if (n.type === 'link') {
@@ -865,7 +897,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        renderNodes(bodyEl, nodes, false);
+        renderNodes(bodyEl, collapsedNodes, false);
 
         if (!bodyEl.childNodes.length) {
             bodyEl.style.display = 'none';
@@ -873,7 +905,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ---------- 导出图片 ----------
+    var isExporting = false;
     function exportImage() {
+        if (isExporting) return;
         if (!editor.innerText.trim()) {
             showAutoCloseAlert('文档为空，无法导出');
             return;
@@ -894,6 +928,7 @@ document.addEventListener('DOMContentLoaded', function () {
             : (slogan || '指导选品 健康告知 理赔');
 
         showAutoCloseAlert('正在生成图片…');
+        isExporting = true;
 
         setTimeout(function () {
             try {
@@ -952,14 +987,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 titleEl.style.fontSize = titleFontSize + 'px';
                 titleEl.style.fontWeight = 'bold';
                 titleEl.style.lineHeight = '1.4';
-                titleEl.style.marginBottom = '16px';
+                //标题与正文间距
+                titleEl.style.marginBottom = '8px';
                 titleEl.style.color = '#fff';
                 card.appendChild(titleEl);
 
                 // 正文：解析 HTML 渲染加粗
                 var bodyEl = document.createElement('div');
                 bodyEl.style.fontSize = bodyFontSize + 'px';
-                bodyEl.style.lineHeight = '1.6';
+                //文字间距
+                bodyEl.style.lineHeight = '1.8';
                 bodyEl.style.color = '#fff';
                 bodyEl.style.wordWrap = 'break-word';
                 bodyEl.style.whiteSpace = 'pre-wrap';
@@ -968,8 +1005,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // 页脚
                 var footer = document.createElement('div');
-                footer.style.marginTop = '48px';
-                footer.style.paddingTop = '28px';
+                //正文与页脚的距离
+                footer.style.marginTop = '32px';
+                //页脚分割线与内容的间距
+                footer.style.paddingTop = '40px';
                 footer.style.borderTop = '1px solid rgba(255,255,255,0.25)';
                 footer.style.width = '100%';
 
@@ -1040,11 +1079,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         link.click();
                         document.body.removeChild(link);
                         showAutoCloseAlert('图片已导出');
+                        isExporting = false;
                     }).catch(function (err) {
                         try {
                             document.body.removeChild(container);
                         } catch (e) { }
                         showAutoCloseAlert('导出失败，请重试');
+                        isExporting = false;
                     });
                 }
 
@@ -1060,6 +1101,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             } catch (e) {
                 showAutoCloseAlert('导出失败，请重试');
+                isExporting = false;
             }
         }, 200);
     }
