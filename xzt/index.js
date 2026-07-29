@@ -883,17 +883,15 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // 作者名：从页内输入框读取，同步到全局 author 并保存（统一写入 xzt 字段）
-        if (authorInput) {
-            author = authorInput.value.trim();
-            saveDocs();
-        }
+        // 作者名：优先使用下拉框当前值，其次全局 author，最后兜底
+        var exportAuthor = (authorInput && authorInput.value && authorInput.value.trim())
+            ? authorInput.value.trim()
+            : (author || '杜林 保险专家');
 
-        // slogan：从页内输入框读取，同步到全局 slogan 并保存
-        if (sloganInput) {
-            slogan = sloganInput.value.trim();
-            saveDocs();
-        }
+        // slogan：优先使用下拉框当前值，其次全局 slogan，最后兜底
+        var exportSlogan = (sloganInput && sloganInput.value && sloganInput.value.trim())
+            ? sloganInput.value.trim()
+            : (slogan || '指导选品 健康告知 理赔');
 
         showAutoCloseAlert('正在生成图片…');
 
@@ -954,7 +952,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 titleEl.style.fontSize = titleFontSize + 'px';
                 titleEl.style.fontWeight = 'bold';
                 titleEl.style.lineHeight = '1.4';
-                titleEl.style.marginBottom = '32px';
+                titleEl.style.marginBottom = '16px';
                 titleEl.style.color = '#fff';
                 card.appendChild(titleEl);
 
@@ -985,7 +983,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 footerInner.style.width = '100%';
 
                 // 左侧：作者行（徽章 + 作者名）
-                if (author) {
+                if (exportAuthor) {
                     var authorRow = document.createElement('div');
                     authorRow.style.display = 'flex';
                     authorRow.style.alignItems = 'center';
@@ -1001,7 +999,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     authorRow.appendChild(badge);
 
                     var authorEl = document.createElement('span');
-                    authorEl.textContent = author;
+                    authorEl.textContent = exportAuthor;
                     authorEl.style.fontSize = '28px';
                     authorEl.style.color = '#feda05';
                     authorRow.appendChild(authorEl);
@@ -1011,7 +1009,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // 右侧：服务说明
                 var serviceEl = document.createElement('div');
-                serviceEl.textContent = slogan || '指导选品 健康告知 理赔';
+                serviceEl.textContent = exportSlogan;
                 serviceEl.style.fontSize = '24px';
                 serviceEl.style.color = 'rgba(255,255,255,0.55)';
                 serviceEl.style.flexShrink = '0';
@@ -1051,13 +1049,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
                 // 等徽章图片加载完成后再截图
-                if (author && badge.complete) {
-                    doCapture();
-                } else if (author) {
-                    badge.onload = doCapture;
-                    badge.onerror = doCapture;
-                } else {
-                    doCapture();
+                function doCaptureSafe() {
+                    setTimeout(doCapture, 50);
+                }
+                badge.onload = doCaptureSafe;
+                badge.onerror = doCaptureSafe;
+                // 兜底：如果 base64 图片已缓存，complete 为 true，直接调用
+                if (badge.complete && badge.naturalWidth > 0) {
+                    doCaptureSafe();
                 }
             } catch (e) {
                 showAutoCloseAlert('导出失败，请重试');
@@ -1205,20 +1204,25 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     if (boldButton) {
+        // touchstart: 在浏览器转移焦点前保存选区
         boldButton.addEventListener('touchstart', function (e) {
             e.preventDefault();
+            e.stopPropagation();
             var sel = window.getSelection();
             if (sel.rangeCount > 0 && editor.contains(sel.anchorNode)) {
                 savedRange = sel.getRangeAt(0).cloneRange();
             }
         }, { passive: false });
 
+        // mousedown: 桌面端同样阻止焦点转移
         boldButton.addEventListener('mousedown', function (e) {
             e.preventDefault();
+            e.stopPropagation();
         });
 
-        boldButton.addEventListener('click', function () {
-            editor.focus();
+        boldButton.addEventListener('click', function (e) {
+            e.preventDefault();
+            // 直接恢复选区，不调用 focus() 防止页面滚动
             if (savedRange) {
                 var sel = window.getSelection();
                 sel.removeAllRanges();
