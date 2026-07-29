@@ -1089,8 +1089,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
                 }
 
-                // 等徽章图片加载完成后再截图
+                // 等徽章图片加载完成后再截图（防重复触发：base64 缓存时 complete 已为 true 会和 onload 重复）
+                var captureTriggered = false;
                 function doCaptureSafe() {
+                    if (captureTriggered) return;
+                    captureTriggered = true;
                     setTimeout(doCapture, 50);
                 }
                 badge.onload = doCaptureSafe;
@@ -1283,6 +1286,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ---------- 初始化 ----------
     loadDocs();
+
+    // ---------- 手机端：下拉框只显示前4个字（导出时仍用全量文案）----------
+    function applyShortOptionLabels() {
+        var isMobile = window.innerWidth <= 768;
+        [authorInput, sloganInput].forEach(function (sel) {
+            if (!sel) return;
+            for (var i = 0; i < sel.options.length; i++) {
+                var opt = sel.options[i];
+                if (isMobile) {
+                    if (!opt._fullText) opt._fullText = opt.textContent;
+                    opt.textContent = opt.getAttribute('data-short') || opt._fullText.substring(0, 4);
+                } else if (opt._fullText) {
+                    opt.textContent = opt._fullText;
+                }
+            }
+        });
+    }
+    applyShortOptionLabels();
+    window.addEventListener('resize', applyShortOptionLabels);
 
     // ---------- 作者下拉框（loadDocs 后再赋值，确保使用 xzt 字段内的 author，并完成旧数据迁移）----------
     if (authorInput) {
