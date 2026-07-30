@@ -173,6 +173,11 @@
             background-color: #555;
         }
 
+        .button-container button.toggle-active {
+            background-color: #feda05;
+            color: #333;
+        }
+
         #mobileDocBtn {
             display: none;
             background: none;
@@ -627,17 +632,18 @@
             <button id="clearButton" data-mobile="空">清空</button>
             <button id="cbzButton">错别字</button>
             <button id="exportImgButton" data-mobile="图">生图</button>
+            <button id="qrToggleButton" data-mobile="码">码</button>
             <button id="archiveButton">归档</button>
         </div>
 
         <div id="editor-container">
             <div id="read"><span id="readStats">全文 0 字 预计 0 分钟</span>
                 <div id="readRight"><select id="sloganInput">
-                        <option value="指导选品 健康告知 理赔" data-short="指导选品">指导选品 健康告知 理赔</option>
-                        <option value="存钱的人先享受世界" data-short="存钱的人">存钱的人先享受世界</option>
+                        <option value="保障规划 协助理赔 个养税优" data-short="家庭保障">家庭保障</option>
+                        <option value="存钱的人先享受世界" data-short="存钱的人">存钱的人</option>
                     </select><select id="authorInput">
-                        <option value="杜林 保险专家" data-short="杜林">杜林 保险专家</option>
-                        <option value="罗小布 保险专家" data-short="罗小布">罗小布 保险专家</option>
+                        <option value="杜 林 保险第1课作者" data-short="杜林">杜 林</option>
+                        <option value="罗小布 保险第1课作者" data-short="罗小布">罗小布</option>
                     </select></div>
             </div>
             <div id="editor" contenteditable="true" autofocus></div>
@@ -658,6 +664,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="img_base64.js"></script>
     <script src="index.js"></script>
 </body>
 
