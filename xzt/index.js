@@ -976,7 +976,8 @@ var fileName = fileDateStr + '_' + titleForFile + '.png';
                 var card = document.createElement('div');
                 card.style.width = cardWidth + 'px';
                 card.style.background = '#333';
-                card.style.border = borderWidth + 'px solid #fff';
+               // card.style.border = borderWidth + 'px solid #fff';
+                card.style.border = '0';
                 card.style.boxSizing = 'border-box';
                 card.style.padding = contentPadding + 'px';
                 card.style.color = '#fff';
@@ -993,7 +994,7 @@ var fileName = fileDateStr + '_' + titleForFile + '.png';
                 titleEl.style.fontFamily = '"Microsoft YaHei", "微软雅黑", sans-serif';
                 //标题与正文间距
                 titleEl.style.marginBottom = '8px';
-                titleEl.style.marginTop = '50px';
+                titleEl.style.marginTop = '100px';
                 titleEl.style.color = '#fff';
                 card.appendChild(titleEl);
 
@@ -1014,6 +1015,7 @@ var fileName = fileDateStr + '_' + titleForFile + '.png';
                 footer.style.marginTop = '32px';
                 //页脚分割线与内容的间距
                 footer.style.paddingTop = '40px';
+               footer.style.paddingBottom = '100px';
                 footer.style.borderTop = '1px solid rgba(255,255,255,0.25)';
                 footer.style.width = '100%';
 
