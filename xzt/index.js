@@ -947,9 +947,12 @@
 
                 var titleForFile = sanitizeFileName(titleLine || '无标题');
                 var now = new Date();
-                var fileDateStr = now.getFullYear() +
-                    String(now.getMonth() + 1).padStart(2, '0') +
-                    String(now.getDate()).padStart(2, '0');
+              var fileDateStr = now.getFullYear() +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    String(now.getDate()).padStart(2, '0') +
+    String(now.getHours()).padStart(2, '0') +
+    String(now.getMinutes()).padStart(2, '0') +
+    String(now.getSeconds()).padStart(2, '0');
                 var fileName = fileDateStr + '_' + titleForFile + '.png';
 
                 var cardWidth = 1012;
