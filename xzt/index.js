@@ -1022,7 +1022,7 @@ var fileName = fileDateStr + '_' + titleForFile + '.png';
                 var footerInner = document.createElement('div');
                 footerInner.style.display = 'flex';
                 footerInner.style.flexDirection = 'row';
-                footerInner.style.alignItems = 'center';
+               footerInner.style.alignItems = 'center';
                 footerInner.style.gap = '24px';
                 footerInner.style.width = '100%';
                 footerInner.style.justifyContent = 'flex-start';
@@ -1032,13 +1032,12 @@ var fileName = fileDateStr + '_' + titleForFile + '.png';
 
                 if (qrEnabled) {
                     // 二维码开启：左列（徽章+作者 + Slogan），右列二维码
-                    var leftCol = document.createElement('div');
-                    leftCol.style.display = 'flex';
-                    leftCol.style.flexDirection = 'column';
-                    leftCol.style.gap = '8px';
-                    leftCol.style.alignItems = 'flex-start';
-                    leftCol.style.flexShrink = '0';
-
+               var leftCol = document.createElement('div');
+leftCol.style.display = 'flex';
+leftCol.style.flexDirection = 'column';
+leftCol.style.alignItems = 'flex-start';
+leftCol.style.gap = '28px';   // 这个值你可以自己调，12~20px 都行
+leftCol.style.flexShrink = '0';
                     if (exportAuthor) {
                         var authorRow = document.createElement('div');
                         authorRow.style.display = 'flex';
@@ -1048,15 +1047,15 @@ var fileName = fileDateStr + '_' + titleForFile + '.png';
 
                         badge = document.createElement('img');
                         badge.src = BADGE_DATA_URL;
-                        badge.style.width = '36px';
-                        badge.style.height = '36px';
+                        badge.style.width = '48px';
+                        badge.style.height = '48px';
                         badge.style.objectFit = 'contain';
                         badge.style.flexShrink = '0';
                         authorRow.appendChild(badge);
 
                         var authorEl = document.createElement('span');
                         authorEl.textContent = exportAuthor;
-                        authorEl.style.fontSize = '28px';
+                        authorEl.style.fontSize = '38px';
                         authorEl.style.color = '#feda05';
                         authorRow.appendChild(authorEl);
 
@@ -1065,7 +1064,7 @@ var fileName = fileDateStr + '_' + titleForFile + '.png';
 
                     var serviceEl = document.createElement('div');
                     serviceEl.textContent = exportSlogan;
-                    serviceEl.style.fontSize = '24px';
+                    serviceEl.style.fontSize = '32px';
                     serviceEl.style.color = 'rgba(255,255,255,0.55)';
                     serviceEl.style.flexShrink = '0';
                     serviceEl.style.paddingLeft = '6px';
@@ -1083,8 +1082,8 @@ var fileName = fileDateStr + '_' + titleForFile + '.png';
                     if (qrUrl) {
                         qrImg = document.createElement('img');
                         qrImg.src = qrUrl;
-                        qrImg.style.width = '120px';
-                        qrImg.style.height = '120px';
+                        qrImg.style.width = '150px';
+                        qrImg.style.height = '150px';
                         qrImg.style.objectFit = 'contain';
                         qrImg.style.flexShrink = '0';
                         qrImg.style.marginLeft = 'auto';
@@ -1101,15 +1100,15 @@ var fileName = fileDateStr + '_' + titleForFile + '.png';
 
                         badge = document.createElement('img');
                         badge.src = BADGE_DATA_URL;
-                        badge.style.width = '36px';
-                        badge.style.height = '36px';
+                        badge.style.width = '42px';
+                        badge.style.height = '42px';
                         badge.style.objectFit = 'contain';
                         badge.style.flexShrink = '0';
                         authorRow.appendChild(badge);
 
                         var authorEl = document.createElement('span');
                         authorEl.textContent = exportAuthor;
-                        authorEl.style.fontSize = '28px';
+                        authorEl.style.fontSize = '38px';
                         authorEl.style.color = '#feda05';
                         authorRow.appendChild(authorEl);
 
@@ -1118,7 +1117,7 @@ var fileName = fileDateStr + '_' + titleForFile + '.png';
 
                     var serviceEl = document.createElement('div');
                     serviceEl.textContent = exportSlogan;
-                    serviceEl.style.fontSize = '24px';
+                    serviceEl.style.fontSize = '32px';
                     serviceEl.style.color = 'rgba(255,255,255,0.55)';
                     serviceEl.style.flexShrink = '0';
                     footerInner.appendChild(serviceEl);
