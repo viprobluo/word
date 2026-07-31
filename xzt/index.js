@@ -969,19 +969,19 @@ var fileName = fileDateStr + '_' + titleForFile + '.png';
                 container.style.width = (cardWidth + outerPadding * 2) + 'px';
                 container.style.height = 'auto';
                 container.style.padding = outerPadding + 'px';
-                container.style.background = '#333';
+                container.style.background = '#19191F';
                 container.style.boxSizing = 'border-box';
                 container.style.zIndex = '-1';
 
                 var card = document.createElement('div');
                 card.style.width = cardWidth + 'px';
-                card.style.background = '#333';
+                card.style.background = '#19191F';
                // card.style.border = borderWidth + 'px solid #fff';
                 card.style.border = '0';
                 card.style.boxSizing = 'border-box';
                 card.style.padding = contentPadding + 'px';
-                card.style.color = '#fff';
-                card.style.fontFamily = "'DeDaoJinKai', 'HarmonyOS Sans SC', sans-serif";
+                card.style.color = '#EAEBF0';
+                card.style.fontFamily = "'HarmonyOS Sans SC', 'HarmonyOS Sans', 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif";
                 card.style.textAlign = 'left';
                 card.style.wordWrap = 'break-word';
 
@@ -989,13 +989,13 @@ var fileName = fileDateStr + '_' + titleForFile + '.png';
                 var titleEl = document.createElement('div');
                 titleEl.textContent = titleLine;
                 titleEl.style.fontSize = titleFontSize + 'px';
-                titleEl.style.fontWeight = 'bold';
+                titleEl.style.fontWeight = '900';
                 titleEl.style.lineHeight = '1.4';
-                titleEl.style.fontFamily = '"Microsoft YaHei", "微软雅黑", sans-serif';
+                titleEl.style.fontFamily = "'HarmonyOS Sans SC', 'HarmonyOS Sans', 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif";
                 //标题与正文间距
                 titleEl.style.marginBottom = '8px';
                 titleEl.style.marginTop = '100px';
-                titleEl.style.color = '#fff';
+                titleEl.style.color = '#EAEBF0';
                 card.appendChild(titleEl);
 
                 // 正文：解析 HTML 渲染加粗
@@ -1003,7 +1003,7 @@ var fileName = fileDateStr + '_' + titleForFile + '.png';
                 bodyEl.style.fontSize = bodyFontSize + 'px';
                 //文字间距
                 bodyEl.style.lineHeight = '1.5';
-                bodyEl.style.color = '#fff';
+                bodyEl.style.color = '#EAEBF0';
                 bodyEl.style.wordWrap = 'break-word';
                 bodyEl.style.whiteSpace = 'pre-wrap';
                 renderFormattedBody(bodyEl, editorHTML, bodyStartIdx);
@@ -1016,7 +1016,7 @@ var fileName = fileDateStr + '_' + titleForFile + '.png';
                 //页脚分割线与内容的间距
                 footer.style.paddingTop = '40px';
                footer.style.paddingBottom = '100px';
-                footer.style.borderTop = '1px solid rgba(255,255,255,0.25)';
+                footer.style.borderTop = '1px solid rgba(148,152,166,0.25)';
                 footer.style.width = '100%';
 
                 var footerInner = document.createElement('div');
@@ -1065,7 +1065,7 @@ leftCol.style.flexShrink = '0';
                     var serviceEl = document.createElement('div');
                     serviceEl.textContent = exportSlogan;
                     serviceEl.style.fontSize = '32px';
-                    serviceEl.style.color = 'rgba(255,255,255,0.55)';
+                    serviceEl.style.color = '#9498A6';
                     serviceEl.style.flexShrink = '0';
                     serviceEl.style.paddingLeft = '6px';
                     leftCol.appendChild(serviceEl);
@@ -1118,7 +1118,7 @@ leftCol.style.flexShrink = '0';
                     var serviceEl = document.createElement('div');
                     serviceEl.textContent = exportSlogan;
                     serviceEl.style.fontSize = '32px';
-                    serviceEl.style.color = 'rgba(255,255,255,0.55)';
+                    serviceEl.style.color = '#9498A6';
                     serviceEl.style.flexShrink = '0';
                     footerInner.appendChild(serviceEl);
                 }
@@ -1133,7 +1133,7 @@ leftCol.style.flexShrink = '0';
                 var isFileProtocol = window.location.protocol === 'file:';
                 function doCapture() {
                     var h2cOpts = {
-                        backgroundColor: '#333',
+                        backgroundColor: '#19191F',
                         scale: scale,
                         logging: false,
                         allowTaint: true,
