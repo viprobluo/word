@@ -1,11 +1,13 @@
 const fs = require('fs');
 
+const DIR = 'd:/BaiduSyncdisk/WWW/gitpage/xzt项目/feat/静态资源';
+
 // 读取徽章图片
-const badgeB64 = 'data:image/png;base64,' + fs.readFileSync('d:/BaiduSyncdisk/WWW/gitpage/xzt项目/feat/徽章.png').toString('base64');
+const badgeB64 = 'data:image/png;base64,' + fs.readFileSync(DIR + '/徽章.png').toString('base64');
 
 // 读取两个二维码
-const dulinB64 = 'data:image/png;base64,' + fs.readFileSync('d:/BaiduSyncdisk/WWW/gitpage/xzt项目/feat/杜林二维码.png').toString('base64');
-const lxbB64 = 'data:image/png;base64,' + fs.readFileSync('d:/BaiduSyncdisk/WWW/gitpage/xzt项目/feat/罗小布二维码.png').toString('base64');
+const dulinB64 = 'data:image/png;base64,' + fs.readFileSync(DIR + '/杜林二维码.png').toString('base64');
+const lxbB64 = 'data:image/png;base64,' + fs.readFileSync(DIR + '/罗小布二维码.png').toString('base64');
 
 // 生成 img_base64.js
 const content = `// 所有图片 base64 数据，单独存放便于维护
