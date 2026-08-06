@@ -1,4 +1,4 @@
-﻿document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function () {
     // ---------- DOM 元素 ----------
     const editor = document.getElementById('editor');
     const readDisplay = document.getElementById('read');
@@ -16,13 +16,29 @@
     const copyButton = document.getElementById('copyButton');
     const clearButton = document.getElementById('clearButton');
     const xhButton = document.getElementById('xh');
-    const cbzButton = document.getElementById('cbzButton');
     const exportImgButton = document.getElementById('exportImgButton');
     const archiveButton = document.getElementById('archiveButton');
     const boldButton = document.getElementById('boldButton');
     const authorInput = document.getElementById('authorInput');
     const sloganInput = document.getElementById('sloganInput');
     const qrToggleButton = document.getElementById('qrToggleButton');
+    const exportModal = document.getElementById('export-modal');
+    const exportModalClose = document.getElementById('exportModalClose');
+    const exportConfirmBtn = document.getElementById('exportConfirmBtn');
+    const promptToggleButton = document.getElementById('promptToggleButton');
+
+    // 提示词 - PC端
+    const promptModal = document.getElementById('prompt-modal');
+    const promptModalClose = document.getElementById('promptModalClose');
+    const promptSelect = document.getElementById('promptSelect');
+    const promptCopyBtn = document.getElementById('promptCopyBtn');
+
+    // 提示词 - 手机端
+    const promptMobileOverlay = document.getElementById('prompt-mobile-overlay');
+    const promptMobileDrawer = document.getElementById('prompt-mobile-drawer');
+    const promptMobileClose = document.getElementById('promptMobileClose');
+    const promptMobileSelect = document.getElementById('promptMobileSelect');
+    const promptMobileCopyBtn = document.getElementById('promptMobileCopyBtn');
 
 
     // ---------- 数据模型 ----------
@@ -30,6 +46,8 @@
     let docs = [];
     let currentId = null;
     let undoStacks = {};
+    var EXPORT_CONFIG = null;     // 从 config/export-config.json 加载
+    var DEFAULT_PROMPTS = [];     // 从 config/prompts.json 加载
     let author = '';
     let slogan = '';
     const MAX_UNDO = 50;
@@ -45,6 +63,34 @@
             if (line.trim()) return line.trim();
         }
         return '无标题';
+    }
+
+    // ---------- 加载配置（通过 <script src> 全局变量，兼容 file:// 协议）----------
+    function loadConfigs() {
+        if (typeof window.EXPORT_CONFIG !== 'undefined') EXPORT_CONFIG = window.EXPORT_CONFIG;
+        if (typeof window.DEFAULT_PROMPTS !== 'undefined') DEFAULT_PROMPTS = window.DEFAULT_PROMPTS;
+    }
+
+    // ---------- 用 JSON 配置填充下拉框 ----------
+    function fillSelectOptions() {
+        if (EXPORT_CONFIG && EXPORT_CONFIG.authors && authorInput) {
+            authorInput.innerHTML = '';
+            EXPORT_CONFIG.authors.forEach(function (a) {
+                var opt = document.createElement('option');
+                opt.value = a.value;
+                opt.textContent = a.short;
+                authorInput.appendChild(opt);
+            });
+        }
+        if (EXPORT_CONFIG && EXPORT_CONFIG.slogans && sloganInput) {
+            sloganInput.innerHTML = '';
+            EXPORT_CONFIG.slogans.forEach(function (s) {
+                var opt = document.createElement('option');
+                opt.value = s.value;
+                opt.textContent = s.short;
+                sloganInput.appendChild(opt);
+            });
+        }
     }
 
     // ---------- 编辑器内容读写 ----------
@@ -138,7 +184,15 @@
 
     function saveDocs() {
         const existing = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-        const payload = { docs: docs, currentId: currentId, author: author, slogan: slogan, qrEnabled: existing.qrEnabled };
+        const payload = {
+            docs: docs,
+            currentId: currentId,
+            author: author,
+            slogan: slogan,
+            qrEnabled: existing.qrEnabled !== undefined ? existing.qrEnabled : true,
+            prompts: existing.prompts || [],
+            currentPromptId: existing.currentPromptId !== undefined ? existing.currentPromptId : null
+        };
         const data = JSON.stringify(payload);
         localStorage.setItem(STORAGE_KEY, data);
         // 新字段已写入 xzt，清除旧的 xzt_author 避免双写
@@ -655,19 +709,43 @@
         }
     }
 
-    // ---------- 复制 ----------
-    async function copy(type) {
+    // ---------- 复制（仅正文，外部按钮调用）----------
+    async function copy() {
+        var bodyContent = getEditorContent();
         try {
-            await navigator.clipboard.writeText(getEditorContent());
-            if (type !== 'linkCbz') showAutoCloseAlert('复制成功');
+            await navigator.clipboard.writeText(bodyContent);
+            showAutoCloseAlert('复制成功');
         } catch (e) {
             const textArea = document.createElement('textarea');
-            textArea.value = getEditorContent();
+            textArea.value = bodyContent;
             document.body.appendChild(textArea);
             textArea.select();
             document.execCommand('copy');
             document.body.removeChild(textArea);
-            if (type !== 'linkCbz') showAutoCloseAlert('复制成功（降级方式）');
+            showAutoCloseAlert('复制成功（降级方式）');
+        }
+    }
+
+    // ---------- 复制提示词+正文（提示词面板内按钮调用）----------
+    async function copyWithPrompt() {
+        var selectedPrompt = getCurrentPrompt();
+        var bodyContent = getEditorContent();
+        if (!selectedPrompt || !selectedPrompt.content) {
+            showAutoCloseAlert('请先选择提示词');
+            return;
+        }
+        var finalContent = selectedPrompt.content + bodyContent;
+        try {
+            await navigator.clipboard.writeText(finalContent);
+            showAutoCloseAlert('已复制「' + selectedPrompt.title + '」+正文');
+        } catch (e) {
+            const textArea = document.createElement('textarea');
+            textArea.value = finalContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            showAutoCloseAlert('已复制「' + selectedPrompt.title + '」+正文（降级）');
         }
     }
 
@@ -693,12 +771,6 @@
         } else {
             scrollTop();
         }
-    }
-
-    // ---------- 跳转写作猫 ----------
-    function linkCbz() {
-        copy('linkCbz');
-        window.open('https://xiezuocat.com/pro/8689953271362609152', '_blank');
     }
 
     // ---------- 归档 ----------
@@ -1082,8 +1154,8 @@ leftCol.style.flexShrink = '0';
                     if (qrUrl) {
                         qrImg = document.createElement('img');
                         qrImg.src = qrUrl;
-                        qrImg.style.width = '150px';
-                        qrImg.style.height = '150px';
+                        qrImg.style.width = '180px';
+                        qrImg.style.height = '180px';
                         qrImg.style.objectFit = 'contain';
                         qrImg.style.flexShrink = '0';
                         qrImg.style.marginLeft = 'auto';
@@ -1330,8 +1402,7 @@ leftCol.style.flexShrink = '0';
     clearButton.addEventListener('click', clear);
     xhButton.addEventListener('click', xhText);
     cleanMarkdownButton.addEventListener('click', cleanMarkdown);
-    cbzButton.addEventListener('click', linkCbz);
-    if (exportImgButton) exportImgButton.addEventListener('click', exportImage);
+    if (exportImgButton) exportImgButton.addEventListener('click', openExportPanel);
     archiveButton.addEventListener('click', archiveDoc);
     if (qrToggleButton) {
         qrToggleButton.addEventListener('click', function () {
@@ -1345,6 +1416,159 @@ leftCol.style.flexShrink = '0';
             } catch (_) { }
         });
     }
+
+    // ---------- 生图面板 ----------
+    function openExportPanel() {
+        if (!editor.innerText.trim()) {
+            showAutoCloseAlert('文档为空，无法导出');
+            return;
+        }
+        // 刷新二维码开关UI
+        applyQrToggleUI();
+        if (exportModal) exportModal.classList.add('show');
+    }
+    function closeExportPanel() {
+        if (exportModal) exportModal.classList.remove('show');
+    }
+    if (exportModalClose) exportModalClose.addEventListener('click', closeExportPanel);
+    if (exportModal) {
+        exportModal.addEventListener('click', function (e) {
+            if (e.target === exportModal) closeExportPanel();
+        });
+    }
+    if (exportConfirmBtn) {
+        exportConfirmBtn.addEventListener('click', function () {
+            closeExportPanel();
+            setTimeout(exportImage, 100);
+        });
+    }
+
+    // ---------- 提示词：数据模型（需在 UI 初始化前执行）----------
+    var prompts = [];          // [{id, title, content}]
+    var currentPromptId = null;
+    function loadPrompts() {
+        // 提示词数据只从 JSON 配置文件加载，不在 localStorage 持久化
+        prompts = DEFAULT_PROMPTS || [];
+        try {
+            var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            if (raw.currentPromptId !== undefined) {
+                currentPromptId = raw.currentPromptId;
+            }
+        } catch (_) { }
+        // 默认选中第一个可用提示词：点击提示词进来就是需要用的
+        var exists = prompts.some(function (p) { return p.id === currentPromptId; });
+        if (!exists && prompts.length > 0) {
+            currentPromptId = prompts[0].id;
+            savePrompts();
+        }
+    }
+    function savePrompts() {
+        // 只持久化 currentPromptId，prompts 数据由 JSON 文件维护
+        try {
+            var existing = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            existing.currentPromptId = currentPromptId;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+        } catch (_) { }
+    }
+    function getCurrentPrompt() {
+        return prompts.find(function (p) { return p.id === currentPromptId; }) || null;
+    }
+
+    // ---------- 提示词：UI 渲染 & 交互 ----------
+    function renderPromptSelectOptions() {
+        if (promptSelect) {
+            var curVal = promptSelect.value;
+            promptSelect.innerHTML = '';
+            prompts.forEach(function (p) {
+                var opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.title;
+                promptSelect.appendChild(opt);
+            });
+            promptSelect.value = curVal || currentPromptId || (prompts[0] ? prompts[0].id : '');
+        }
+        if (promptMobileSelect) {
+            promptMobileSelect.innerHTML = '';
+            prompts.forEach(function (p) {
+                var opt2 = document.createElement('option');
+                opt2.value = p.id;
+                opt2.textContent = p.title;
+                promptMobileSelect.appendChild(opt2);
+            });
+            promptMobileSelect.value = currentPromptId || (prompts[0] ? prompts[0].id : '');
+        }
+    }
+
+    function applyPromptToggleUI() {
+        if (promptToggleButton) {
+            var cur = getCurrentPrompt();
+            promptToggleButton.title = cur ? ('当前提示词：' + cur.title) : '选择提示词';
+        }
+    }
+
+    function openPromptPanel() {
+        var isMobile = window.innerWidth <= 768;
+        renderPromptSelectOptions();
+        if (isMobile) {
+            if (promptMobileOverlay) promptMobileOverlay.classList.add('show');
+        } else {
+            if (promptModal) promptModal.classList.add('show');
+        }
+    }
+
+    function closePromptPanel() {
+        if (promptModal) promptModal.classList.remove('show');
+        if (promptMobileOverlay) promptMobileOverlay.classList.remove('show');
+    }
+
+    function selectPromptById(id) {
+        currentPromptId = id || null;
+        savePrompts();
+        applyPromptToggleUI();
+        renderPromptSelectOptions();
+    }
+
+    if (promptToggleButton) {
+        promptToggleButton.addEventListener('click', openPromptPanel);
+    }
+    if (promptModalClose) promptModalClose.addEventListener('click', closePromptPanel);
+    if (promptModal) {
+        promptModal.addEventListener('click', function (e) {
+            if (e.target === promptModal) closePromptPanel();
+        });
+    }
+    if (promptMobileClose) promptMobileClose.addEventListener('click', closePromptPanel);
+    if (promptMobileOverlay) {
+        promptMobileOverlay.addEventListener('click', function (e) {
+            if (e.target === promptMobileOverlay) closePromptPanel();
+        });
+    }
+
+    // PC 端下拉选择
+    if (promptSelect) {
+        promptSelect.addEventListener('change', function () {
+            selectPromptById(promptSelect.value);
+        });
+    }
+    // 手机端下拉选择
+    if (promptMobileSelect) {
+        promptMobileSelect.addEventListener('change', function () {
+            selectPromptById(promptMobileSelect.value);
+        });
+    }
+
+    // 复制按钮（PC端 + 手机端共用）
+    if (promptCopyBtn) {
+        promptCopyBtn.addEventListener('click', copyWithPrompt);
+    }
+    if (promptMobileCopyBtn) {
+        promptMobileCopyBtn.addEventListener('click', copyWithPrompt);
+    }
+
+    // 初始化提示词 UI 状态
+    renderPromptSelectOptions();
+    applyPromptToggleUI();
+
     var savedRange = null;
     document.addEventListener('selectionchange', function () {
         var sel = window.getSelection();
@@ -1390,26 +1614,10 @@ leftCol.style.flexShrink = '0';
     });
 
     // ---------- 初始化 ----------
+    loadConfigs();
+    loadPrompts();
+    fillSelectOptions();
     loadDocs();
-
-    // ---------- 手机端：下拉框只显示前4个字（导出时仍用全量文案）----------
-    function applyShortOptionLabels() {
-        var isMobile = window.innerWidth <= 768;
-        [authorInput, sloganInput].forEach(function (sel) {
-            if (!sel) return;
-            for (var i = 0; i < sel.options.length; i++) {
-                var opt = sel.options[i];
-                if (isMobile) {
-                    if (!opt._fullText) opt._fullText = opt.textContent;
-                    opt.textContent = opt.getAttribute('data-short') || opt._fullText.substring(0, 4);
-                } else if (opt._fullText) {
-                    opt.textContent = opt._fullText;
-                }
-            }
-        });
-    }
-    applyShortOptionLabels();
-    window.addEventListener('resize', applyShortOptionLabels);
 
     // ---------- 作者下拉框（loadDocs 后再赋值，确保使用 xzt 字段内的 author，并完成旧数据迁移）----------
     if (authorInput) {
@@ -1432,12 +1640,13 @@ leftCol.style.flexShrink = '0';
     // ---------- 二维码开关 ----------
     var qrEnabled = true;
     try {
-        var stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-        qrEnabled = stored.qrEnabled !== false;
+        var storedQr = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        qrEnabled = storedQr.qrEnabled !== false;
     } catch (_) { }
     function applyQrToggleUI() {
         if (qrToggleButton) {
             qrToggleButton.classList.toggle('toggle-active', qrEnabled);
+            qrToggleButton.textContent = qrEnabled ? '开' : '关';
         }
     }
     applyQrToggleUI();
