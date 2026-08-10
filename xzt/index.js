@@ -483,7 +483,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         if (e.ctrlKey && e.key === 's') {
             e.preventDefault();
-            reformatText();
+            saveCurrentContent();
+            showAutoCloseAlert('已保存');
             return;
         }
         if (e.altKey && e.key === '1') {
