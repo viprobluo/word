@@ -481,7 +481,7 @@ document.addEventListener('DOMContentLoaded', function () {
             undo();
             return;
         }
-        if (e.ctrlKey && e.key === 's') {
+        if (e.ctrlKey && (e.key === 's' || e.key === 'S' || e.code === 'KeyS')) {
             e.preventDefault();
             saveCurrentContent();
             showAutoCloseAlert('已保存');
