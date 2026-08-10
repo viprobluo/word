@@ -111,6 +111,95 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // ---------- 光标位置保存 / 恢复（基于 innerText 字符偏移） ----------
+    function saveCaret() {
+        try {
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) return null;
+            const range = sel.getRangeAt(0);
+            if (!editor.contains(range.startContainer)) return null;
+            const preRange = document.createRange();
+            preRange.selectNodeContents(editor);
+            preRange.setEnd(range.startContainer, range.startOffset);
+            return preRange.toString().length;
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function mapCaretOffsetAcrossTransform(oldText, newText, oldOffset) {
+        try {
+            oldText = oldText || '';
+            newText = newText || '';
+            if (oldOffset == null) return (newText || '').length;
+            const safeOld = Math.max(0, Math.min(oldOffset, oldText.length));
+            if (oldText === newText) return safeOld;
+            const oldPrefix = oldText.substring(0, safeOld);
+            const normOldPrefix = normalizeForSearch(oldPrefix);
+            const normNew = normalizeForSearch(newText);
+            const normPos = Math.max(0, Math.min(normOldPrefix.length, normNew.length));
+            return findRealPosition(newText, normNew, normPos);
+        } catch (err) {
+            return (newText || '').length;
+        }
+    }
+
+    function restoreCaret(offset) {
+        try {
+            if (offset == null) return;
+            editor.focus();
+            const sel = window.getSelection();
+            if (!sel) return;
+            const fullText = editor.innerText || '';
+            const target = Math.max(0, Math.min(offset, fullText.length));
+            let walked = 0;
+            const stack = [editor];
+            let foundNode = null;
+            let foundOffset = 0;
+            while (stack.length > 0) {
+                const node = stack.pop();
+                if (node.nodeType === Node.TEXT_NODE) {
+                    const len = node.nodeValue.length;
+                    if (walked + len >= target) {
+                        foundNode = node;
+                        foundOffset = target - walked;
+                        break;
+                    }
+                    walked += len;
+                } else if (node.nodeName === 'BR') {
+                    if (walked + 1 >= target) {
+                        foundNode = node.parentNode;
+                        foundOffset = Array.prototype.indexOf.call(node.parentNode.childNodes, node);
+                        break;
+                    }
+                    walked += 1;
+                } else {
+                    const children = node.childNodes;
+                    for (let i = children.length - 1; i >= 0; i--) {
+                        stack.push(children[i]);
+                    }
+                }
+            }
+            if (!foundNode) {
+                const last = editor.lastChild;
+                if (last && last.nodeType === Node.TEXT_NODE) {
+                    foundNode = last;
+                    foundOffset = last.nodeValue.length;
+                } else {
+                    foundNode = editor;
+                    foundOffset = editor.childNodes.length;
+                }
+            }
+            const newRange = document.createRange();
+            newRange.setStart(foundNode, foundOffset);
+            newRange.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+        } catch (err) {
+            /* ignore */
+        }
+    }
+
     // ---------- 加载 / 保存数据 ----------
     function loadDocs() {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -379,6 +468,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         const prev = stack.pop();
         setEditorContent(prev);
+        restoreCaret((editor.innerText || '').length);
         updateReadTime();
         saveCurrentContent();
         showAutoCloseAlert('已撤销');
@@ -473,6 +563,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ---------- 通用：对文本做转换但保留加粗格式 ----------
     function transformPreserveBold(transformFn) {
+        var caretOffset = saveCaret();
         var oldHTML = editor.innerHTML;
         var oldText = editor.innerText;
 
@@ -568,7 +659,20 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         result += escapeHtml(newText.substring(lastEnd));
 
+        // escapeHtml 不会处理纯文本里的换行字符，这里手动替换成 <br>
+        // 否则拼接出来的 result 里会有 \n 而不是 <br>，和 editor.innerHTML 格式对不上
+        result = result.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>').replace(/\r/g, '<br>');
+
+        // 文本内容没变化时不重写 DOM，光标直接不动，避免 Range 重建误差
+        if (newText === oldText && result === oldHTML) {
+            updateReadTime();
+            saveCurrentContent();
+            return;
+        }
+
         setEditorContent(result);
+        var newCaret = mapCaretOffsetAcrossTransform(oldText, newText, caretOffset);
+        restoreCaret(newCaret);
         updateReadTime();
         saveCurrentContent();
     }
