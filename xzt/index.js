@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ---------- 编辑器内容读写 ----------
     function getEditorContent() {
-        return editor.innerText;
+        return editor.innerText.replace(/\n{3,}/g, '\n\n');
     }
 
     function getEditorHTML() {
@@ -834,7 +834,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ---------- 复制提示词+正文（提示词面板内按钮调用）----------
     async function copyWithPrompt() {
         var selectedPrompt = getCurrentPrompt();
-        var bodyContent = getEditorContent();
+        var bodyContent = getEditorContent().replace(/\n{3,}/g, '\n\n');
         if (!selectedPrompt || !selectedPrompt.content) {
             showAutoCloseAlert('请先选择提示词');
             return;
