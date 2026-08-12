@@ -104,6 +104,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function setEditorContent(content) {
         if (typeof content === 'string' && /<[a-z][\s\S]*>/i.test(content)) {
+            // 剥离旧 <a> 标签（保留文本），再统一转换 URL 为可点击链接
+            content = content.replace(/<a[^>]*>([\s\S]*?)<\/a>/g, '$1');
+            content = content.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank">$1</a>');
             editor.innerHTML = content;
         } else {
             const withLinks = (content || '').replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
@@ -650,15 +653,19 @@ document.addEventListener('DOMContentLoaded', function () {
             boldRanges = merged;
         }
 
-        // 5. 构建新 HTML
+        // 5. 构建新 HTML（非加粗部分把 URL 转成可点击链接）
+        function escapeHtmlAndLink(text) {
+            var escaped = escapeHtml(text);
+            return escaped.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank">$1</a>');
+        }
         var result = '';
         var lastEnd = 0;
         for (var i = 0; i < boldRanges.length; i++) {
-            result += escapeHtml(newText.substring(lastEnd, boldRanges[i].start));
+            result += escapeHtmlAndLink(newText.substring(lastEnd, boldRanges[i].start));
             result += '<b>' + escapeHtml(newText.substring(boldRanges[i].start, boldRanges[i].end)) + '</b>';
             lastEnd = boldRanges[i].end;
         }
-        result += escapeHtml(newText.substring(lastEnd));
+        result += escapeHtmlAndLink(newText.substring(lastEnd));
 
         // escapeHtml 不会处理纯文本里的换行字符，这里手动替换成 <br>
         // 否则拼接出来的 result 里会有 \n 而不是 <br>，和 editor.innerHTML 格式对不上
@@ -857,8 +864,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ---------- 清除 Markdown ----------
     function cleanMarkdown() {
         saveState();
-        const isMobile = window.innerWidth <= 768;
-        const savedScrollTop = isMobile ? editor.scrollTop : 0;
+        const savedScrollTop = editor.scrollTop;
         transformPreserveBold(function (text) {
             if (!text) return text;
             text = text.replace(/\*\*/g, '');
@@ -871,11 +877,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return text;
         });
         reformatText(false);
-        if (isMobile) {
-            editor.scrollTop = savedScrollTop;
-        } else {
-            scrollTop();
-        }
+        editor.scrollTop = savedScrollTop;
     }
 
     // ---------- 归档 ----------
