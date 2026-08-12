@@ -1,1306 +1,1484 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>即刻APP个人主页提取</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>即刻</title>
     <style>
-        /* ===== 全局重置 & 暗色主题 ===== */
         * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
-
-        :root {
-            --bg-body: #0d1117;
-            --bg-container: #161b22;
-            --bg-card: #1c2333;
-            --bg-card-hover: #242c3d;
-            --bg-input: #0d1117;
-            --bg-drop: #0d1117;
-            --bg-drop-hover: #1c2333;
-            --bg-code: #1c2333;
-            --text-primary: #e6edf3;
-            --text-secondary: #8b949e;
-            --text-muted: #484f58;
-            --text-link: #58a6ff;
-            --border-color: #30363d;
-            --border-light: #21262d;
-            --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-            --blue: #58a6ff;
-            --blue-hover: #388bfd;
-            --green: #3fb950;
-            --green-hover: #2ea043;
-            --red: #f85149;
-            --red-hover: #da3633;
-            --radius: 12px;
-            --radius-sm: 8px;
-            --font: -apple-system, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
-            --max-width: 560px;
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
-
         body {
-            font-family: var(--font);
-            margin: 16px;
-            background: var(--bg-body);
-            color: var(--text-primary);
-            min-height: 100vh;
+            background: #121212;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+            padding: 16px 12px;
+            color: #e8e8e8;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
-            padding: 20px 12px;
+            min-height: 100vh;
         }
-
         .container {
-            max-width: var(--max-width);
+            max-width: 480px;
             width: 100%;
-            margin: 0 auto;
-            background: var(--bg-container);
-            padding: 22px 24px 28px;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border-color);
-            transition: all 0.2s;
+            background: #1e1e1e;
+            border-radius: 24px;
+            padding: 20px 16px 28px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
-        /* ===== 标题与副标题 ===== */
+        /* ============ 页签 ============ */
+        .tab-bar {
+            display: flex;
+            background: #121212;
+            padding: 4px;
+            border-radius: 40px;
+            border: 1px solid #333;
+            margin-bottom: 16px;
+            gap: 4px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 8px 0;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: 40px;
+            background: transparent;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .tab-btn:hover { color: #b0b0b0; }
+        .tab-btn.active {
+            background: #1a2a4a;
+            color: #7aa9ff;
+            box-shadow: 0 2px 6px rgba(75, 139, 247, 0.25);
+        }
+
         .header {
-            text-align: center;
-            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 8px;
         }
         .header h1 {
-            font-weight: 600;
-            font-size: 24px;
-            color: var(--text-primary);
-            margin: 0 0 2px 0;
-            letter-spacing: 0.3px;
-        }
-        .header h1 span {
-            color: var(--blue);
-        }
-        .header .sub {
-            font-size: 12px;
-            color: var(--text-secondary);
-            letter-spacing: 0.3px;
-            margin-top: -4px;
-            opacity: 0.9;
-        }
-
-        /* ===== 信息栏（仅昵称） ===== */
-        .info-bar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px 18px;
-            margin-bottom: 16px;
-            padding: 8px 14px;
-            background: var(--bg-card);
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border-color);
-            align-items: center;
-        }
-        .info-bar .nickname-area {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
             display: flex;
             align-items: center;
             gap: 6px;
-            flex-wrap: wrap;
+            color: #e8e8e8;
         }
-        .info-label {
-            font-weight: 500;
-            color: var(--text-secondary);
-            white-space: nowrap;
-            font-size: 14px;
-        }
-        #nicknameDisplay {
-            color: var(--blue);
+        .nickname-bar {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 12px;
+            background: #1a2a4a;
+            border-radius: 30px;
+            border: 1px solid #2a3a5a;
+            font-size: 13px;
+            color: #7aa9ff;
             font-weight: 600;
-            font-size: 15px;
+            margin-top: 4px;
+        }
+        .nickname-bar::before {
+            content: "@";
+            color: #7aa9ff;
+            opacity: 0.7;
+            font-weight: 400;
+        }
+        .input-section {
+            background: #242424;
+            border-radius: 16px;
+            padding: 16px 16px 14px;
+            border: 1px solid #333;
+            margin-bottom: 12px;
+        }
+        .input-section .hint {
+            font-size: 12px;
+            color: #777;
+            margin-bottom: 10px;
+            padding: 4px 10px;
+            background: #1a1a1a;
+            border-radius: 6px;
+            border-left: 2px solid #4b8bf7;
+        }
+        .input-section .hint code {
+            background: #2a2a2a;
+            padding: 1px 6px;
+            border-radius: 4px;
+            color: #4b8bf7;
+            font-size: 12px;
         }
 
-        /* ===== 拖拽区域 ===== */
-        .drop-zone {
-            border: 2px dashed var(--border-color);
-            border-radius: var(--radius);
-            padding: 28px 16px;
-            text-align: center;
-            background: var(--bg-drop);
-            transition: background 0.2s, border-color 0.2s;
-            cursor: pointer;
-            margin-bottom: 16px;
-            min-height: 80px;
+        .upload-area {
             display: flex;
-            flex-direction: column;
-            justify-content: center;
             align-items: center;
+            gap: 12px;
+            background: #1a1a1a;
+            border-radius: 40px;
+            padding: 6px 12px 6px 16px;
+            border: 1px solid #333;
+            transition: border-color 0.2s;
+            cursor: pointer;
         }
-        .drop-zone.dragover {
-            background: var(--bg-drop-hover);
-            border-color: var(--blue);
+        .upload-area:hover { border-color: #4b8bf7; }
+        .upload-area .upload-icon { font-size: 20px; line-height: 1; }
+        .upload-area .upload-text {
+            font-size: 14px;
+            color: #b0b0b0;
+            font-weight: 500;
+            white-space: nowrap;
         }
-        .drop-zone p {
-            margin: 0;
-            color: var(--text-secondary);
-            font-size: 16px;
+        .upload-area .upload-status {
+            font-size: 13px;
+            color: #4b8bf7;
+            font-weight: 500;
+            margin-left: auto;
+            white-space: nowrap;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        .drop-zone .file-info {
-            display: none;
-        }
-        .drop-zone.loaded {
-            border-color: var(--green);
-            background: var(--bg-drop-hover);
-        }
-        .drop-zone.loaded p {
-            color: var(--text-primary);
-        }
-        .drop-zone .status-icon {
-            font-size: 20px;
-            margin-right: 6px;
-        }
+        .upload-area .upload-status.success { color: #70d090; }
+        .upload-area .upload-status.error { color: #f07070; }
+        .upload-area input[type="file"] { display: none; }
 
-        /* ===== 筛选 ===== */
-        .filter {
-            margin: 12px 0 14px 0;
+        .action-bar {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            gap: 10px 14px;
+            justify-content: space-between;
+            margin-top: 12px;
+            gap: 10px;
         }
-        .filter label {
-            font-weight: 500;
-            color: var(--text-secondary);
-            font-size: 14px;
-            white-space: nowrap;
-        }
-        .filter input[type="number"] {
-            width: 90px;
-            padding: 5px 10px;
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm);
-            font-size: 14px;
-            background: var(--bg-input);
-            color: var(--text-primary);
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .filter input[type="date"] {
-            padding: 5px 10px;
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm);
-            font-size: 14px;
-            background: var(--bg-input);
-            color: var(--text-primary);
-            transition: border-color 0.2s, box-shadow 0.2s;
-            width: 150px;
-            font-family: var(--font);
-        }
-        .filter input:focus {
-            outline: none;
-            border-color: var(--blue);
-            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
-        }
-
-        /* ===== 按钮组 + 统计（sticky） ===== */
         .btn-group {
             display: flex;
+            gap: 8px;
             flex-wrap: wrap;
-            align-items: center;
-            gap: 12px 18px;
-            margin-bottom: 14px;
-            padding: 8px 0;
-            position: sticky;
-            top: 0;
-            z-index: 50;
-            background: var(--bg-container);
-            border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-            transition: box-shadow 0.2s;
         }
-        .btn-group.is-stuck {
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-            padding: 8px 4px;
-            margin-left: -4px;
-            margin-right: -4px;
-            padding-left: 4px;
-            padding-right: 4px;
-        }
-        .btn-group .btn {
-            padding: 7px 18px;
+        .btn {
+            padding: 7px 14px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 13px;
             border: none;
-            border-radius: var(--radius-sm);
-            font-size: 14px;
-            font-weight: 500;
             cursor: pointer;
-            transition: background 0.15s, transform 0.05s, box-shadow 0.15s;
-            font-family: var(--font);
+            transition: all 0.15s ease;
+            background: #333;
+            color: #e8e8e8;
+            white-space: nowrap;
             flex-shrink: 0;
         }
-        .btn:active {
-            transform: scale(0.97);
+        .btn-danger { background: #5a1a1a; color: #fca5a5; }
+        .btn-danger:hover { background: #7a1a1a; }
+        .btn-success { background: #1e8e3e; color: #fff; }
+        .btn-success:hover { background: #166b2f; }
+
+        /* ============ 通用筛选栏 ============ */
+        .filter-area {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #1a1a1a;
+            padding: 4px 10px 4px 12px;
+            border-radius: 40px;
+            border: 1px solid #333;
+            flex-wrap: nowrap;
+            overflow: hidden;
+            min-width: 0;
+            width: 100%;
         }
-        .btn-copy {
-            background: var(--blue);
-            color: #fff;
+        .filter-area label {
+            font-size: 12px;
+            color: #b0b0b0;
+            font-weight: 500;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
-        .btn-copy:hover {
-            background: var(--blue-hover);
-            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+        .filter-area input[type="number"] {
+            width: 46px;
+            padding: 4px 4px;
+            border: 1px solid #333;
+            border-radius: 30px;
+            font-size: 13px;
+            text-align: center;
+            background: #2a2a2a;
+            color: #e8e8e8;
+            font-weight: 600;
+            flex-shrink: 0;
         }
-        /* 清除启发按钮 */
-        .btn-clear启发 {
-            background: transparent;
-            color: var(--red);
-            border: 1px solid var(--red);
-        }
-        .btn-clear启发:hover {
-            background: var(--red);
-            color: #fff;
-            box-shadow: 0 0 0 3px rgba(248, 81, 73, 0.2);
+        .filter-area input:focus {
+            outline: none;
+            border-color: #4b8bf7;
         }
 
-        /* 统计信息（在按钮右侧） */
-        .stats-inline {
+        /* 天数按钮组（热门圈子用） */
+        .day-btns {
+            display: flex;
+            gap: 4px;
+            background: transparent;
+            padding: 0;
+            border-radius: 30px;
+            border: none;
+            flex-shrink: 0;
+        }
+        .day-btn {
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 30px;
+            background: transparent;
+            color: #888;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+        .day-btn:hover { color: #b0b0b0; }
+        .day-btn.active {
+            background: #1a3a2a;
+            color: #70d090;
+            font-weight: 600;
+        }
+
+        /* 日期筛选胶囊（个人主页用） */
+        .date-picker-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: transparent;
+            padding: 0;
+            border-radius: 30px;
+            border: none;
+            flex-shrink: 0;
+        }
+        .date-picker-wrap label {
+            color: #b0b0b0;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .date-picker-wrap input[type="date"] {
+            padding: 3px 6px;
+            font-size: 12px;
+            border-radius: 30px;
+            border: 1px solid #333;
+            background: #2a2a2a;
+            color: #e8e8e8;
+            font-family: inherit;
+            color-scheme: dark;
+            width: 124px;
+            flex-shrink: 0;
+        }
+        .date-picker-wrap input[type="date"]:focus {
+            outline: none;
+            border-color: #4b8bf7;
+        }
+
+        .stats-bar {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: #1e1e1e;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            border-radius: 12px;
+            border: 1px solid #333;
+            text-align: center;
+            font-size: 13px;
+            color: #b0b0b0;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        }
+        .stats-bar .highlight {
+            color: #4b8bf7;
+            font-weight: 700;
+        }
+
+        .feed-list {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            margin-top: 0;
+        }
+        .feed-card {
+            background: #242424;
+            border-radius: 18px;
+            padding: 16px 18px 14px 10px;
+            border: 1px solid #333;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+            transition: box-shadow 0.2s;
+        }
+        .feed-card:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
+
+        .feed-header {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            gap: 10px 16px;
-            font-size: 13px;
-            color: var(--text-secondary);
-            flex: 1;
+            gap: 6px;
+            margin-bottom: 4px;
         }
-        .stats-inline .stat-item {
+        .feed-rank {
+            font-size: 12px;
+            font-weight: 700;
+            color: #7aa9ff;
+            background: #1a2a4a;
+            padding: 1px 12px;
+            border-radius: 30px;
+            letter-spacing: 0.3px;
+            flex-shrink: 0;
+        }
+        .feed-word-count {
+            font-size: 12px;
+            color: #888;
+            background: #1a1a1a;
+            padding: 1px 10px;
+            border-radius: 30px;
+            border: 1px solid #333;
+            flex-shrink: 0;
+        }
+        .feed-author {
+            font-size: 12px;
+            color: #b0b0b0;
+            background: #1a1a1a;
+            padding: 1px 10px;
+            border-radius: 30px;
+            border: 1px solid #333;
+            flex-shrink: 0;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .feed-author::before {
+            content: "@";
+            color: #777;
+            font-weight: 400;
+        }
+        .feed-time {
+            font-size: 12px;
+            color: #777;
+            background: #1a1a1a;
+            padding: 1px 10px;
+            border-radius: 30px;
+            border: 1px solid #333;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .feed-like {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            font-weight: 700;
+            font-size: 14px;
+            color: #f87171;
+            background: #3a1a1a;
+            padding: 1px 12px 1px 8px;
+            border-radius: 30px;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+        .feed-like svg {
+            width: 16px;
+            height: 16px;
+            fill: #f87171;
+        }
+
+        .feed-title {
+            font-size: 17px;
+            font-weight: 650;
+            line-height: 1.4;
+            margin: 6px 0 4px;
+            color: #e8e8e8;
+            word-break: break-word;
+            text-align: left;
+        }
+        .feed-divider {
+            border: 0;
+            border-top: 1px solid #444;
+            margin: 8px 0 10px 0;
+        }
+        .feed-body-wrapper {
+            position: relative;
+            margin: 6px 0 8px;
+        }
+        .feed-body-collapsible {
+            display: none;
+            font-size: 15px;
+            line-height: 1.7;
+            color: #d0d0d0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            text-align: left;
+            cursor: default;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+        .feed-body-collapsible.expanded { display: block; }
+
+        .expand-btn {
+            display: inline-block;
+            margin-top: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #4b8bf7;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 2px 0;
+            transition: color 0.15s;
+        }
+        .expand-btn:hover { color: #7aa9ff; }
+
+        .entry-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            margin: 8px 0 2px 0;
+        }
+        .entry-actions .btn-sm {
+            padding: 3px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.15s;
+            font-weight: 500;
+            background: #2a2a2a;
+            color: #b0b0b0;
+        }
+        .entry-actions .btn-sm:hover {
+            background: #3a3a3a;
+            color: #fff;
+        }
+        .entry-actions .btn-sm.mark-btn {
+            background: #3a2a1a;
+            color: #f0c070;
+        }
+        .entry-actions .btn-sm.mark-btn.marked {
+            background: #1a3a2a;
+            color: #70d090;
+        }
+        .entry-actions .btn-sm.mark-btn:hover { filter: brightness(1.2); }
+        .entry-actions .btn-sm.hide-btn {
+            background: #3a1a1a;
+            color: #f07070;
+        }
+        .entry-actions .btn-sm.hide-btn:hover { background: #5a1a1a; }
+        .entry-actions .feed-link {
+            margin-left: auto;
+            font-size: 13px;
+            background: #1a1a1a;
+            padding: 3px 14px;
+            border-radius: 40px;
+            border: 1px solid #333;
+            transition: all 0.15s;
+            color: #b0b0b0;
+            text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 3px;
             white-space: nowrap;
         }
-        .stats-inline .stat-number {
-            font-weight: 600;
-            color: var(--text-primary);
+        .entry-actions .feed-link:hover {
+            background: #2a2a2a;
+            border-color: #555;
+            color: #fff;
         }
-        .stats-inline .stat-number.highlight {
-            color: var(--blue);
-            font-weight: 700;
-            font-size: 15px;
-        }
-        .stats-inline .stat-number.highlight-green {
-            color: var(--green);
-            font-weight: 700;
-            font-size: 15px;
-        }
-
-        /* ===== 输出区域 ===== */
-        .output-area {
-            width: 100%;
-            min-height: 500px;
-            max-height: 70vh;
-            padding: 12px 14px;
-            font-family: var(--font);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius);
-            overflow-y: auto;
-            background: var(--bg-drop);
-            resize: vertical;
-            font-size: 15px;
-            line-height: 1.6;
-            color: var(--text-primary);
-            scroll-behavior: smooth;
-        }
-        .output-area::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        .output-area::-webkit-scrollbar-track {
-            background: var(--bg-body);
-            border-radius: 4px;
-        }
-        .output-area::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 4px;
-        }
-        .output-area::-webkit-scrollbar-thumb:hover {
-            background: var(--text-muted);
+        .entry-actions .feed-link svg {
+            width: 14px;
+            height: 14px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
 
-        /* ===== 每条动态卡片 ===== */
-        .entry {
-            background: var(--bg-card);
-            border-radius: var(--radius-sm);
-            padding: 12px 14px;
-            margin-bottom: 12px;
-            border: 1px solid var(--border-light);
-            transition: box-shadow 0.15s, border-color 0.15s;
-        }
-        .entry:hover {
-            border-color: var(--border-color);
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .entry .top-num-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            font-weight: 600;
-            font-size: 13px;
-            color: var(--blue);
-            letter-spacing: 0.2px;
-            margin-bottom: 2px;
-        }
-        .entry .top-num-row .time {
-            font-weight: 400;
-            color: var(--text-muted);
-            font-size: 12px;
-        }
-
-        .entry .title-row {
-            margin-bottom: 2px;
-        }
-        .entry .title-row .editable-title {
+        .editable-title {
             width: 100%;
             border: none;
             background: transparent;
-            font-weight: 600;
-            font-size: 16px;
-            color: var(--text-primary);
+            font-weight: 650;
+            font-size: 17px;
+            color: #e8e8e8;
             outline: none;
-            padding: 2px 4px;
-            border-radius: 4px;
+            padding: 2px 0;
             resize: none;
             font-family: inherit;
             line-height: 1.4;
             overflow: hidden;
             white-space: pre-wrap;
             word-break: break-word;
-            transition: background 0.15s;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+            text-align: left;
         }
-        .entry .title-row .editable-title:hover {
-            background: var(--bg-card-hover);
-        }
-        .entry .title-row .editable-title:focus {
-            background: var(--bg-card-hover);
-            box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
-        }
+        .editable-title:hover { border-bottom-color: #444; }
+        .editable-title:focus { border-bottom-color: #4b8bf7; }
 
-        .entry .actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin: 6px 0 4px 0;
-            align-items: center;
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: #777;
+            background: #242424;
+            border-radius: 24px;
+            border: 1px dashed #333;
         }
-        .entry .actions .btn-sm {
-            padding: 3px 12px;
-            font-size: 12px;
-            border-radius: 6px;
-            border: 1px solid transparent;
-            background: var(--bg-card-hover);
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: background 0.15s, border-color 0.15s, color 0.15s;
-            font-weight: 500;
-            font-family: var(--font);
-        }
-        .entry .actions .btn-sm:hover {
-            background: var(--border-color);
-            color: var(--text-primary);
-        }
-        .entry .actions .btn-sm.copy-single {
-            background: #2d1f00;
-            color: #d29922;
-        }
-        .entry .actions .btn-sm.copy-single:hover {
-            background: #3d2a00;
-            color: #e3a92a;
-        }
-        .entry .actions .btn-sm.copy-single.copied {
-            background: #0d2a1a;
-            color: #3fb950;
-        }
-        .entry .actions .btn-sm.copy-single.copied:hover {
-            background: #143d24;
-            color: #4cce5a;
-        }
-        .entry .actions .btn-sm.toggle-body-btn {
-            background: #0d1f3d;
-            color: #58a6ff;
-        }
-        .entry .actions .btn-sm.toggle-body-btn:hover {
-            background: #142d5a;
-            color: #79b8ff;
-        }
-        .entry .actions .btn-sm.hide-btn {
-            background: #2d0d0d;
-            color: #f85149;
-        }
-        .entry .actions .btn-sm.hide-btn:hover {
-            background: #3d1414;
-            color: #ff6b63;
-        }
+        .empty-state .icon-big { font-size: 40px; opacity: 0.5; }
+        .empty-state p { font-size: 15px; margin-top: 6px; }
 
-        .entry .body-text {
-            margin-top: 8px;
-            padding: 10px 14px;
-            background: var(--bg-drop);
-            border-radius: var(--radius-sm);
-            border-left: 3px solid var(--blue);
-            font-family: var(--font);
-            font-size: 17px;
-            line-height: 1.7;
-            color: var(--text-primary);
-            word-wrap: break-word;
-            word-break: break-word;
-            white-space: pre-wrap;
-            max-width: 20em;
-            width: auto;
-            cursor: text;
-            transition: background 0.2s;
-        }
-        .entry .body-text:hover {
-            background: var(--bg-card-hover);
-        }
-
-        /* ===== Toast ===== */
-        #toast {
+        .toast {
             position: fixed;
             bottom: 30px;
-            right: 30px;
-            background: var(--bg-card);
-            color: var(--text-primary);
-            padding: 12px 24px;
-            border-radius: var(--radius-sm);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2a2a2a;
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 40px;
             font-size: 14px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-            opacity: 0;
-            transition: opacity 0.25s ease;
-            pointer-events: none;
+            border: 1px solid #333;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
             z-index: 999;
-            max-width: 80%;
-            font-weight: 500;
-            border: 1px solid var(--border-color);
-        }
-        #toast.show {
-            opacity: 1;
-        }
-        #toast.success {
-            border-left: 4px solid var(--green);
-        }
-        #toast.error {
-            border-left: 4px solid var(--red);
-        }
-
-        /* ===== 空状态 ===== */
-        .empty-state {
-            color: var(--text-muted);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            max-width: 90%;
             text-align: center;
-            padding: 40px 20px;
-            font-size: 15px;
         }
-        .empty-state .icon {
-            font-size: 36px;
-            margin-bottom: 10px;
-            display: block;
-        }
+        .toast.show { opacity: 1; }
 
-        /* ===== 响应式 ===== */
-        @media (max-width: 600px) {
-            :root {
-                --max-width: 100%;
+        @media (max-width: 480px) {
+            .container { padding: 16px 12px; }
+            .header h1 { font-size: 20px; }
+            .action-bar {
+                flex-direction: column;
+                align-items: stretch;
             }
-            body {
-                padding: 8px 4px;
-            }
-            .container {
-                padding: 14px 12px 20px;
-            }
-            .header h1 {
-                font-size: 20px;
-            }
-            .drop-zone {
-                padding: 20px 12px;
-                min-height: 70px;
-            }
-            .filter {
-                gap: 6px 10px;
-            }
-            .filter input[type="number"] {
-                width: 70px;
-            }
-            .filter input[type="date"] {
-                width: 130px;
-                font-size: 12px;
-                padding: 4px 6px;
-            }
-            .btn-group {
-                gap: 8px 12px;
-                padding: 6px 0;
-            }
-            .btn-group .btn {
-                padding: 6px 14px;
-                font-size: 13px;
-            }
-            .stats-inline {
-                font-size: 12px;
-                gap: 6px 10px;
-            }
-            .stats-inline .stat-number.highlight,
-            .stats-inline .stat-number.highlight-green {
-                font-size: 13px;
-            }
-            .entry {
-                padding: 10px 10px;
-            }
-            .entry .title-row .editable-title {
-                font-size: 14px;
-            }
-            .entry .body-text {
-                font-size: 15px;
-                max-width: 18em;
-                padding: 8px 10px;
-            }
-            #toast {
-                bottom: 16px;
-                right: 16px;
-                padding: 10px 18px;
-                font-size: 13px;
-                max-width: 90%;
-            }
+            .btn-group { justify-content: stretch; }
+            .btn-group .btn { flex: 1; justify-content: center; }
+            .stats-bar { padding: 8px 10px; font-size: 12px; }
+            .feed-card { padding: 14px 14px 12px 8px; }
+            .editable-title { font-size: 16px; }
+            .feed-body-collapsible { font-size: 15px; }
+            .toast { bottom: 20px; padding: 8px 18px; font-size: 13px; }
+            .upload-area { padding: 4px 10px 4px 14px; }
+            .upload-area .upload-text { font-size: 13px; }
+            .entry-actions .feed-link { font-size: 12px; padding: 2px 12px; }
         }
-
-        input[type="number"]::-webkit-inner-spin-button,
-        input[type="number"]::-webkit-outer-spin-button {
-            opacity: 0.5;
-        }
-        input[type="number"] {
-            -moz-appearance: textfield;
-        }
-        input::placeholder {
-            color: var(--text-muted);
-        }
-
-        a {
-            color: var(--blue);
-        }
-        a:hover {
-            color: var(--blue-hover);
-        }
-
-        code {
-            background: var(--bg-code);
-            color: var(--text-secondary);
-            padding: 1px 6px;
-            border-radius: 4px;
-            font-size: 13px;
+        @media (max-width: 400px) {
+            .feed-header { gap: 4px; }
+            .feed-time, .feed-word-count, .feed-rank {
+                font-size: 11px; padding: 1px 8px;
+            }
+            .feed-like {
+                font-size: 12px; padding: 1px 8px 1px 6px;
+            }
+            .feed-like svg { width: 14px; height: 14px; }
+            .filter-area { padding: 4px 8px 4px 10px; gap: 4px; }
+            .date-picker-wrap input[type="date"] { width: 116px; font-size: 11px; }
+            .filter-area input[type="number"] { width: 40px; font-size: 12px; }
+            .filter-area label,
+            .date-picker-wrap label,
+            .day-btn { font-size: 11px; }
+            .day-btn { padding: 4px 8px; }
         }
     </style>
 </head>
 <body>
-
     <div class="container">
-        <!-- 标题 + 副标题 -->
+        <!-- 页签 -->
+        <div class="tab-bar">
+            <button class="tab-btn active" data-tab="personal">个人主页</button>
+            <button class="tab-btn" data-tab="hot">热门圈子</button>
+        </div>
+
         <div class="header">
-            <h1>即刻 App 个人主页提取</h1>
-            <div class="sub">Network→single</div>
-        </div>
-
-        <!-- 信息栏（仅昵称） -->
-        <div class="info-bar" id="infoBar">
-            <div class="nickname-area" id="nicknameArea">
-                <span class="info-label">⭐️ 优秀即友推荐</span>
-                <span id="nicknameDisplay">@-</span>
+            <div>
+                <h1 id="pageTitle">⭐️ 即刻个人主页</h1>
+                <div class="nickname-bar" id="nicknameBar" style="display:none;">未命名</div>
             </div>
         </div>
 
-        <!-- 拖拽区 -->
-        <div class="drop-zone" id="dropZone">
-            <p><span class="status-icon">📂</span> 拖拽文件到此处导入数据</p>
-            <input type="file" id="fileInput" accept=".txt" style="display:none;">
-            <div id="fileInfo" class="file-info"></div>
-        </div>
+        <div class="input-section">
+            <div class="hint" id="hintBox"></div>
 
-        <!-- 筛选（点赞数 + 起始日期） -->
-        <div class="filter">
-            <label>👍 点赞数 ≥</label>
-            <input type="number" id="minLikeCount" value="100" min="0">
-            <label>📅 起始日期</label>
-            <input type="date" id="startDate" value="2026-01-01">
-        </div>
+            <div class="upload-area" id="uploadArea">
+                <span class="upload-icon">📂</span>
+                <span class="upload-text">上传 TXT / JSON 文件</span>
+                <span class="upload-status" id="uploadStatus">未上传</span>
+                <input type="file" id="fileInput" accept=".txt,.json" />
+            </div>
 
-        <!-- 按钮组 + 统计（sticky） -->
-        <div class="btn-group" id="stickyBar">
-            <button class="btn btn-copy" id="copyBtn">📋 复制</button>
-            <button class="btn btn-clear启发" id="clear启发Btn">✖ 清除启发</button>
-            <div class="stats-inline" id="statsInline">
-                <span class="stat-item">📦 共 <span class="stat-number" id="statTotal">0</span></span>
-                <span class="stat-item">🔍 筛选 <span class="stat-number highlight" id="statFiltered">0</span></span>
-                <span class="stat-item">💡 启发 <span class="stat-number highlight-green" id="statMarked">0</span></span>
+            <div class="action-bar">
+                <div class="btn-group">
+                    <button class="btn btn-success" id="copyBtn">📋 提取筛选</button>
+                    <button class="btn btn-danger" id="clearMarksBtn">✖ 清除启发</button>
+                    <button class="btn btn-danger" id="clearBtn">🗑️ 清空</button>
+                </div>
+                <div class="filter-area" id="filterArea">
+                    <!-- 筛选控件由 JS 按当前 tab 配置动态生成 -->
+                </div>
             </div>
         </div>
 
-        <!-- 输出 -->
-        <div id="outputResult" class="output-area">
+        <div class="stats-bar" id="statsBar">
+            <span id="statsInfo">等待数据…</span>
+        </div>
+
+        <div id="feedContainer" class="feed-list">
             <div class="empty-state">
-                <span class="icon">📭</span>
-                拖拽 <code>.txt</code> 文件或点击上方区域上传<br>
-                即刻数据将在此展示
+                <div class="icon-big">📭</div>
+                <p>上传 JSON 文件后自动加载</p>
             </div>
         </div>
     </div>
-
-    <!-- Toast -->
-    <div id="toast"></div>
+    <div id="toast" class="toast"></div>
 
     <script>
-        (function() {
-            'use strict';
+    (function() {
+        "use strict";
 
-            // ===== 存储键名 =====
-            const STORAGE_KEY_RAW = 'jike_rawData';
-            const STORAGE_KEY_EDITED = 'jike_editedTitles';
-            const STORAGE_KEY_MARKED = 'jike_markedObj';
+        // ============ 两份 TAB 配置：差异点全部放在这里，公共逻辑不用重复写 ============
+        const TAB_CONFIGS = {
+            personal: {
+                title: '⭐️ 即刻个人主页',
+                hintHtml: '📡 <code>Network → single（个人主页）</code>',
+                storageKey: 'jike_personal_tool_state_v2',
+                // 筛选器样式：date = 起始日期选择器
+                filterStyle: 'date',
+                defaults: {
+                    minLike: 100,
+                    minWords: 50,
+                    startDate: '2026-01-01',
+                },
+                // 字段归一化：从原始 JSON 对象里抽取内容统一成"标准 post 结构"
+                normalize(raw) {
+                    const id = raw.id || '';
+                    const content = raw.content || '';
+                    const likeCount = raw.likeCount || 0;
+                    const createdAtRaw = raw.createdAt || raw.createdTime || '';
+                    const user = raw.user || raw.userInfo || null;
+                    const screenName = user ? (user.screenName || user.nickname || '') : '';
+                    return { id, content, likeCount, createdAt: createdAtRaw, user: { screenName } };
+                },
+                // 兼容处理 createdAt：可能是秒/毫秒级时间戳或 ISO 字符串
+                createdAtNeedCompatTimestamp: true,
+                titlePreviewLength: 40,
+                showTopNickname: true,
+                showAuthorTag: false,
+                // 复制文案
+                copyHeaderFn({ userNickname }) {
+                    const at = userNickname ? '@' + userNickname : '@未知';
+                    return `⭐️ 优秀即友推荐 ${at}\n\n▍高赞动态\n\n`;
+                },
+                emptyTip: '💡 当前筛选阈值可能过高，请尝试降低「赞 ≥」或「字 ≥」数值',
+            },
+            hot: {
+                title: '🔥 圈子热门',
+                hintHtml: '📡 从即刻热榜 / 精选接口抓取的热门 JSON',
+                storageKey: 'jike_tool_state_dark_v2',
+                // 筛选器样式：dayBtns = 天数分段按钮
+                filterStyle: 'dayBtns',
+                defaults: {
+                    minLike: 200,
+                    minWords: 200,
+                    filterDays: 7,
+                },
+                normalize(raw) {
+                    const id = raw.id || '';
+                    const content = raw.content || '';
+                    const likeCount = raw.likeCount || 0;
+                    const createdAt = raw.createdAt || '';
+                    const user = raw.user || null;
+                    const screenName = user ? (user.screenName || '') : '';
+                    return { id, content, likeCount, createdAt, user: { screenName } };
+                },
+                createdAtNeedCompatTimestamp: false,
+                titlePreviewLength: 17,
+                showTopNickname: false,
+                showAuthorTag: true,
+                copyHeaderFn() {
+                    return `⭐️即友闪光报\n\n▍高赞动态\n\n`;
+                },
+                emptyTip: '💡 当前筛选阈值可能过高，请尝试降低「点赞 ≥」数值',
+                dayOptions: [
+                    { days: 0, label: '全部' },
+                    { days: 1, label: '1天' },
+                    { days: 2, label: '2天' },
+                    { days: 3, label: '3天' },
+                    { days: 7, label: '7天' },
+                ],
+            },
+        };
 
-            // ===== DOM 引用 =====
-            const outputEl = document.getElementById('outputResult');
-            const copyBtn = document.getElementById('copyBtn');
-            const clear启发Btn = document.getElementById('clear启发Btn');
-            const minLikeInput = document.getElementById('minLikeCount');
-            const startDateInput = document.getElementById('startDate');
-            const dropZone = document.getElementById('dropZone');
-            const fileInput = document.getElementById('fileInput');
-            const fileInfo = document.getElementById('fileInfo');
-            const toast = document.getElementById('toast');
-            const nicknameDisplay = document.getElementById('nicknameDisplay');
-            const stickyBar = document.getElementById('stickyBar');
-
-            const statTotal = document.getElementById('statTotal');
-            const statFiltered = document.getElementById('statFiltered');
-            const statMarked = document.getElementById('statMarked');
-
-            // ===== 全局状态 =====
-            let rawData = '';
-            let plainTitleLinkArray = [];
-            let marked = [];
-            let allPostsData = [];
-            let hiddenIds = new Set();
-            let userNickname = '';
-            let editedTitles = {};
-            let totalExtracted = 0;
-
-            // ===== 拖拽区域状态提示 =====
-            function setDropZoneStatus(loaded, fileName = '') {
-                if (loaded) {
-                    dropZone.classList.add('loaded');
-                    const p = dropZone.querySelector('p');
-                    p.innerHTML = `<span class="status-icon">✅</span> 已加载: ${fileName || '数据'}`;
-                } else {
-                    dropZone.classList.remove('loaded');
-                    const p = dropZone.querySelector('p');
-                    p.innerHTML = `<span class="status-icon">📂</span> 拖拽文件到此处导入数据`;
-                }
-            }
-
-            // ===== 持久化函数 =====
-            function saveState() {
-                try {
-                    if (rawData) {
-                        localStorage.setItem(STORAGE_KEY_RAW, rawData);
-                    } else {
-                        localStorage.removeItem(STORAGE_KEY_RAW);
-                    }
-                    localStorage.setItem(STORAGE_KEY_EDITED, JSON.stringify(editedTitles));
-                    const markedObj = {};
-                    allPostsData.forEach((p, i) => {
-                        if (marked[i]) {
-                            markedObj[p.id] = true;
-                        }
-                    });
-                    localStorage.setItem(STORAGE_KEY_MARKED, JSON.stringify(markedObj));
-                } catch (e) {
-                    console.warn('保存状态失败:', e);
-                }
-            }
-
-            function loadState() {
-                try {
-                    const raw = localStorage.getItem(STORAGE_KEY_RAW);
-                    if (raw) rawData = raw;
-                    const edited = localStorage.getItem(STORAGE_KEY_EDITED);
-                    if (edited) editedTitles = JSON.parse(edited);
-                    const markedObj = localStorage.getItem(STORAGE_KEY_MARKED);
-                    if (markedObj) {
-                        return { markedObj: JSON.parse(markedObj) };
-                    }
-                } catch (e) {
-                    console.warn('读取状态失败:', e);
-                }
-                return null;
-            }
-
-            // ===== Toast =====
-            function showToast(msg, type = 'success', duration = 3000) {
-                toast.textContent = msg;
-                toast.className = type;
-                toast.classList.add('show');
-                clearTimeout(toast._timer);
-                toast._timer = setTimeout(() => {
-                    toast.classList.remove('show');
-                }, duration);
-            }
-
-            // ===== 格式化时间 =====
-            function formatCreatedAt(timestamp) {
-                if (!timestamp) return '';
-                let date;
-                if (typeof timestamp === 'number') {
-                    if (timestamp < 1e12) timestamp *= 1000;
-                    date = new Date(timestamp);
-                } else {
-                    date = new Date(timestamp);
-                }
-                if (isNaN(date.getTime())) return '';
-                const year = date.getFullYear();
-                const month = date.getMonth() + 1;
-                const day = date.getDate();
-                const hours = String(date.getHours()).padStart(2, '0');
-                const minutes = String(date.getMinutes()).padStart(2, '0');
-                const seconds = String(date.getSeconds()).padStart(2, '0');
-                return `${year}年${month}月${day}日${hours}:${minutes}:${seconds}`;
-            }
-
-            // ===== 更新统计（内联）=====
-            function updateStats() {
-                // 只统计可见帖子（未被隐藏的）
-                const visiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
-                const filteredCount = visiblePosts.length;
-                // 启发数只统计可见帖子中标记为有启发的
-                const markedCount = visiblePosts.filter(p => {
-                    const idx = allPostsData.findIndex(item => item.id === p.id);
-                    return marked[idx] || false;
-                }).length;
-                statTotal.textContent = totalExtracted;
-                statFiltered.textContent = filteredCount;
-                statMarked.textContent = markedCount;
-            }
-
-            // ===== 检测 sticky 状态 =====
-            function checkSticky() {
-                const rect = stickyBar.getBoundingClientRect();
-                if (rect.top <= 0) {
-                    stickyBar.classList.add('is-stuck');
-                } else {
-                    stickyBar.classList.remove('is-stuck');
-                }
-            }
-
-            // ===== 拖拽 / 上传 =====
-            dropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropZone.classList.add('dragover');
-            });
-            dropZone.addEventListener('dragleave', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('dragover');
-            });
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('dragover');
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    const file = files[0];
-                    if (file.name.endsWith('.txt')) {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                            rawData = ev.target.result;
-                            saveState();
-                            setDropZoneStatus(true, file.name);
-                            autoProcess();
-                        };
-                        reader.onerror = () => {
-                            showToast('❌ 读取文件失败', 'error');
-                            setDropZoneStatus(false);
-                        };
-                        reader.readAsText(file, 'UTF-8');
-                    } else {
-                        showToast('⚠️ 请拖拽 .txt 文件', 'error');
-                    }
-                }
-            });
-            dropZone.addEventListener('click', () => {
-                fileInput.click();
-            });
-            fileInput.addEventListener('change', (e) => {
-                if (fileInput.files.length > 0) {
-                    const file = fileInput.files[0];
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        rawData = ev.target.result;
-                        saveState();
-                        setDropZoneStatus(true, file.name);
-                        autoProcess();
-                    };
-                    reader.onerror = () => {
-                        showToast('❌ 读取文件失败', 'error');
-                        setDropZoneStatus(false);
-                    };
-                    reader.readAsText(file, 'UTF-8');
-                }
-            });
-
-            // ===== 筛选变更自动处理 =====
-            [minLikeInput, startDateInput].forEach(el => {
-                el.addEventListener('change', () => {
-                    if (rawData) autoProcess();
-                });
-            });
-
-            // ===== 滚动监听 =====
-            window.addEventListener('scroll', checkSticky, { passive: true });
-            window.addEventListener('resize', checkSticky, { passive: true });
-
-            // ===== 交互函数 =====
-            window.toggleBody = function(id, event) {
-                if (event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                const body = document.getElementById('body-' + id);
-                if (!body) return;
-                const btn = document.querySelector(`.entry[data-id="${id}"] .toggle-body-btn`);
-                const entry = document.querySelector(`.entry[data-id="${id}"]`);
-                const isVisible = body.style.display !== 'none';
-
-                if (isVisible) {
-                    if (window.getSelection) {
-                        window.getSelection().removeAllRanges();
-                    }
-                    const outputEl2 = document.getElementById('outputResult');
-                    const entryRect = entry.getBoundingClientRect();
-                    const outputRect = outputEl2.getBoundingClientRect();
-                    const relativeTop = entryRect.top - outputRect.top + outputEl2.scrollTop - 20;
-                    body.style.display = 'none';
-                    if (btn) btn.textContent = '展开';
-                    const doScroll = () => {
-                        outputEl2.scrollTop = relativeTop;
-                    };
-                    doScroll();
-                    setTimeout(doScroll, 0);
-                    setTimeout(doScroll, 50);
-                    setTimeout(doScroll, 100);
-                } else {
-                    body.style.display = 'block';
-                    if (btn) btn.textContent = '折叠';
-                }
-            };
-
-            window.hideItem = function(id) {
-                hiddenIds.add(id);
-                renderVisiblePosts();
-                updateStats();
-                showToast('已擦掉该条（刷新后重新出现）', 'success');
-            };
-
-            window.copySingle = function(id) {
-                const visiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
-                const visibleIndex = visiblePosts.findIndex(p => p.id === id);
-                if (visibleIndex < 0) {
-                    showToast('❌ 未找到该条', 'error');
-                    return;
-                }
-                const realIndex = allPostsData.findIndex(p => p.id === id);
-                if (realIndex < 0) return;
-
-                marked[realIndex] = !marked[realIndex];
-                const btn = document.querySelector(`.entry[data-id="${id}"] .copy-single`);
-                if (marked[realIndex]) {
-                    if (btn) {
-                        btn.textContent = '✅ 有启发';
-                        btn.classList.add('copied');
-                    }
-                    showToast(`💡 标记为有启发`, 'success');
-                } else {
-                    if (btn) {
-                        btn.textContent = '💡 有启发';
-                        btn.classList.remove('copied');
-                    }
-                    showToast(`已取消启发标记`, 'success');
-                }
-                updateStats();
-                saveState();
-            };
-
-            window.updateEditedTitle = function(id, newTitle) {
-                const post = allPostsData.find(p => p.id === id);
-                if (post) {
-                    const originalTitle = post.content.replace(/\n/g, '').slice(0, 40) || '无标题';
-                    if (newTitle !== originalTitle) {
-                        editedTitles[id] = newTitle;
-                    } else {
-                        delete editedTitles[id];
-                    }
-                    regenerateTitleLinkArray();
-                    saveState();
-                }
-            };
-
-            // ===== 核心处理 =====
-            function splitJsonText(text) {
-                try {
-                    JSON.parse(text);
-                    return [text];
-                } catch (e) {
-                    const parts = [];
-                    let braceCount = 0;
-                    let start = 0;
-                    for (let i = 0; i < text.length; i++) {
-                        if (text[i] === '{') braceCount++;
-                        else if (text[i] === '}') {
-                            braceCount--;
-                            if (braceCount === 0) {
-                                const part = text.substring(start, i + 1).trim();
-                                if (part) parts.push(part);
-                                start = i + 1;
-                            }
-                        }
-                    }
-                    if (parts.length === 0) {
-                        const sepParts = text.split(/\s*===\s*|\s*---\s*/).filter(s => s.trim().length > 0);
-                        if (sepParts.length > 0) return sepParts;
-                    }
-                    return parts;
-                }
-            }
-
-            function processData(raw) {
-                raw = raw.trim();
-                if (!raw) throw new Error('数据为空，请重新拖拽文件');
-
-                const minLike = parseInt(minLikeInput.value) || 0;
-                if (minLike < 0) throw new Error('最小值不能为负数');
-
-                const startDateStr = startDateInput.value;
-                let startTimestamp = null;
-                if (startDateStr) {
-                    const d = new Date(startDateStr + 'T00:00:00');
-                    if (!isNaN(d.getTime())) startTimestamp = d.getTime();
-                }
-
-                const jsonParts = splitJsonText(raw);
-                if (jsonParts.length === 0) throw new Error('未能识别任何 JSON 数据片段');
-
-                let allPosts = [];
-                let parsedCount = 0;
-                let errorCount = 0;
-                userNickname = '';
-
-                jsonParts.forEach((part) => {
-                    try {
-                        const json = JSON.parse(part);
-                        parsedCount++;
-
-                        if (!userNickname) {
-                            if (json.data && json.data[0] && json.data[0].user && json.data[0].user
-                                .screenName) {
-                                userNickname = json.data[0].user.screenName;
-                            } else if (json.data && json.data[0] && json.data[0].userInfo && json.data[0]
-                                .userInfo.screenName) {
-                                userNickname = json.data[0].userInfo.screenName;
-                            } else if (json.user && json.user.screenName) {
-                                userNickname = json.user.screenName;
-                            } else if (json.userInfo && json.userInfo.screenName) {
-                                userNickname = json.userInfo.screenName;
-                            } else if (json.screenName) {
-                                userNickname = json.screenName;
-                            } else if (json.nickname) {
-                                userNickname = json.nickname;
-                            }
-                        }
-
-                        if (json.data && Array.isArray(json.data)) {
-                            json.data.forEach(item => {
-                                if (item.id && item.likeCount !== undefined) {
-                                    const like = Number(item.likeCount);
-                                    if (!isNaN(like)) {
-                                        const content = item.content !== undefined ? String(item.content) :
-                                            '';
-                                        let createdAt = item.createdAt || item.createTime || null;
-                                        let createdTime = null;
-                                        if (createdAt) {
-                                            if (typeof createdAt === 'number') {
-                                                createdTime = createdAt;
-                                            } else if (typeof createdAt === 'string') {
-                                                const d = new Date(createdAt);
-                                                if (!isNaN(d.getTime())) {
-                                                    createdTime = d.getTime();
-                                                }
-                                            }
-                                        }
-                                        allPosts.push({
-                                            id: String(item.id).trim(),
-                                            likeCount: like,
-                                            content: content,
-                                            createdAt: createdAt,
-                                            createdTime: createdTime
-                                        });
-                                    }
-                                }
-                            });
-                        }
-                    } catch (e) {
-                        errorCount++;
-                    }
-                });
-
-                if (allPosts.length === 0) {
-                    throw new Error(`没有提取到任何有效帖子（成功解析 ${parsedCount} 个片段，失败 ${errorCount} 个）`);
-                }
-
-                let dateFiltered = allPosts;
-                if (startTimestamp !== null) {
-                    dateFiltered = allPosts.filter(p => {
-                        if (p.createdTime === null) return true;
-                        return p.createdTime >= startTimestamp;
-                    });
-                }
-
-                const filtered = dateFiltered.filter(p => p.likeCount >= minLike);
-                if (filtered.length === 0) {
-                    throw new Error(`没有点赞≥${minLike}且符合起始日期的帖子（总有效 ${allPosts.length} 条）`);
-                }
-
-                filtered.sort((a, b) => b.likeCount - a.likeCount);
-
-                totalExtracted = allPosts.length;
-                allPostsData = filtered;
-
-                let markedObj = {};
-                try {
-                    const stored = localStorage.getItem(STORAGE_KEY_MARKED);
-                    if (stored) markedObj = JSON.parse(stored);
-                } catch (e) {}
-
-                marked = new Array(filtered.length).fill(false);
-                filtered.forEach((p, i) => {
-                    if (markedObj[p.id]) {
-                        marked[i] = true;
-                    }
-                });
-
-                nicknameDisplay.textContent = userNickname ? '@' + userNickname : '@未找到';
-
-                hiddenIds.clear();
-
-                const visible = renderVisiblePosts();
-                updateStats();
-                saveState();
-
-                showToast(`✅ 共提取 ${allPosts.length} 条，过滤后保留 ${filtered.length} 条`, 'success', 4000);
-
-                return {
-                    total: allPosts.length,
-                    filtered: filtered.length,
-                    visible: visible
+        // ============ 当前活动 tab ============
+        let activeTabId = 'personal';
+        const tabStates = {};
+        // 每个 tab 独立状态：{allPosts, hiddenIds, marked, editedTitles, filter, userNickname, currentFileName}
+        function ensureTabState(tabId) {
+            if (!tabStates[tabId]) {
+                const cfg = TAB_CONFIGS[tabId];
+                tabStates[tabId] = {
+                    allPosts: [],
+                    hiddenIds: new Set(),
+                    marked: [],
+                    editedTitles: {},
+                    userNickname: '',
+                    currentFileName: '',
+                    filter: { ...cfg.defaults },
                 };
             }
+            return tabStates[tabId];
+        }
+        function S() { return ensureTabState(activeTabId); }
+        function CFG() { return TAB_CONFIGS[activeTabId]; }
 
-            // ===== 渲染卡片 =====
-            function renderVisiblePosts() {
-                const visiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
+        // ============ DOM ============
+        const $ = (id) => document.getElementById(id);
+        const tabBarEl = document.querySelector('.tab-bar');
+        const pageTitleEl = $('pageTitle');
+        const nicknameBar = $('nicknameBar');
+        const hintBox = $('hintBox');
+        const uploadArea = $('uploadArea');
+        const fileInput = $('fileInput');
+        const uploadStatus = $('uploadStatus');
+        const copyBtn = $('copyBtn');
+        const clearMarksBtn = $('clearMarksBtn');
+        const clearBtn = $('clearBtn');
+        const filterArea = $('filterArea');
+        const feedContainer = $('feedContainer');
+        const statsInfo = $('statsInfo');
+        const toastEl = $('toast');
 
-                let htmlResult = '';
-                let titleLinkArray = [];
+        // ============ Toast ============
+        let toastTimer = null;
+        function showToast(msg, duration = 2500) {
+            toastEl.textContent = msg;
+            toastEl.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toastEl.classList.remove('show'), duration);
+        }
 
-                visiblePosts.forEach((p, index) => {
-                    const cleanContent = p.content.replace(/\n/g, '');
-                    const originalTitle = cleanContent.slice(0, 40) || '无标题';
-                    const title = editedTitles[p.id] || originalTitle;
-                    const link = `https://m.okjike.com/originalPosts/${p.id}`;
-                    const topNum = String(index + 1).padStart(3, '0');
-                    const totalChars = (title + cleanContent).length;
-                    const titleLink = `TOP ${topNum} （${p.likeCount}）${title}\n${link}`;
-                    titleLinkArray.push(titleLink);
+        // ============ 公共工具函数 ============
+        function cleanText(str) {
+            if (!str) return '';
+            return str.replace(/^[\s\u00A0\u3000\u200B\uFEFF]+/, '');
+        }
+        function countWords(content) {
+            if (!content) return 0;
+            return content.trim().length;
+        }
+        function getTitlePreview(content, length) {
+            if (!content) return '';
+            const cleaned = cleanText(content).replace(/\s+/g, ' ').trim();
+            return cleaned.slice(0, length);
+        }
 
-                    const safeContent = p.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                    const timeStr = formatCreatedAt(p.createdAt);
-
-                    const realIndex = allPostsData.findIndex(item => item.id === p.id);
-                    const isMarked = (realIndex >= 0 && marked[realIndex]);
-
-                    htmlResult += `<div class="entry" data-id="${p.id}" data-visible-index="${index}">
-                <div class="top-num-row">
-                    <span>TOP ${topNum} （${p.likeCount}）${totalChars} 字</span>
-                    ${timeStr ? `<span class="time">🕒 ${timeStr}</span>` : ''}
-                </div>
-                <div class="title-row">
-                    <textarea class="editable-title" data-id="${p.id}" onchange="updateEditedTitle('${p.id}', this.value)" rows="1" style="width:100%; border:none; background:transparent; font-weight:600; font-size:16px; color:var(--text-primary); outline:none; resize:none; font-family:inherit; line-height:1.4; padding:2px 4px; border-radius:4px; min-height:24px; overflow:hidden;">${title.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
-                </div>
-                <div class="actions">
-                    <button class="btn-sm copy-single ${isMarked ? 'copied' : ''}" onclick="copySingle('${p.id}')">${isMarked ? '✅ 有启发' : '💡 有启发'}</button>
-                    <button class="btn-sm toggle-body-btn" onclick="toggleBody('${p.id}')">展开</button>
-                    <button class="btn-sm hide-btn" onclick="hideItem('${p.id}')">✕</button>
-                    <button class="btn-sm" onclick="window.open('${link}','_blank')">🔗 看原文</button>
-                </div>
-                <div id="body-${p.id}" class="body-text" style="display:none;" ondblclick="event.preventDefault(); toggleBody('${p.id}', event);">${safeContent}</div>
-            </div>\n\n`;
-                });
-
-                plainTitleLinkArray = titleLinkArray;
-                outputEl.innerHTML = htmlResult;
-
-                setTimeout(() => {
-                    document.querySelectorAll('.editable-title').forEach(ta => {
-                        ta.style.height = 'auto';
-                        ta.style.height = ta.scrollHeight + 'px';
-                        ta.addEventListener('input', function() {
-                            this.style.height = 'auto';
-                            this.style.height = this.scrollHeight + 'px';
-                        });
-                    });
-                }, 0);
-
-                return visiblePosts.length;
+        function toIsoTime(val, needCompat) {
+            if (!val) return '';
+            if (needCompat && typeof val === 'number') {
+                if (val < 1e12) val *= 1000;
+                return new Date(val).toISOString();
             }
-
-            function regenerateTitleLinkArray() {
-                const visiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
-                const newTitleLinkArray = [];
-
-                visiblePosts.forEach((p, visibleIndex) => {
-                    const cleanContent = p.content.replace(/\n/g, '');
-                    const originalTitle = cleanContent.slice(0, 40) || '无标题';
-                    const title = editedTitles[p.id] || originalTitle;
-                    const link = `https://m.okjike.com/originalPosts/${p.id}`;
-                    const topNum = String(visibleIndex + 1).padStart(3, '0');
-                    const titleLine = `TOP ${topNum} （${p.likeCount}）${title}`;
-                    newTitleLinkArray.push(`${titleLine}\n${link}`);
-                });
-
-                plainTitleLinkArray = newTitleLinkArray;
+            if (typeof val === 'string') {
+                const d = new Date(val);
+                if (!isNaN(d.getTime())) return d.toISOString();
+                return val;
             }
+            return '';
+        }
 
-            function autoProcess() {
-                if (!rawData) {
-                    showToast('请先拖拽 .txt 文件', 'error');
-                    return;
-                }
+        function formatTime(val, needCompat) {
+            const iso = toIsoTime(val, needCompat);
+            if (!iso) return '未知时间';
+            try {
+                const date = new Date(iso);
+                if (isNaN(date.getTime())) return '';
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, '0');
+                const d = String(date.getDate()).padStart(2, '0');
+                const h = String(date.getHours()).padStart(2, '0');
+                const min = String(date.getMinutes()).padStart(2, '0');
+                return `${y}-${m}-${d} ${h}:${min}`;
+            } catch (_) { return ''; }
+        }
+
+        function buildLink(id) {
+            return id ? `https://m.okjike.com/originalPosts/${id}` : '#';
+        }
+
+        // 时间过滤（两种模式）
+        function matchTimeFilter(post) {
+            const cfg = CFG();
+            const flt = S().filter;
+            const iso = toIsoTime(post.createdAt, cfg.createdAtNeedCompatTimestamp);
+            if (cfg.filterStyle === 'date') {
+                const sd = flt.startDate;
+                if (!sd) return true;
                 try {
-                    processData(rawData);
-                } catch (err) {
-                    showToast('错误：' + err.message, 'error');
-                    outputEl.innerHTML =
-                        `<div class="empty-state"><span class="icon">⚠️</span>${err.message}</div>`;
-                    plainTitleLinkArray = [];
-                    marked = [];
-                    allPostsData = [];
-                    hiddenIds.clear();
-                    totalExtracted = 0;
-                    updateStats();
-                    setDropZoneStatus(false);
-                }
-            }
-
-            // ===== 一键清除所有有启发 =====
-            function clearAllMarked() {
-                if (marked.length === 0 || marked.every(v => v === false)) {
-                    showToast('没有需要清除的启发标记', 'success');
-                    return;
-                }
-                marked.fill(false);
-                renderVisiblePosts();
-                updateStats();
-                saveState();
-                showToast('已清除所有启发标记', 'success');
-            }
-
-            clear启发Btn.addEventListener('click', clearAllMarked);
-
-            // ===== 复制（重写：重新生成序号，保证连续） =====
-            copyBtn.addEventListener('click', async () => {
-                // 获取可见帖子（按显示顺序）
-                const visiblePosts = allPostsData.filter(p => !hiddenIds.has(p.id));
-                if (visiblePosts.length === 0) {
-                    showToast('没有可复制的内容', 'error');
-                    return;
-                }
-
-                // 构建可见帖子的标记状态
-                const visibleMarked = visiblePosts.map(p => {
-                    const idx = allPostsData.findIndex(item => item.id === p.id);
-                    return marked[idx] || false;
-                });
-
-                // 决定复制哪些帖子
-                const hasMarked = visibleMarked.some(v => v);
-                let selectedPosts;
-                if (hasMarked) {
-                    selectedPosts = visiblePosts.filter((p, i) => visibleMarked[i]);
-                } else {
-                    selectedPosts = visiblePosts.slice(); // 全部
-                }
-
-                if (selectedPosts.length === 0) {
-                    showToast('没有可复制的内容', 'error');
-                    return;
-                }
-
-                // 重新构建文本，按选中顺序重新编号
-                const lines = selectedPosts.map((p, idx) => {
-                    const cleanContent = p.content.replace(/\n/g, '');
-                    const originalTitle = cleanContent.slice(0, 40) || '无标题';
-                    const title = editedTitles[p.id] || originalTitle;
-                    const link = `https://m.okjike.com/originalPosts/${p.id}`;
-                    const topNum = String(idx + 1).padStart(3, '0');
-                    return `TOP ${topNum} （${p.likeCount}）${title}\n${link}`;
-                });
-
-                const nickname = userNickname ? '@' + userNickname : '@未知';
-                const part1 = `⭐️ 优秀即友推荐 ${nickname}`;
-                const part2 = '▍2026 上半年高赞动态';
-                const part3 = lines.join('\n\n');
-
-                const result = `${part1}\n\n${part2}\n\n${part3}`;
-
+                    const s = new Date(sd + 'T00:00:00');
+                    const pd = new Date(iso);
+                    if (isNaN(pd.getTime())) return false;
+                    return pd.getTime() >= s.getTime();
+                } catch (_) { return false; }
+            } else if (cfg.filterStyle === 'dayBtns') {
+                const days = flt.filterDays;
+                if (!days || days <= 0) return true;
                 try {
-                    await navigator.clipboard.writeText(result);
-                    showToast('已复制到剪贴板', 'success');
-                } catch (_) {
-                    const temp = document.createElement('textarea');
-                    temp.value = result;
-                    document.body.appendChild(temp);
-                    temp.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(temp);
-                    showToast('已复制到剪贴板', 'success');
+                    const pd = new Date(iso);
+                    if (isNaN(pd.getTime())) return false;
+                    const diffDays = (Date.now() - pd.getTime()) / (1000 * 60 * 60 * 24);
+                    return diffDays <= days;
+                } catch (_) { return false; }
+            }
+            return true;
+        }
+
+        function formatTimeLabel() {
+            const cfg = CFG();
+            const flt = S().filter;
+            if (cfg.filterStyle === 'date') {
+                const sd = flt.startDate;
+                if (!sd) return '全部时间';
+                const d = new Date(sd + 'T00:00:00');
+                if (isNaN(d.getTime())) return sd;
+                return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日起`;
+            } else if (cfg.filterStyle === 'dayBtns') {
+                const d = flt.filterDays;
+                return d && d > 0 ? `最近${d}天` : '';
+            }
+            return '';
+        }
+
+        function setUploadStatus(text, type = '') {
+            uploadStatus.textContent = text;
+            uploadStatus.className = 'upload-status' + (type ? ' ' + type : '');
+        }
+
+        // ============ 解析器（公共） ============
+        function splitJsonTextSmart(text) {
+            const trimmed = text.trim();
+            if (!trimmed) return [];
+            try {
+                const p = JSON.parse(trimmed);
+                if (Array.isArray(p)) return p;
+                if (p && typeof p === 'object') {
+                    if (Array.isArray(p.data)) return p.data;
+                    return [p];
                 }
+                return [];
+            } catch (_) {}
+            const parts = [];
+            let depth = 0;
+            let inStr = false, escape = false;
+            let cur = '';
+            for (let i = 0; i < trimmed.length; i++) {
+                const ch = trimmed[i];
+                if (escape) { escape = false; cur += ch; continue; }
+                if (ch === '\\') { escape = true; cur += ch; continue; }
+                if (ch === '"') { inStr = !inStr; cur += ch; continue; }
+                if (inStr) { cur += ch; continue; }
+                if (ch === '{' || ch === '[') { depth++; cur += ch; }
+                else if (ch === '}' || ch === ']') {
+                    depth--; cur += ch;
+                    if (depth === 0) { if (cur.trim()) parts.push(cur.trim()); cur = ''; }
+                } else cur += ch;
+            }
+            if (cur.trim()) parts.push(cur.trim());
+            if (parts.length === 0) {
+                const segs = trimmed.split(/\s*===\s*|\s*---\s*/).filter(s => s.trim().length > 0);
+                if (segs.length > 0) return segs;
+            }
+            let results = [];
+            for (const part of parts) {
+                try {
+                    const data = JSON.parse(part);
+                    if (Array.isArray(data)) results = results.concat(data);
+                    else if (data && typeof data === 'object') {
+                        if (Array.isArray(data.data)) results = results.concat(data.data);
+                        else results.push(data);
+                    }
+                } catch (_) {}
+            }
+            return results;
+        }
+
+        function extractTopNicknameFromRaw(text) {
+            const parts = splitJsonTextSmart(text);
+            for (const part of parts) {
+                try {
+                    const json = (typeof part === 'string') ? JSON.parse(part) : part;
+                    if (json.data && json.data[0]) {
+                        if (json.data[0].user && json.data[0].user.screenName) return json.data[0].user.screenName;
+                        if (json.data[0].userInfo && json.data[0].userInfo.screenName) return json.data[0].userInfo.screenName;
+                    }
+                    if (json.user && json.user.screenName) return json.user.screenName;
+                    if (json.userInfo && json.userInfo.screenName) return json.userInfo.screenName;
+                    if (json.screenName) return json.screenName;
+                } catch (_) {}
+            }
+            return '';
+        }
+
+        // ============ 渲染筛选栏（按 tab 配置动态生成） ============
+        function renderFilterArea() {
+            const cfg = CFG();
+            const flt = S().filter;
+            let html = '';
+            if (cfg.filterStyle === 'date') {
+                html += `<div class="date-picker-wrap">
+                    <label for="startDate">起</label>
+                    <input type="date" id="startDate" value="${flt.startDate || cfg.defaults.startDate}" />
+                </div>`;
+            } else if (cfg.filterStyle === 'dayBtns') {
+                html += `<div class="day-btns" id="dayBtns">`;
+                for (const opt of cfg.dayOptions) {
+                    const active = (flt.filterDays === opt.days) ? ' active' : '';
+                    html += `<button class="day-btn${active}" data-days="${opt.days}">${opt.label}</button>`;
+                }
+                html += `</div>`;
+            }
+            html += `<label>赞 ≥</label>`;
+            html += `<input type="number" id="filterInput" value="${flt.minLike}" min="0" step="1" />`;
+            html += `<label>字 ≥</label>`;
+            html += `<input type="number" id="filterWordInput" value="${flt.minWords}" min="0" step="1" />`;
+            filterArea.innerHTML = html;
+
+            // 绑定筛选控件事件
+            const $f = $('filterInput');
+            const $w = $('filterWordInput');
+            $f.addEventListener('input', () => {
+                S().filter.minLike = parseInt($f.value) || 0;
+                renderWithFilter(); saveState();
+            });
+            $w.addEventListener('input', () => {
+                S().filter.minWords = parseInt($w.value) || 0;
+                renderWithFilter(); saveState();
             });
 
-            // ===== 页面加载时恢复数据 =====
-            function restoreFromLocal() {
-                const storedRaw = localStorage.getItem(STORAGE_KEY_RAW);
-                if (storedRaw) {
-                    rawData = storedRaw;
-                    const state = loadState();
-                    if (state) {
-                        // editedTitles 已由 loadState 填充
-                    }
-                    try {
-                        processData(rawData);
-                        setDropZoneStatus(true, '已恢复');
-                    } catch (e) {
-                        console.warn('恢复数据失败:', e);
-                        localStorage.removeItem(STORAGE_KEY_RAW);
-                        rawData = '';
-                        setDropZoneStatus(false);
-                    }
-                } else {
-                    localStorage.removeItem(STORAGE_KEY_EDITED);
-                    localStorage.removeItem(STORAGE_KEY_MARKED);
-                    setDropZoneStatus(false);
-                }
-                setTimeout(checkSticky, 100);
+            if (cfg.filterStyle === 'date') {
+                const $s = $('startDate');
+                $s.addEventListener('change', (e) => {
+                    S().filter.startDate = e.target.value || cfg.defaults.startDate;
+                    $s.value = S().filter.startDate;
+                    renderWithFilter(); saveState();
+                    showToast(`已切换至${formatTimeLabel()}`, 1500);
+                });
+            } else if (cfg.filterStyle === 'dayBtns') {
+                const btns = $('dayBtns');
+                btns.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.day-btn');
+                    if (!btn) return;
+                    const days = parseInt(btn.dataset.days);
+                    if (isNaN(days)) return;
+                    S().filter.filterDays = days;
+                    btns.querySelectorAll('.day-btn').forEach(b => {
+                        b.classList.toggle('active', parseInt(b.dataset.days) === days);
+                    });
+                    renderWithFilter(); saveState();
+                    showToast(days > 0 ? `已切换至最近${days}天` : '已切换至全部时间', 1500);
+                });
+            }
+        }
+
+        function setNicknameDisplay(name) {
+            S().userNickname = name || '';
+            if (CFG().showTopNickname && S().userNickname) {
+                nicknameBar.style.display = 'inline-flex';
+                nicknameBar.textContent = S().userNickname;
+            } else {
+                nicknameBar.style.display = 'none';
+            }
+        }
+
+        function updateStats() {
+            const s = S(); const cfg = CFG();
+            const threshold = s.filter.minLike || 0;
+            const minWords = s.filter.minWords || 0;
+            const vis = s.allPosts.filter(p => {
+                if (s.hiddenIds.has(p.id)) return false;
+                if ((p.likeCount || 0) < threshold) return false;
+                if (countWords(p.content) < minWords) return false;
+                if (!matchTimeFilter(p)) return false;
+                return true;
+            });
+            const total = s.allPosts.length;
+            const filteredCount = vis.length;
+            const inspired = vis.filter(p => {
+                const idx = s.allPosts.findIndex(q => q.id === p.id);
+                return s.marked[idx] || false;
+            }).length;
+            const tl = formatTimeLabel();
+            const prefix = tl ? (tl.endsWith('天') ? `${tl} · ` : `${tl} · `) : '';
+            statsInfo.innerHTML =
+                `${prefix}总数 ${total} 条 · 过滤后 <span class="highlight">${filteredCount}</span> 条 · 有启发 <span class="highlight">${inspired}</span> 条`;
+        }
+
+        function renderFeedWithMark(posts, markArray) {
+            const s = S(); const cfg = CFG();
+            if (!posts || posts.length === 0) {
+                feedContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon-big">📭</div>
+                        <p>暂无符合条件的动态</p>
+                        ${s.allPosts.length > 0 ? `<p style="font-size:13px;color:#777;margin-top:4px;">${cfg.emptyTip}</p>` : ''}
+                    </div>`;
+                updateStats();
+                return;
             }
 
-            restoreFromLocal();
+            const total = s.allPosts.length;
+            const filteredCount = posts.length;
+            const inspired = markArray.filter(m => m === true).length;
+            const tl = formatTimeLabel();
+            const prefix = tl ? (tl.endsWith('天') ? `${tl} · ` : `${tl} · `) : '';
+            statsInfo.innerHTML =
+                `${prefix}总数 ${total} 条 · 过滤后 <span class="highlight">${filteredCount}</span> 条 · 有启发 <span class="highlight">${inspired}</span> 条`;
 
-        })();
+            let html = '';
+            posts.forEach((post, index) => {
+                const id = post.id || `unknown-${index}`;
+                let content = post.content || '(无正文)';
+                content = cleanText(content);
+                if (!content) content = '(无正文)';
+                const likeCount = post.likeCount || 0;
+                const createdAt = post.createdAt || '';
+                const screenName = (post.user && post.user.screenName) ? post.user.screenName : '';
+                const originalTitle = getTitlePreview(content, cfg.titlePreviewLength);
+                const title = s.editedTitles[id] || originalTitle;
+                const link = buildLink(id);
+                const rank = index + 1;
+                const rankLabel = `TOP${String(rank).padStart(3, '0')}`;
+                const wordCount = countWords(content);
+                const wordLabel = `${wordCount}字`;
+                const bodyHtml = content.replace(/\n/g, '<br>');
+                const isMarked = markArray[index] || false;
+                const authorTag = (cfg.showAuthorTag && screenName)
+                    ? `<span class="feed-author" title="${screenName}">${screenName}</span>`
+                    : '';
+
+                html += `<div class="feed-card" data-id="${id}" data-index="${index}">
+                    <div class="feed-header">
+                        <span class="feed-rank">${rankLabel}</span>
+                        <span class="feed-word-count">${wordLabel}</span>
+                        ${authorTag}
+                        <span class="feed-time">${formatTime(createdAt, cfg.createdAtNeedCompatTimestamp)}</span>
+                        <span class="feed-like">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                            </svg>
+                            ${likeCount}
+                        </span>
+                    </div>
+                    <textarea class="editable-title" data-id="${id}" rows="1">${title.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+                    <hr class="feed-divider" />
+                    <div class="feed-body-wrapper">
+                        <div class="feed-body-collapsible" data-id="${id}">${bodyHtml}</div>
+                        <button class="expand-btn" data-id="${id}">展开</button>
+                    </div>
+                    <div class="entry-actions">
+                        <button class="btn-sm mark-btn ${isMarked ? 'marked' : ''}" data-mark-id="${id}">${isMarked ? '✅ 有启发' : '💡 有启发'}</button>
+                        <button class="btn-sm hide-btn" data-hide-id="${id}">✕ 删除</button>
+                        <a href="${link}" target="_blank" rel="noopener" class="feed-link">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                <polyline points="15 3 21 3 21 9" />
+                                <line x1="10" y1="14" x2="21" y2="3" />
+                            </svg>
+                            看全文
+                        </a>
+                    </div>
+                </div>`;
+            });
+
+            feedContainer.innerHTML = html;
+
+            // 统一绑定卡片交互（避免在 HTML 字符串里用 onXxx 属性，避免引号和全局函数的脆弱性）
+            feedContainer.querySelectorAll('.editable-title').forEach(ta => {
+                ta.style.height = 'auto';
+                ta.style.height = ta.scrollHeight + 'px';
+                ta.addEventListener('input', function () {
+                    this.style.height = 'auto';
+                    this.style.height = this.scrollHeight + 'px';
+                });
+                ta.addEventListener('change', function () {
+                    const id = this.dataset.id;
+                    const post = S().allPosts.find(p => p.id === id);
+                    if (post) {
+                        const original = getTitlePreview(post.content, CFG().titlePreviewLength);
+                        const v = this.value;
+                        if (v !== original) S().editedTitles[id] = v;
+                        else delete S().editedTitles[id];
+                        saveState();
+                    }
+                });
+            });
+            feedContainer.querySelectorAll('.expand-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    doExpand(btn.dataset.id);
+                });
+            });
+            feedContainer.querySelectorAll('.feed-body-collapsible').forEach(el => {
+                el.addEventListener('dblclick', () => doExpand(el.dataset.id));
+            });
+            feedContainer.querySelectorAll('[data-mark-id]').forEach(btn => {
+                btn.addEventListener('click', () => doMark(btn.dataset.markId));
+            });
+            feedContainer.querySelectorAll('[data-hide-id]').forEach(btn => {
+                btn.addEventListener('click', () => doHide(btn.dataset.hideId));
+            });
+        }
+
+        function doExpand(id) {
+            const body = feedContainer.querySelector(`.feed-body-collapsible[data-id="${id}"]`);
+            const btn = feedContainer.querySelector(`.expand-btn[data-id="${id}"]`);
+            const card = feedContainer.querySelector(`.feed-card[data-id="${id}"]`);
+            if (!body) return;
+            const expanded = body.classList.toggle('expanded');
+            if (btn) btn.textContent = expanded ? '收起' : '展开';
+            if (card) {
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                    card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }));
+            }
+        }
+        function doMark(id) {
+            const s = S();
+            const idx = s.allPosts.findIndex(p => p.id === id);
+            if (idx === -1) return;
+            s.marked[idx] = !s.marked[idx];
+            const card = feedContainer.querySelector(`.feed-card[data-id="${id}"]`);
+            if (card) {
+                const b = card.querySelector('[data-mark-id="' + id + '"]');
+                if (b) {
+                    b.textContent = s.marked[idx] ? '✅ 有启发' : '💡 有启发';
+                    b.classList.toggle('marked', s.marked[idx]);
+                }
+            }
+            updateStats(); saveState();
+            showToast(s.marked[idx] ? '已标记有启发' : '已取消标记', 1500);
+        }
+        function doHide(id) {
+            S().hiddenIds.add(id);
+            const card = feedContainer.querySelector(`.feed-card[data-id="${id}"]`);
+            if (card) card.style.display = 'none';
+            updateStats(); saveState();
+            showToast('已删除该条', 1500);
+        }
+
+        // ============ 筛选 + 排序 ============
+        function renderWithFilter() {
+            const s = S();
+            const threshold = s.filter.minLike || 0;
+            const minWords = s.filter.minWords || 0;
+            const visible = s.allPosts.filter(p => {
+                if (s.hiddenIds.has(p.id)) return false;
+                if ((p.likeCount || 0) < threshold) return false;
+                if (countWords(p.content) < minWords) return false;
+                if (!matchTimeFilter(p)) return false;
+                return true;
+            });
+            visible.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0));
+            const newMarked = visible.map(p => {
+                const idx = s.allPosts.findIndex(q => q.id === p.id);
+                return s.marked[idx] || false;
+            });
+            renderFeedWithMark(visible, newMarked);
+        }
+
+        // ============ 解析并加载 ============
+        function parseAndUpdate(text, fileName) {
+            const cfg = CFG(); const s = S();
+            if (!text || !text.trim()) {
+                s.allPosts = []; s.hiddenIds.clear(); s.marked = []; s.editedTitles = {};
+                setNicknameDisplay('');
+                renderFeedWithMark([], []);
+                setUploadStatus('未上传');
+                s.currentFileName = '';
+                saveState();
+                showToast('文件内容为空', 2000);
+                return;
+            }
+
+            // 顶栏昵称（仅个人主页用，其他 tab 读取后不显示就行）
+            if (cfg.showTopNickname) {
+                setNicknameDisplay(extractTopNicknameFromRaw(text));
+            } else {
+                setNicknameDisplay('');
+            }
+
+            const parsed = splitJsonTextSmart(text);
+            const normalized = parsed.map(x => cfg.normalize(x));
+            const valid = normalized.filter(p => p && p.content !== undefined);
+            const seen = new Set();
+            const unique = [];
+            const oldMarkMap = new Map();
+            s.allPosts.forEach((p, idx) => { if (s.marked[idx]) oldMarkMap.set(p.id, true); });
+            for (const p of valid) {
+                if (p.content) p.content = cleanText(p.content);
+                if (p.id && !seen.has(p.id)) { seen.add(p.id); unique.push(p); }
+                else if (!p.id) unique.push(p);
+            }
+            s.allPosts = unique;
+            s.marked = unique.map(p => oldMarkMap.has(p.id) ? true : false);
+            s.hiddenIds.clear();
+            s.editedTitles = {};
+            s.currentFileName = fileName || '';
+
+            renderWithFilter(); saveState();
+
+            if (unique.length === 0 && text.length > 0) {
+                setUploadStatus('解析失败', 'error');
+                showToast('⚠️ 未能解析出有效数据，请检查 JSON 格式', 3000);
+            } else {
+                setUploadStatus(`✅ ${fileName || '文件'} (${unique.length}条)`, 'success');
+                showToast(`✅ 成功加载 ${unique.length} 条动态`, 2000);
+            }
+        }
+
+        // ============ 文件导入 ============
+        function loadFile(file) {
+            if (!file) return;
+            const valid = file.type.startsWith('text/') || file.name.endsWith('.txt') || file.name.endsWith('.json');
+            if (!valid) {
+                setUploadStatus('不支持格式', 'error');
+                showToast('⚠️ 请选择 .txt 或 .json 文件', 2500);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    parseAndUpdate(e.target.result, file.name);
+                } catch (err) {
+                    setUploadStatus('读取失败', 'error');
+                    showToast('❌ 读取文件内容失败: ' + err.message, 3000);
+                }
+            };
+            reader.onerror = () => {
+                setUploadStatus('读取失败', 'error');
+                showToast('❌ 读取文件失败，请重试', 2500);
+            };
+            reader.readAsText(file);
+        }
+
+        uploadArea.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'INPUT') fileInput.click();
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) loadFile(e.target.files[0]);
+            fileInput.value = '';
+        });
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault(); uploadArea.style.borderColor = '#4b8bf7';
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = '#333';
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault(); uploadArea.style.borderColor = '#333';
+            const files = e.dataTransfer.files;
+            if (files.length === 0) return;
+            const f = files[0];
+            if (f.type.startsWith('text/') || f.name.endsWith('.txt') || f.name.endsWith('.json')) {
+                loadFile(f);
+            } else {
+                setUploadStatus('不支持格式', 'error');
+                showToast('⚠️ 请拖入 .txt 或 .json 文件', 2500);
+            }
+        });
+
+        // ============ 复制 ============
+        copyBtn.addEventListener('click', async () => {
+            const s = S(); const cfg = CFG();
+            const threshold = s.filter.minLike || 0;
+            const minWords = s.filter.minWords || 0;
+            let vis = s.allPosts.filter(p => {
+                if (s.hiddenIds.has(p.id)) return false;
+                if ((p.likeCount || 0) < threshold) return false;
+                if (countWords(p.content) < minWords) return false;
+                if (!matchTimeFilter(p)) return false;
+                return true;
+            });
+            if (vis.length === 0) { showToast('没有可复制的内容', 2500); return; }
+            vis.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0));
+
+            const hasMarked = s.marked.some(m => m === true);
+            let selected;
+            if (hasMarked) {
+                selected = vis.filter(p => {
+                    const idx = s.allPosts.findIndex(q => q.id === p.id);
+                    return s.marked[idx] || false;
+                });
+            } else selected = vis;
+
+            if (selected.length === 0) { showToast('没有标记的条目', 2500); return; }
+
+            const lines = selected.map((post, idx) => {
+                const title = s.editedTitles[post.id] || getTitlePreview(post.content, cfg.titlePreviewLength);
+                const link = buildLink(post.id);
+                const top = String(idx + 1).padStart(3, '0');
+                return `TOP ${top} （${post.likeCount || 0}）${title}\n${link}`;
+            });
+
+            const header = cfg.copyHeaderFn({ userNickname: s.userNickname });
+            const result = header + lines.join('\n\n');
+
+            try {
+                await navigator.clipboard.writeText(result);
+                showToast('已复制到剪贴板', 2000);
+            } catch (_) {
+                const ta = document.createElement('textarea');
+                ta.value = result;
+                document.body.appendChild(ta); ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                showToast('已复制到剪贴板', 2000);
+            }
+        });
+
+        clearMarksBtn.addEventListener('click', () => {
+            if (S().marked.length === 0 || S().marked.every(v => v === false)) {
+                showToast('没有需要清除的启发标记', 1500); return;
+            }
+            S().marked.fill(false);
+            renderWithFilter(); saveState();
+            showToast('已清除所有启发标记', 1500);
+        });
+
+        clearBtn.addEventListener('click', () => {
+            const s = S(); const cfg = CFG();
+            s.allPosts = []; s.hiddenIds.clear(); s.marked = []; s.editedTitles = {};
+            s.currentFileName = '';
+            setNicknameDisplay('');
+            renderFeedWithMark([], []);
+            setUploadStatus('未上传');
+            localStorage.removeItem(cfg.storageKey);
+            showToast('已清空所有数据', 1500);
+        });
+
+        // ============ 存储（按 tab 命名空间隔离） ============
+        let restoring = false;
+        function saveState() {
+            if (restoring) return;
+            const cfg = CFG(); const s = S();
+            try {
+                const state = {
+                    allPosts: s.allPosts,
+                    hiddenIds: [...s.hiddenIds],
+                    marked: s.marked,
+                    editedTitles: s.editedTitles,
+                    filter: { ...s.filter },
+                    userNickname: s.userNickname,
+                    fileName: s.currentFileName,
+                };
+                localStorage.setItem(cfg.storageKey, JSON.stringify(state));
+            } catch (_) {}
+        }
+        function loadState() {
+            const cfg = CFG(); const s = S();
+            try {
+                const raw = localStorage.getItem(cfg.storageKey);
+                if (!raw) return false;
+                const st = JSON.parse(raw);
+                if (!st.allPosts || st.allPosts.length === 0) return false;
+                s.allPosts = st.allPosts;
+                s.hiddenIds = new Set(st.hiddenIds || []);
+                s.marked = st.marked || [];
+                s.editedTitles = st.editedTitles || {};
+                s.filter = { ...cfg.defaults, ...(st.filter || {}) };
+                // 兼容老字段
+                if (st.minLike !== undefined) s.filter.minLike = st.minLike;
+                if (st.minWords !== undefined) s.filter.minWords = st.minWords;
+                if (st.startDate !== undefined) s.filter.startDate = st.startDate;
+                if (st.filterDays !== undefined) s.filter.filterDays = st.filterDays;
+                s.userNickname = st.userNickname || '';
+                s.currentFileName = st.fileName || '';
+                return true;
+            } catch (_) { return false; }
+        }
+
+        // ============ 切换 Tab ============
+        function switchTab(tabId) {
+            if (!TAB_CONFIGS[tabId]) return;
+            activeTabId = tabId;
+            ensureTabState(tabId);
+            const cfg = CFG();
+
+            // 页签高亮
+            tabBarEl.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.tab === tabId);
+            });
+            document.title = cfg.title.replace(/^[^\u4e00-\u9fa5A-Za-z]+/, '') || '即刻';
+            pageTitleEl.textContent = cfg.title;
+            hintBox.innerHTML = cfg.hintHtml;
+
+            // 昵称 / 上传状态 / 筛选栏
+            if (cfg.showTopNickname && S().userNickname) {
+                nicknameBar.style.display = 'inline-flex';
+                nicknameBar.textContent = S().userNickname;
+            } else {
+                nicknameBar.style.display = 'none';
+            }
+            if (S().currentFileName && S().allPosts.length) {
+                setUploadStatus(`✅ ${S().currentFileName} (${S().allPosts.length}条)`, 'success');
+            } else if (S().allPosts.length > 0) {
+                setUploadStatus(`已恢复 (${S().allPosts.length}条)`, 'success');
+            } else {
+                setUploadStatus('未上传');
+            }
+            renderFilterArea();
+            renderWithFilter();
+        }
+
+        tabBarEl.addEventListener('click', (e) => {
+            const b = e.target.closest('.tab-btn');
+            if (!b) return;
+            // 切页签前先保存当前 tab 数据
+            saveState();
+            switchTab(b.dataset.tab);
+        });
+
+        // ============ 初始化 ============
+        window.addEventListener('DOMContentLoaded', () => {
+            restoring = true;
+            ensureTabState('personal');
+            ensureTabState('hot');
+            const hadPersonal = loadState(); // 先读 activeTabId 的默认 tab
+            // 切到 hot 尝试读取
+            const tmp = activeTabId;
+            activeTabId = 'hot';
+            const hadHot = loadState();
+            activeTabId = tmp;
+
+            switchTab('personal');
+
+            if (hadPersonal) {
+                showToast('📂 已恢复上次的数据', 2000);
+            } else if (!hadPersonal && !hadHot) {
+                feedContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon-big">📭</div>
+                        <p>上传 JSON 文件后自动加载</p>
+                    </div>`;
+                statsInfo.textContent = '等待数据…';
+            }
+            restoring = false;
+        });
+        window.addEventListener('beforeunload', saveState);
+    })();
     </script>
-
 </body>
 </html>
