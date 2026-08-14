@@ -40,6 +40,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const promptMobileSelect = document.getElementById('promptMobileSelect');
     const promptMobileCopyBtn = document.getElementById('promptMobileCopyBtn');
 
+    // 查找替换
+    const replaceButton = document.getElementById('replaceButton');
+    const replaceModal = document.getElementById('replace-modal');
+    const replaceModalClose = document.getElementById('replaceModalClose');
+    const replaceFindInput = document.getElementById('replaceFindInput');
+    const replaceReplaceInput = document.getElementById('replaceReplaceInput');
+    const replaceConfirmBtn = document.getElementById('replaceConfirmBtn');
+
 
     // ---------- 数据模型 ----------
     const STORAGE_KEY = 'xzt';
@@ -486,8 +494,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         if (e.ctrlKey && (e.key === 's' || e.key === 'S' || e.code === 'KeyS')) {
             e.preventDefault();
-            saveCurrentContent();
-            showAutoCloseAlert('已保存');
+            cleanMarkdown();
+            return;
+        }
+        if (e.ctrlKey && (e.key === 'f' || e.key === 'F' || e.code === 'KeyF')) {
+            e.preventDefault();
+            openReplaceModal();
             return;
         }
         if (e.altKey && e.key === '1') {
@@ -878,6 +890,41 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         reformatText(false);
         editor.scrollTop = savedScrollTop;
+    }
+
+    // ---------- 查找替换 ----------
+    function openReplaceModal() {
+        replaceModal.classList.add('show');
+        setTimeout(function () { replaceFindInput.focus(); }, 50);
+    }
+
+    function closeReplaceModal() {
+        replaceModal.classList.remove('show');
+    }
+
+    function replaceAll() {
+        var findText = replaceFindInput.value;
+        var replaceText = replaceReplaceInput.value;
+        if (!findText) {
+            showAutoCloseAlert('请输入查找内容');
+            return;
+        }
+        saveState();
+        var savedScrollTop = editor.scrollTop;
+        var count = 0;
+        transformPreserveBold(function (text) {
+            if (!text) return text;
+            count = text.split(findText).length - 1;
+            if (count === 0) return text;
+            return text.split(findText).join(replaceText);
+        });
+        editor.scrollTop = savedScrollTop;
+        if (count > 0) {
+            showAutoCloseAlert('已替换 ' + count + ' 处');
+            closeReplaceModal();
+        } else {
+            showAutoCloseAlert('未找到匹配内容');
+        }
     }
 
     // ---------- 归档 ----------
@@ -1549,6 +1596,20 @@ leftCol.style.flexShrink = '0';
             setTimeout(exportImage, 100);
         });
     }
+
+    // 查找替换事件
+    replaceButton.addEventListener('click', openReplaceModal);
+    replaceModalClose.addEventListener('click', closeReplaceModal);
+    replaceConfirmBtn.addEventListener('click', replaceAll);
+    replaceModal.addEventListener('click', function (e) {
+        if (e.target === replaceModal) closeReplaceModal();
+    });
+    replaceFindInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); replaceReplaceInput.focus(); }
+    });
+    replaceReplaceInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); replaceAll(); }
+    });
 
     // ---------- 提示词：数据模型（需在 UI 初始化前执行）----------
     var prompts = [];          // [{id, title, content}]

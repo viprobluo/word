@@ -834,6 +834,7 @@
             <button id="xh" data-mobile="序">序号</button>
             <button id="numBigButton" data-mobile="A">字体</button>
             <button id="boldButton" data-mobile="粗">加粗</button>
+            <button id="replaceButton" data-mobile="替">替换</button>
             <button id="copyButton" data-mobile="C">复制</button>
             <button id="clearButton" data-mobile="空">清空</button>
             <button id="exportImgButton" data-mobile="图">生图</button>
@@ -918,6 +919,29 @@
             </div>
             <div class="prompt-modal-footer">
                 <button id="exportConfirmBtn" class="prompt-btn prompt-btn-primary">📤 导出图片</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 查找替换面板 -->
+    <div id="replace-modal" class="prompt-modal">
+        <div class="prompt-modal-content">
+            <div class="prompt-modal-header">
+                <h3>🔍 查找替换</h3>
+                <button id="replaceModalClose" class="prompt-close-btn">✕</button>
+            </div>
+            <div class="prompt-modal-body">
+                <div class="prompt-row">
+                    <label>查找：</label>
+                    <input type="text" id="replaceFindInput" class="prompt-input" placeholder="输入要查找的文字" autocomplete="off">
+                </div>
+                <div class="prompt-row">
+                    <label>替换为：</label>
+                    <input type="text" id="replaceReplaceInput" class="prompt-input" placeholder="输入替换后的文字" autocomplete="off">
+                </div>
+            </div>
+            <div class="prompt-modal-footer">
+                <button id="replaceConfirmBtn" class="prompt-btn prompt-btn-primary">全部替换</button>
             </div>
         </div>
     </div>
