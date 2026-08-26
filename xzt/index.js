@@ -47,6 +47,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const replaceFindInput = document.getElementById('replaceFindInput');
     const replaceReplaceInput = document.getElementById('replaceReplaceInput');
     const replaceConfirmBtn = document.getElementById('replaceConfirmBtn');
+    const noteArea = document.getElementById('noteArea');
+    const notePanel = document.getElementById('note-panel');
+    const noteHeader = document.getElementById('note-header');
+    const noteResizeHandle = document.querySelector('.note-resize-handle');
 
 
     // ---------- 数据模型 ----------
@@ -333,6 +337,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (doc) {
             setEditorContent(doc.content);
             if (!undoStacks[id]) undoStacks[id] = [];
+            noteArea.value = doc.note || '';
             updateReadTime();
             renderLists();
             highlightActive();
@@ -345,11 +350,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // ---------- 新建文档 ----------
     function createNewDoc() {
         const id = generateId();
-        const newDoc = { id: id, title: '无标题', content: '' };
+        const newDoc = { id: id, title: '无标题', content: '', note: '' };
         docs.push(newDoc);
         undoStacks[id] = [];
         currentId = id;
         setEditorContent('');
+        noteArea.value = '';
         updateReadTime();
         saveDocs();
         renderLists();
@@ -373,6 +379,7 @@ document.addEventListener('DOMContentLoaded', function () {
             currentId = docs[0].id;
             const doc = docs[0];
             setEditorContent(doc.content);
+            noteArea.value = doc.note || '';
             updateReadTime();
             if (!undoStacks[currentId]) undoStacks[currentId] = [];
         }
@@ -1528,6 +1535,125 @@ leftCol.style.flexShrink = '0';
         saveCurrentContent();
     });
 
+    // 备注输入：保存到当前文档的 note 字段，不触碰正文
+    let noteSaveTimer = null;
+    noteArea.addEventListener('input', function () {
+        const doc = getCurrentDoc();
+        if (!doc) return;
+        doc.note = noteArea.value;
+        if (noteSaveTimer) clearTimeout(noteSaveTimer);
+        noteSaveTimer = setTimeout(saveDocs, 600);
+    });
+
+    // ---------- 备注面板：拖拽 + 缩放 + 位置记忆 ----------
+    function saveNoteLayout() {
+        try {
+            var layout = {
+                left: notePanel.style.left,
+                top: notePanel.style.top,
+                right: notePanel.style.right,
+                width: notePanel.style.width,
+                height: notePanel.style.height
+            };
+            localStorage.setItem('xzt_note_layout', JSON.stringify(layout));
+        } catch (e) { }
+    }
+
+    function restoreNoteLayout() {
+        try {
+            var raw = localStorage.getItem('xzt_note_layout');
+            if (!raw) return;
+            var layout = JSON.parse(raw);
+            if (layout.width) notePanel.style.width = layout.width;
+            if (layout.height) notePanel.style.height = layout.height;
+            if (layout.left) {
+                notePanel.style.left = layout.left;
+                notePanel.style.right = 'auto';
+            }
+            if (layout.top) notePanel.style.top = layout.top;
+        } catch (e) { }
+    }
+
+    // 拖拽（按住标题栏移动）
+    (function () {
+        var dragging = false;
+        var startX = 0, startY = 0;
+        var startLeft = 0, startTop = 0;
+
+        noteHeader.addEventListener('mousedown', function (e) {
+            // 点击 textarea 内不触发拖拽
+            if (e.target === noteArea) return;
+            dragging = true;
+            var rect = notePanel.getBoundingClientRect();
+            var parentRect = notePanel.parentElement.getBoundingClientRect();
+            startX = e.clientX;
+            startY = e.clientY;
+            startLeft = rect.left - parentRect.left;
+            startTop = rect.top - parentRect.top;
+            notePanel.style.left = startLeft + 'px';
+            notePanel.style.top = startTop + 'px';
+            notePanel.style.right = 'auto';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', function (e) {
+            if (!dragging) return;
+            var parentRect = notePanel.parentElement.getBoundingClientRect();
+            var newLeft = startLeft + (e.clientX - startX);
+            var newTop = startTop + (e.clientY - startY);
+            // 限制不超出父容器范围（留点边距可见）
+            newLeft = Math.max(-notePanel.offsetWidth + 60, Math.min(newLeft, parentRect.width - 60));
+            newTop = Math.max(0, Math.min(newTop, parentRect.height - 40));
+            notePanel.style.left = newLeft + 'px';
+            notePanel.style.top = newTop + 'px';
+        });
+
+        document.addEventListener('mouseup', function () {
+            if (dragging) {
+                dragging = false;
+                saveNoteLayout();
+            }
+        });
+    })();
+
+    // 缩放（右下角拖拽）
+    (function () {
+        var resizing = false;
+        var startX = 0, startY = 0;
+        var startW = 0, startH = 0;
+
+        noteResizeHandle.addEventListener('mousedown', function (e) {
+            resizing = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startW = notePanel.offsetWidth;
+            startH = notePanel.offsetHeight;
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        document.addEventListener('mousemove', function (e) {
+            if (!resizing) return;
+            var newW = startW + (e.clientX - startX);
+            var newH = startH + (e.clientY - startY);
+            var minW = 200, maxW = 600;
+            var minH = 160, maxH = notePanel.parentElement.offsetHeight;
+            newW = Math.max(minW, Math.min(newW, maxW));
+            newH = Math.max(minH, Math.min(newH, maxH));
+            notePanel.style.width = newW + 'px';
+            notePanel.style.height = newH + 'px';
+        });
+
+        document.addEventListener('mouseup', function () {
+            if (resizing) {
+                resizing = false;
+                saveNoteLayout();
+            }
+        });
+    })();
+
+    restoreNoteLayout();
+
     editor.addEventListener('paste', function (e) {
         e.preventDefault();
         const text = (e.clipboardData || window.clipboardData).getData('text/plain');
@@ -1822,6 +1948,7 @@ leftCol.style.flexShrink = '0';
     const doc = getCurrentDoc();
     if (doc) {
         setEditorContent(doc.content);
+        noteArea.value = doc.note || '';
         updateReadTime();
         renderLists();
         highlightActive();

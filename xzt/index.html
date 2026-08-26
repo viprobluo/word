@@ -206,6 +206,103 @@
 
         }
 
+        #content-row {
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            justify-content: center;
+            width: 100%;
+            max-width: none;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            padding: 0 16px;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        #note-panel {
+            width: 300px;
+            height: 380px;
+            min-width: 200px;
+            min-height: 160px;
+            max-width: 600px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #2d2a26;
+            border: 1px solid #4a4438;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+            position: absolute;
+            right: 24px;
+            top: 100px;
+            z-index: 20;
+        }
+
+        #note-panel::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: 50%;
+            transform: translateX(-50%) rotate(-3deg);
+            width: 54px;
+            height: 16px;
+            background-color: rgba(254, 218, 5, 0.55);
+            border-radius: 2px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            pointer-events: none;
+        }
+
+        #note-header {
+            padding: 14px 14px 10px 14px;
+            font-size: 13px;
+            color: #cfc9bd;
+            border-bottom: 1px solid #3a3530;
+            flex-shrink: 0;
+            background-color: transparent;
+            letter-spacing: 1px;
+            cursor: move;
+            user-select: none;
+        }
+
+        .note-resize-handle {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            width: 18px;
+            height: 18px;
+            cursor: nwse-resize;
+            background: linear-gradient(135deg, transparent 0%, transparent 50%, rgba(254, 218, 5, 0.4) 50%, rgba(254, 218, 5, 0.4) 60%, transparent 60%, transparent 70%, rgba(254, 218, 5, 0.3) 70%, rgba(254, 218, 5, 0.3) 80%, transparent 80%);
+            z-index: 2;
+        }
+
+        #noteArea {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            padding: 12px 14px;
+            background-color: transparent;
+            border: none;
+            outline: none;
+            resize: none;
+            color: #e0dcd2;
+            font-family: 'HarmonyOS Sans SC', sans-serif;
+            font-size: 13px;
+            line-height: 1.75;
+            box-sizing: border-box;
+        }
+
+        #noteArea::placeholder {
+            color: rgba(250, 235, 215, 0.3);
+            font-size: 12px;
+        }
+
+        #noteArea:focus {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
         #read {
             font-family: 'HarmonyOS Sans SC', sans-serif;
             font-size: 12px;
@@ -479,6 +576,15 @@
                 padding-bottom: 0;
                 order: 1;
                 overflow: hidden;
+            }
+
+            #content-row {
+                gap: 0;
+                padding: 0;
+            }
+
+            #note-panel {
+                display: none;
             }
 
             #editor {
@@ -842,9 +948,16 @@
             <button id="archiveButton">归档</button>
         </div>
 
-        <div id="editor-container">
-            <div id="read"><span id="readStats">全文 0 字 预计 0 分钟</span></div>
-            <div id="editor" contenteditable="true" autofocus></div>
+        <div id="content-row">
+            <div id="editor-container">
+                <div id="read"><span id="readStats">全文 0 字 预计 0 分钟</span></div>
+                <div id="editor" contenteditable="true" autofocus></div>
+            </div>
+            <div id="note-panel">
+                <div id="note-header">📝 备注</div>
+                <textarea id="noteArea" placeholder="发布计划、平台记录、删除时间、未来计划…&#10;（备注不随正文复制，仅本文档可见）"></textarea>
+                <div class="note-resize-handle"></div>
+            </div>
         </div>
     </div>
 
