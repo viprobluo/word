@@ -668,9 +668,15 @@
                     const id = raw.id || '';
                     const content = raw.content || '';
                     const likeCount = raw.likeCount || 0;
-                    const createdAtRaw = raw.createdAt || raw.createdTime || '';
+                    // 兼容多种时间字段：createdAt(ISO) / createdTime / time("2026-08-26_13-57-50")
+                    let createdAtRaw = raw.createdAt || raw.createdTime || '';
+                    if (!createdAtRaw && raw.time) {
+                        // "2026-08-26_13-57-50" → "2026-08-26T13:57:50"
+                        createdAtRaw = raw.time.replace(/^(\d{4}-\d{2}-\d{2})_(\d{2})-(\d{2})-(\d{2})$/, '$1T$2:$3:$4');
+                    }
+                    // 兼容多种作者字段：user.screenName / userInfo.screenName / author
                     const user = raw.user || raw.userInfo || null;
-                    const screenName = user ? (user.screenName || user.nickname || '') : '';
+                    const screenName = user ? (user.screenName || user.nickname || '') : (raw.author || '');
                     return { id, content, likeCount, createdAt: createdAtRaw, user: { screenName } };
                 },
                 // 兼容处理 createdAt：可能是秒/毫秒级时间戳或 ISO 字符串
@@ -876,6 +882,7 @@
                 if (Array.isArray(p)) return p;
                 if (p && typeof p === 'object') {
                     if (Array.isArray(p.data)) return p.data;
+                    if (Array.isArray(p.memoList)) return p.memoList;
                     return [p];
                 }
                 return [];
@@ -908,6 +915,7 @@
                     if (Array.isArray(data)) results = results.concat(data);
                     else if (data && typeof data === 'object') {
                         if (Array.isArray(data.data)) results = results.concat(data.data);
+                        else if (Array.isArray(data.memoList)) results = results.concat(data.memoList);
                         else results.push(data);
                     }
                 } catch (_) {}
@@ -920,13 +928,17 @@
             for (const part of parts) {
                 try {
                     const json = (typeof part === 'string') ? JSON.parse(part) : part;
+                    if (json.authorInfo) return json.authorInfo;
                     if (json.data && json.data[0]) {
                         if (json.data[0].user && json.data[0].user.screenName) return json.data[0].user.screenName;
                         if (json.data[0].userInfo && json.data[0].userInfo.screenName) return json.data[0].userInfo.screenName;
+                        if (json.data[0].author) return json.data[0].author;
                     }
+                    if (json.memoList && json.memoList[0] && json.memoList[0].author) return json.memoList[0].author;
                     if (json.user && json.user.screenName) return json.user.screenName;
                     if (json.userInfo && json.userInfo.screenName) return json.userInfo.screenName;
                     if (json.screenName) return json.screenName;
+                    if (json.author) return json.author;
                 } catch (_) {}
             }
             return '';
