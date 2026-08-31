@@ -320,29 +320,55 @@ function drawWatermark(c, imgW, imgH, cfg){
   c.globalAlpha = 1; c.shadowColor="transparent"; c.shadowBlur=0; c.shadowOffsetX=0; c.shadowOffsetY=0;
 }
 
-// 导出（原图分辨率，不压缩，同步触发下载以保留手机端用户手势）
+// toBlob 兜底 polyfill（少数极老浏览器/旧版 Safari 缺失）
+if(typeof HTMLCanvasElement !== "undefined" && !HTMLCanvasElement.prototype.toBlob){
+  Object.defineProperty(HTMLCanvasElement.prototype, "toBlob", {
+    value: function(cb, type, quality){
+      const bin = atob(this.toDataURL(type, quality).split(",")[1]);
+      const len = bin.length; const arr = new Uint8Array(len);
+      for(let i=0;i<len;i++) arr[i] = bin.charCodeAt(i);
+      cb(new Blob([arr], {type: type||"image/png"}));
+    }
+  });
+}
+
+// 导出单张：返回 Promise，内部用 Blob + ObjectURL（移动端兼容性远好于 dataURL）
 function exportOne(i){
-  const it = files[i];
-  const c = document.createElement("canvas");
-  c.width = it.img.naturalWidth; c.height = it.img.naturalHeight;
-  const cc = c.getContext("2d");
-  cc.drawImage(it.img, 0, 0);
-  drawWatermark(cc, c.width, c.height, it);  // 使用该照片自己的参数
-  const isJpeg = it.type==="image/jpeg" || /\.jpe?g$/i.test(it.name);
-  const url = c.toDataURL(isJpeg?"image/jpeg":"image/png", isJpeg?1:undefined);  // 同步，避免污染/手势问题
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = it.name.replace(/(\.[^.]+)$/, "_水印$1");
-  // 一次性保护：防止某些浏览器对 dataURL+download 的 click 重复触发两次下载
-  a._fired = false;
-  a.addEventListener("click", (ev)=>{
-    if(a._fired){ ev.preventDefault(); ev.stopImmediatePropagation(); return; }
-    a._fired = true;
-  }, true);  // 捕获阶段先拦
-  document.body.appendChild(a);
-  a.click();
-  // 异步清理：防止 click 事件还在分发链路上元素就被移除导致部分浏览器重复触发
-  setTimeout(()=>{ try{ a.remove(); }catch(e){} }, 0);
+  return new Promise((resolve, reject)=>{
+    try{
+      const it = files[i];
+      const c = document.createElement("canvas");
+      c.width = it.img.naturalWidth; c.height = it.img.naturalHeight;
+      const cc = c.getContext("2d");
+      cc.drawImage(it.img, 0, 0);
+      drawWatermark(cc, c.width, c.height, it);  // 使用该照片自己的参数
+      const isJpeg = it.type==="image/jpeg" || /\.jpe?g$/i.test(it.name);
+      c.toBlob((blob)=>{
+        try{
+          if(!blob){ reject(new Error("canvas.toBlob 返回空")); return; }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.rel = "noopener";
+          a.download = it.name.replace(/(\.[^.]+)$/, "_水印$1");
+          // 一次性保护：防止某些浏览器对 click 重复派发导致两次下载
+          a._fired = false;
+          a.addEventListener("click", (ev)=>{
+            if(a._fired){ ev.preventDefault(); ev.stopImmediatePropagation(); return; }
+            a._fired = true;
+          }, true);
+          document.body.appendChild(a);
+          a.click();
+          // 异步清理：等 click 分发完 + 浏览器处理下载请求；revokeObjectURL 释放 Blob 内存
+          setTimeout(()=>{
+            try{ a.remove(); }catch(e){}
+            try{ URL.revokeObjectURL(url); }catch(e){}
+            resolve(true);
+          }, 180);
+        }catch(e){ reject(e); }
+      }, isJpeg?"image/jpeg":"image/png", isJpeg?1:undefined);
+    }catch(e){ reject(e); }
+  });
 }
 // 应用到全部：把当前照片的参数复制到所有照片
 $("applyAll").addEventListener("click", ()=>{
@@ -361,18 +387,28 @@ $("applyAll").addEventListener("click", ()=>{
   btn.textContent = "已应用 ✓";
   setTimeout(()=>{ btn.textContent = old; }, 1200);
 });
-$("exportAll").addEventListener("click", ()=>{
+$("exportAll").addEventListener("click", async ()=>{
   // 重入保护：双击/移动端快速点两次都会被挡（即使按钮 disabled 尚未生效也无妨）
   if(exporting) return;
   if(files.length === 0) return;
   exporting = true;
   const btn = $("exportAll");
-  btn.disabled = true; btn.textContent = "导出中…";
+  btn.disabled = true;
   // 关键：一次性拍下 files.length 快照；即使循环中异步 img.onload push 了新元素也不会多跑一圈
   const total = files.length;
   let ok = 0;
+  // 异步串行下载：移动端浏览器对"同一用户手势触发多次程序化下载"有严格限制
+  // 第一张立即执行（消耗用户手势），之后每张之间间隔释放主线程，让浏览器把每次 a.click() 识别为合法下载
   for(let i=0;i<total;i++){
-    try { exportOne(i); ok++; } catch(e){ console.error("导出失败:", files[i] && files[i].name, e); }
+    try {
+      btn.textContent = "导出中…(" + (i+1) + "/" + total + ")";
+      await exportOne(i);
+      ok++;
+      // 每张之间停顿：把下一次 a.click() 分派到独立宏任务，绕过移动端同一用户手势只能下载一次的限制
+      if(i < total-1) await new Promise(r => setTimeout(r, 120));
+    } catch(e){
+      console.error("导出失败:", files[i] && files[i].name, e);
+    }
   }
   btn.textContent = "导出全部";
   btn.disabled = files.length === 0;
