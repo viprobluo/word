@@ -67,6 +67,11 @@
   .hint { font-size: 11px; color: #98a2b3; line-height: 1.5; margin: 0; }
   .spacer { flex: 1 1 auto; }
   .count { font-size: 11px; color: #667085; text-align: center; }
+  .count-top { display: none; }  /* PC端：顶部计数不显示，用底部的 */
+  .btn-row { display: flex; flex-direction: column; gap: 8px; }  /* PC端：两个按钮上下排 */
+  .applyall { height: 36px; width: 100%; border: 1px solid #4a90e2; border-radius: 8px; background: #fff; color: #4a90e2; font-size: 13px; cursor: pointer; }
+  .applyall:disabled { border-color: #cdd1d8; color: #b6bcc6; cursor: not-allowed; }
+  .applyall:not(:disabled):hover { background: #eef4ff; }
   .export { height: 42px; width: 100%; border: none; border-radius: 8px; background: #4a90e2; color: #fff; font-size: 15px; cursor: pointer; }
   .export:disabled { background: #b6bcc6; cursor: not-allowed; }
 
@@ -83,8 +88,14 @@
     .ctl { display: flex; align-items: center; gap: 8px; }
     .ctl > label { margin-bottom: 0; flex: 0 0 auto; font-size: 11px; width: 44px; }
     .opt { min-height: 32px; padding: 0 10px; font-size: 12px; }
-    .export { height: 40px; font-size: 14px; }
-    .side-head { display: none; }
+    .side-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: -2px; }
+    .side-head .brand { display: none; }
+    .count { display: none; }   /* 手机端：底部计数隐藏，用顶部side-head里的 */
+    .count-top { display: inline-block; font-size: 11px; color: #667085; margin-right: auto; }  /* 贴左，让出右边上传按钮 */
+    .btn-row { flex-direction: row; gap: 6px; }  /* 手机端：两个按钮左右并排一行 */
+    .btn-row > .applyall, .btn-row > .export { flex: 1 1 0; min-width: 0; }  /* 平分宽度 */
+    .applyall { height: 36px; font-size: 12px; }
+    .export { height: 36px; font-size: 12px; }
   }
 </style>
 </head>
@@ -106,13 +117,15 @@
     <aside class="side">
       <div class="side-head">
         <div class="brand">照片批量<span>加水印</span></div>
+        <div class="count-top" id="countTop">未上传</div>
         <button class="mini" id="uploadBtn">＋ 上传</button>
       </div>
       <div class="ctl">
-        <label>位置</label>
-        <div class="optrow" id="posRow">
-          <button type="button" class="opt" data-pos="0">放底部</button>
-          <button type="button" class="opt" data-pos="1">放顶部</button>
+        <label>大小</label>
+        <div class="optrow" id="sizeRow">
+          <button type="button" class="opt" data-size="10">小</button>
+          <button type="button" class="opt" data-size="15">中</button>
+          <button type="button" class="opt" data-size="20">大</button>
         </div>
       </div>
       <div class="ctl">
@@ -134,14 +147,17 @@
       </div>
       <div class="spacer"></div>
       <div class="count" id="count">未上传</div>
-      <button class="export" id="exportAll" disabled>导出全部</button>
+      <div class="btn-row">
+        <button class="applyall" id="applyAll" disabled>应用到全部</button>
+        <button class="export" id="exportAll" disabled>导出全部</button>
+      </div>
     </aside>
   </div>
 
 <script>
 "use strict";
 // ===== 固定参数（如需调整直接改这里） =====
-const WM_SIZE   = 15;                  // 水印宽度 = 照片宽度的 15%
+let   wmSize  = 15;                  // 水印宽度 = 照片宽度的 15%（默认，可通过「大小」按钮切换：小10/中15/大20）
 const WM_SHADOW = 100;                 // 阴影强度（0~100，写死拉满）
 // ===== 水印配置（架构可扩展：未来在此加更多水印 + 下拉切换；当前只用第一个） =====
 const WATERMARKS = [
@@ -155,35 +171,54 @@ const wm = new Image(); let wmReady = false;
 wm.onload = () => { wmReady = true; renderPreview(); };
 wm.src = WATERMARKS[WM_INDEX].src;
 
-const files = []; // {name, type, img}
+const files = []; // {name, type, img, wmSize, mgn, opa}
 let cur = 0;
 const cv = $("cv"), ctx = cv.getContext("2d");
+let exporting = false;  // 导出中互斥锁：防重复点击/重入导致重复下载
 
-// 设置（自动记忆）
+// 设置（默认值：新上传的照片用该配置；之后每张照片独立保存一份参数）
 const SET_KEY = "签章设置_v2";
-let posTop = false, mgn = 3, opa = 100;
-function saveSet(){ try{ localStorage.setItem(SET_KEY, JSON.stringify({posTop, mgn, opa})); }catch(e){} }
+let mgn = 3, opa = 100;
+function saveSet(){ try{ localStorage.setItem(SET_KEY, JSON.stringify({wmSize, mgn, opa})); }catch(e){} }
 function loadSet(){
   let o=null; try{ o = JSON.parse(localStorage.getItem(SET_KEY)); }catch(e){}
   if(!o) return;
-  if(typeof o.posTop === "boolean") posTop = o.posTop;
+  if(typeof o.wmSize === "number") wmSize = o.wmSize;
   if(typeof o.mgn === "number") mgn = o.mgn;
   if(typeof o.opa === "number") opa = o.opa;
 }
 function syncUI(){
-  document.querySelectorAll("#posRow .opt").forEach(b=>b.classList.toggle("active", (b.dataset.pos==="1")===posTop));
+  document.querySelectorAll("#sizeRow .opt").forEach(b=>b.classList.toggle("active", +b.dataset.size===wmSize));
   document.querySelectorAll("#mgnRow .opt").forEach(b=>b.classList.toggle("active", +b.dataset.mgn===mgn));
   document.querySelectorAll("#opaRow .opt").forEach(b=>b.classList.toggle("active", +b.dataset.opa===opa));
 }
+// 把当前照片的参数加载到全局并同步UI（切图后调用）
+function loadCurCfg(){
+  if(files.length === 0) return;
+  const it = files[cur];
+  wmSize = it.wmSize; mgn = it.mgn; opa = it.opa; syncUI();
+}
+// 把当前全局参数写回当前照片（修改参数后调用）
+function saveCurCfg(){
+  if(files.length === 0) return;
+  const it = files[cur];
+  it.wmSize = wmSize; it.mgn = mgn; it.opa = opa;
+}
 function bindRow(sel, attr, setter){
   document.querySelectorAll(sel+" .opt").forEach(b=>{
-    b.addEventListener("click", ()=>{ setter(+b.dataset[attr]); syncUI(); saveSet(); renderPreview(); });
+    b.addEventListener("click", ()=>{
+      setter(+b.dataset[attr]);
+      saveCurCfg();        // 写回当前照片
+      syncUI();
+      saveSet();           // 同时更新默认值（新上传照片用这个）
+      renderPreview();
+    });
   });
 }
-bindRow("#posRow","pos",(v)=>{ posTop = v===1; });
+bindRow("#sizeRow","size",(v)=>{ wmSize = v; });
 bindRow("#mgnRow","mgn",(v)=>{ mgn = v; });
 bindRow("#opaRow","opa",(v)=>{ opa = v; });
-loadSet(); syncUI();
+loadSet();
 
 // 文件上传
 $("file").addEventListener("change", e => { addFiles(e.target.files); e.target.value=""; });
@@ -197,7 +232,16 @@ function addFiles(list){
     if(!f.type.startsWith("image/")) continue;
     const url = URL.createObjectURL(f);
     const img = new Image();
-    img.onload = () => { files.push({name:f.name, type:f.type, img}); if(cur>=files.length-1) cur=files.length-1; updateView(); };
+    // 使用当前全局参数作为这张新照片的默认参数
+    const defWmSize = wmSize, defMgn = mgn, defOpa = opa;
+    let loaded = false;  // 一次性保护：防止 img.onload 在某些浏览器/缓存场景重复触发导致重复push
+    img.onload = () => {
+      if(loaded) return;
+      loaded = true;
+      files.push({name:f.name, type:f.type, img, wmSize:defWmSize, mgn:defMgn, opa:defOpa});
+      if(cur>=files.length-1) cur=files.length-1;
+      updateView();
+    };
     img.src = url;
   }
 }
@@ -206,8 +250,12 @@ function updateView(){
   const has = files.length > 0;
   $("start").hidden = has;
   $("work").hidden = !has;
-  $("count").textContent = has ? (cur+1)+" / "+files.length+" 张" : "未上传";
+  const txt = has ? (cur+1)+" / "+files.length+" 张" : "未上传";
+  $("count").textContent = txt;
+  if($("countTop")) $("countTop").textContent = txt;
   $("exportAll").disabled = !has || !wmReady;
+  $("applyAll").disabled = !has || files.length < 2;  // 只有1张时没必要应用到全部
+  if(has) loadCurCfg();      // 有照片时，把当前照片参数同步到UI
   renderPreview();
 }
 
@@ -230,30 +278,36 @@ function renderPreview(){
   ctx.setTransform(1,0,0,1,0,0);
   ctx.clearRect(0,0,cv.width,cv.height);
   ctx.drawImage(it.img, 0, 0, cv.width, cv.height);
-  drawWatermark(ctx, cv.width, cv.height);
+  drawWatermark(ctx, cv.width, cv.height, it);  // 传这张照片的独立参数
 }
 
-$("prev").addEventListener("click", ()=>{ if(cur>0){ cur--; updateCount(); renderPreview(); } });
-$("next").addEventListener("click", ()=>{ if(cur<files.length-1){ cur++; updateCount(); renderPreview(); } });
+$("prev").addEventListener("click", ()=>{ if(cur>0){ cur--; loadCurCfg(); updateCount(); renderPreview(); } });
+$("next").addEventListener("click", ()=>{ if(cur<files.length-1){ cur++; loadCurCfg(); updateCount(); renderPreview(); } });
 $("closeBtn").addEventListener("click", ()=>{
   files.splice(cur, 1);
   if(cur >= files.length) cur = Math.max(0, files.length-1);
   updateView();
 });
 window.addEventListener("resize", renderPreview);
-function updateCount(){ $("count").textContent = (cur+1)+" / "+files.length+" 张"; }
+function updateCount(){
+  const txt = (cur+1)+" / "+files.length+" 张";
+  $("count").textContent = txt;
+  if($("countTop")) $("countTop").textContent = txt;
+}
 
-// 水印绘制
-function layout(imgW, imgH){
-  const wmW = imgW * WM_SIZE/100;
+// 水印绘制（cfg 可选，传则用该照片独立参数，否则用全局）
+function layout(imgW, imgH, cfg){
+  const s = cfg && typeof cfg.wmSize === "number" ? cfg.wmSize : wmSize;
+  const m = cfg && typeof cfg.mgn    === "number" ? cfg.mgn    : mgn;
+  const wmW = imgW * s/100;
   const wmH = wmW * (wm.height/wm.width);
   const x = (imgW - wmW) / 2;
-  const y = posTop ? (imgH * mgn/100) : (imgH - wmH - imgH * mgn/100);
-  return {x, y, wmW, wmH};
+  const y = imgH - wmH - imgH * m/100;
+  return {x, y, wmW, wmH, o: cfg && typeof cfg.opa==="number" ? cfg.opa : opa};
 }
-function drawWatermark(c, imgW, imgH){
-  const {x,y,wmW,wmH} = layout(imgW, imgH);
-  c.globalAlpha = opa/100;
+function drawWatermark(c, imgW, imgH, cfg){
+  const {x,y,wmW,wmH,o} = layout(imgW, imgH, cfg);
+  c.globalAlpha = o/100;
   if(WM_SHADOW > 0){
     const k = WM_SHADOW/100;
     c.shadowColor = "rgba(0,0,0,0.5)";
@@ -273,23 +327,59 @@ function exportOne(i){
   c.width = it.img.naturalWidth; c.height = it.img.naturalHeight;
   const cc = c.getContext("2d");
   cc.drawImage(it.img, 0, 0);
-  drawWatermark(cc, c.width, c.height);
+  drawWatermark(cc, c.width, c.height, it);  // 使用该照片自己的参数
   const isJpeg = it.type==="image/jpeg" || /\.jpe?g$/i.test(it.name);
   const url = c.toDataURL(isJpeg?"image/jpeg":"image/png", isJpeg?1:undefined);  // 同步，避免污染/手势问题
   const a = document.createElement("a");
-  a.href = url; a.download = it.name.replace(/(\.[^.]+)$/, "_水印$1");
-  document.body.appendChild(a); a.click(); a.remove();
+  a.href = url;
+  a.download = it.name.replace(/(\.[^.]+)$/, "_水印$1");
+  // 一次性保护：防止某些浏览器对 dataURL+download 的 click 重复触发两次下载
+  a._fired = false;
+  a.addEventListener("click", (ev)=>{
+    if(a._fired){ ev.preventDefault(); ev.stopImmediatePropagation(); return; }
+    a._fired = true;
+  }, true);  // 捕获阶段先拦
+  document.body.appendChild(a);
+  a.click();
+  // 异步清理：防止 click 事件还在分发链路上元素就被移除导致部分浏览器重复触发
+  setTimeout(()=>{ try{ a.remove(); }catch(e){} }, 0);
 }
+// 应用到全部：把当前照片的参数复制到所有照片
+$("applyAll").addEventListener("click", ()=>{
+  if(files.length < 2) return;
+  const src = files[cur];
+  for(let i=0;i<files.length;i++){
+    if(i===cur) continue;
+    files[i].wmSize = src.wmSize;
+    files[i].mgn    = src.mgn;
+    files[i].opa    = src.opa;
+  }
+  renderPreview();
+  // 轻量反馈：按钮临时变色提示
+  const btn = $("applyAll");
+  const old = btn.textContent;
+  btn.textContent = "已应用 ✓";
+  setTimeout(()=>{ btn.textContent = old; }, 1200);
+});
 $("exportAll").addEventListener("click", ()=>{
+  // 重入保护：双击/移动端快速点两次都会被挡（即使按钮 disabled 尚未生效也无妨）
+  if(exporting) return;
+  if(files.length === 0) return;
+  exporting = true;
   const btn = $("exportAll");
   btn.disabled = true; btn.textContent = "导出中…";
+  // 关键：一次性拍下 files.length 快照；即使循环中异步 img.onload push 了新元素也不会多跑一圈
+  const total = files.length;
   let ok = 0;
-  for(let i=0;i<files.length;i++){
-    try { exportOne(i); ok++; } catch(e){ console.error("导出失败:", files[i].name, e); }
+  for(let i=0;i<total;i++){
+    try { exportOne(i); ok++; } catch(e){ console.error("导出失败:", files[i] && files[i].name, e); }
   }
-  btn.textContent = "导出全部"; btn.disabled = files.length === 0;
+  btn.textContent = "导出全部";
+  btn.disabled = files.length === 0;
+  $("applyAll").disabled = files.length < 2;
+  exporting = false;
   if(ok === 0) alert("导出失败，请查看浏览器控制台报错");
-  else if(ok < files.length) alert("部分导出失败：" + ok + "/" + files.length + " 成功");
+  else if(ok < total) alert("部分导出失败：" + ok + "/" + total + " 成功");
 });
 </script>
 </body>
