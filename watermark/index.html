@@ -74,6 +74,13 @@
   .applyall:not(:disabled):hover { background: #eef4ff; }
   .export { height: 42px; width: 100%; border: none; border-radius: 8px; background: #4a90e2; color: #fff; font-size: 15px; cursor: pointer; }
   .export:disabled { background: #b6bcc6; cursor: not-allowed; }
+  /* 导出按钮文案：默认PC端显示「导出全部」，移动端通过媒体查询切换为「导出单张」 */
+  .export-label-mb { display: none; }
+  .export-label-pc { display: inline; }
+  .export-label-progress { display: none; }  /* 进度文案默认隐藏，导出中临时显示（覆盖静态文案） */
+  .export.state-loading .export-label-pc,
+  .export.state-loading .export-label-mb { display: none; }
+  .export.state-loading .export-label-progress { display: inline; }
 
   @media (max-width: 760px) {
     .work { flex-direction: column; }
@@ -96,6 +103,9 @@
     .btn-row > .applyall, .btn-row > .export { flex: 1 1 0; min-width: 0; }  /* 平分宽度 */
     .applyall { height: 36px; font-size: 12px; }
     .export { height: 36px; font-size: 12px; }
+    /* 手机端：切换导出按钮文案为「导出单张」 */
+    .export-label-mb { display: inline; }
+    .export-label-pc { display: none; }
   }
 </style>
 </head>
@@ -149,7 +159,11 @@
       <div class="count" id="count">未上传</div>
       <div class="btn-row">
         <button class="applyall" id="applyAll" disabled>应用到全部</button>
-        <button class="export" id="exportAll" disabled>导出全部</button>
+        <button class="export" id="exportAll" disabled>
+          <span class="export-label-pc">导出全部</span>
+          <span class="export-label-mb">导出单张</span>
+          <span class="export-label-progress" id="exportProgress"></span>
+        </button>
       </div>
     </aside>
   </div>
@@ -393,24 +407,46 @@ $("exportAll").addEventListener("click", async ()=>{
   if(files.length === 0) return;
   exporting = true;
   const btn = $("exportAll");
+  const prog = $("exportProgress");
   btn.disabled = true;
-  // 关键：一次性拍下 files.length 快照；即使循环中异步 img.onload push 了新元素也不会多跑一圈
-  const total = files.length;
-  let ok = 0;
-  // 异步串行下载：移动端浏览器对"同一用户手势触发多次程序化下载"有严格限制
-  // 第一张立即执行（消耗用户手势），之后每张之间间隔释放主线程，让浏览器把每次 a.click() 识别为合法下载
-  for(let i=0;i<total;i++){
+  // 切换到进度文案模式（隐藏静态的「导出全部/导出单张」span，显示进度 span）
+  btn.classList.add("state-loading");
+
+  const isMobile = window.innerWidth <= 760;
+  let ok = 0, total = 0;
+
+  if(isMobile){
+    // ========== 手机端：只导出当前预览的那一张（files[cur]） ==========
+    // 避开移动端浏览器同一用户手势只能触发一次下载的限制：一次点击只下载一张
+    total = 1;
     try {
-      btn.textContent = "导出中…(" + (i+1) + "/" + total + ")";
-      await exportOne(i);
-      ok++;
-      // 每张之间停顿：把下一次 a.click() 分派到独立宏任务，绕过移动端同一用户手势只能下载一次的限制
-      if(i < total-1) await new Promise(r => setTimeout(r, 120));
+      prog.textContent = "导出中…";
+      await exportOne(cur);
+      ok = 1;
     } catch(e){
-      console.error("导出失败:", files[i] && files[i].name, e);
+      console.error("导出失败:", files[cur] && files[cur].name, e);
+    }
+  } else {
+    // ========== PC端：批量导出全部 ==========
+    // 一次性拍下 files.length 快照；即使循环中异步 img.onload push 了新元素也不会多跑一圈
+    total = files.length;
+    // 异步串行下载，每张之间间隔释放主线程
+    for(let i=0;i<total;i++){
+      try {
+        prog.textContent = "导出中…(" + (i+1) + "/" + total + ")";
+        await exportOne(i);
+        ok++;
+        // 每张之间停顿：把下一次 a.click() 分派到独立宏任务
+        if(i < total-1) await new Promise(r => setTimeout(r, 120));
+      } catch(e){
+        console.error("导出失败:", files[i] && files[i].name, e);
+      }
     }
   }
-  btn.textContent = "导出全部";
+
+  // 恢复静态文案模式：显示对应的「导出全部 / 导出单张」span，隐藏进度 span
+  btn.classList.remove("state-loading");
+  prog.textContent = "";
   btn.disabled = files.length === 0;
   $("applyAll").disabled = files.length < 2;
   exporting = false;
