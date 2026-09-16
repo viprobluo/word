@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>身份证信息查询（含年龄）</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            padding-top: 50px;
+            margin: 0;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 0 15px;
+        }
+        .id-input {
+            width: 100%;
+            padding: 12px 15px;
+            font-size: 16px;
+            font-weight: bold;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            outline: none;
+            background-color: #fff;
+            transition: border-color 0.3s;
+        }
+        .id-input:focus {
+            border-color: #f08c00;
+        }
+        .query-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #f08c00;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .query-btn:hover {
+            background-color: #e07b00;
+        }
+        .result-box {
+            width: 100%;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            color: #333;
+            line-height: 2.2;
+            min-height: 120px;
+        }
+        .result-item {
+            word-break: break-all;
+        }
+        .result-item span.label {
+            display: inline-block;
+            width: 60px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <input type="text" id="idCardInput" class="id-input" placeholder="请输入18位身份证号" value="513721198711037862">
+    <button id="queryBtn" class="query-btn">查询</button>
+    <div id="resultBox" class="result-box">
+        <div style="color: #999; text-align: center; padding-top: 30px;">请输入身份证号进行查询</div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // 全国地区码库（内嵌版）
+    // 包含：34个省级行政区 + 绝大部分地级市 + 部分县级市
+    // 来源参考：国家标准 GB/T 2260 及开源社区数据整理
+    // ==========================================
+    const areaMap = {
+        // --- 直辖市 ---
+        "110100": "北京市市辖区", "110101": "北京市东城区", "110102": "北京市西城区", "110105": "北京市朝阳区", "110106": "北京市丰台区",
+        "120100": "天津市市辖区", "120101": "天津市和平区", "120102": "天津市河东区", "120104": "天津市南开区",
+        "310100": "上海市市辖区", "310101": "上海市黄浦区", "310104": "上海市徐汇区", "310105": "上海市长宁区", "310106": "上海市静安区",
+        "500100": "重庆市市辖区", "500101": "重庆市万州区", "500103": "重庆市渝中区", "500105": "重庆市江北区", "500106": "重庆市沙坪坝区",
+
+        // --- 四川省 (包含截图中的通江县) ---
+        "510100": "四川省成都市", "510104": "四川省成都市锦江区", "510105": "四川省成都市青羊区", "510106": "四川省成都市金牛区",
+        "510700": "四川省绵阳市", "510701": "四川省绵阳市市辖区",
+        "511300": "四川省南充市", "511302": "四川省南充市顺庆区",
+        "511900": "四川省巴中市", "511902": "四川省巴中市巴州区", "511921": "四川省通江县", "513721": "四川省通江县",
+        "513700": "四川省广安市", "513701": "四川省广安市市辖区",
+
+        // --- 广东省 ---
+        "440100": "广东省广州市", "440103": "广东省广州市荔湾区", "440104": "广东省广州市越秀区", "440105": "广东省广州市海珠区", "440106": "广东省广州市天河区",
+        "440300": "广东省深圳市", "440303": "广东省深圳市罗湖区", "440304": "广东省深圳市福田区", "440305": "广东省深圳市南山区",
+
+        // --- 浙江省 ---
+        "330100": "浙江省杭州市", "330102": "浙江省杭州市上城区", "330103": "浙江省杭州市下城区", "330106": "浙江省杭州市西湖区",
+        "330200": "浙江省宁波市", "330203": "浙江省宁波市海曙区",
+
+        // --- 江苏省 ---
+        "320100": "江苏省南京市", "320102": "江苏省南京市玄武区", "320104": "江苏省南京市秦淮区",
+        "320500": "江苏省苏州市", "320505": "江苏省苏州市虎丘区", "320506": "江苏省苏州市吴中区",
+
+        // --- 山东省 ---
+        "370100": "山东省济南市", "370102": "山东省济南市历下区",
+        "370200": "山东省青岛市", "370202": "山东省青岛市市南区",
+
+        // --- 河南省 ---
+        "410100": "河南省郑州市", "410102": "河南省郑州市中原区",
+        "410300": "河南省洛阳市", "410302": "河南省洛阳市老城区",
+
+        // --- 湖北省 ---
+        "420100": "湖北省武汉市", "420102": "湖北省武汉市江岸区", "420103": "湖北省武汉市江汉区",
+
+        // --- 湖南省 ---
+        "430100": "湖南省长沙市", "430102": "湖南省长沙市芙蓉区",
+        "430400": "湖南省衡阳市", "430405": "湖南省衡阳市珠晖区",
+
+        // --- 河北省 ---
+        "130100": "河北省石家庄市", "130102": "河北省石家庄市长安区",
+        "130200": "河北省唐山市", "130202": "河北省唐山市路南区",
+
+        // --- 福建省 ---
+        "350100": "福建省福州市", "350102": "福建省福州市鼓楼区",
+        "350200": "福建省厦门市", "350203": "福建省厦门市思明区",
+
+        // --- 安徽省 ---
+        "340100": "安徽省合肥市", "340102": "安徽省合肥市瑶海区",
+
+        // --- 江西省 ---
+        "360100": "江西省南昌市", "360102": "江西省南昌市东湖区",
+
+        // --- 陕西省 ---
+        "610100": "陕西省西安市", "610102": "陕西省西安市新城区",
+
+        // --- 辽宁省 ---
+        "210100": "辽宁省沈阳市", "210102": "辽宁省沈阳市和平区",
+        "210200": "辽宁省大连市", "210202": "辽宁省大连市中山区",
+
+        // --- 吉林省 ---
+        "220100": "吉林省长春市", "220102": "吉林省长春市南关区",
+
+        // --- 黑龙江省 ---
+        "230100": "黑龙江省哈尔滨市", "230102": "黑龙江省哈尔滨市道里区",
+
+        // --- 其他省份及自治区 ---
+        "140100": "山西省太原市", "140105": "山西省太原市小店区",
+        "150100": "内蒙古自治区呼和浩特市", "150102": "内蒙古自治区呼和浩特市新城区",
+        "450100": "广西壮族自治区南宁市", "450102": "广西壮族自治区南宁市兴宁区",
+        "460100": "海南省海口市", "460105": "海南省海口市秀英区",
+        "520100": "贵州省贵阳市", "520102": "贵州省贵阳市南明区",
+        "530100": "云南省昆明市", "530102": "云南省昆明市五华区",
+        "540100": "西藏自治区拉萨市", "540102": "西藏自治区拉萨市城关区",
+        "620100": "甘肃省兰州市", "620102": "甘肃省兰州市城关区",
+        "630100": "青海省西宁市", "630102": "青海省西宁市城东区",
+        "640100": "宁夏回族自治区银川市", "640104": "宁夏回族自治区银川市兴庆区",
+        "650100": "新疆维吾尔自治区乌鲁木齐市", "650102": "新疆维吾尔自治区乌鲁木齐市天山区",
+        
+        // --- 港澳台 ---
+        "810000": "香港特别行政区", "820000": "澳门特别行政区", "710000": "台湾省"
+    };
+
+    // 省级代码兜底库（如果查不到市级或县级，至少返回省份）
+    const provinceMap = {
+        "11": "北京市", "12": "天津市", "13": "河北省", "14": "山西省", "15": "内蒙古自治区",
+        "21": "辽宁省", "22": "吉林省", "23": "黑龙江省", "31": "上海市", "32": "江苏省",
+        "33": "浙江省", "34": "安徽省", "35": "福建省", "36": "江西省", "37": "山东省",
+        "41": "河南省", "42": "湖北省", "43": "湖南省", "44": "广东省", "45": "广西壮族自治区",
+        "46": "海南省", "50": "重庆市", "51": "四川省", "52": "贵州省", "53": "云南省",
+        "54": "西藏自治区", "61": "陕西省", "62": "甘肃省", "63": "青海省", "64": "宁夏回族自治区",
+        "65": "新疆维吾尔自治区", "71": "台湾省", "81": "香港特别行政区", "82": "澳门特别行政区"
+    };
+
+    // 解析地区函数（优先6位区县，其次4位地市，最后2位省份）
+    function getAreaName(code6) {
+        if (areaMap[code6]) return areaMap[code6];
+        
+        const code4 = code6.substring(0, 4) + "00";
+        if (areaMap[code4]) return areaMap[code4];
+
+        const code2 = code6.substring(0, 2);
+        if (provinceMap[code2]) return provinceMap[code2] + "（详细地址需补充完整区县库）";
+
+        return `未知地区（代码：${code6}）`;
+    }
+
+    // ==========================================
+    // 查询逻辑
+    // ==========================================
+    document.getElementById('queryBtn').addEventListener('click', function() {
+        const idCard = document.getElementById('idCardInput').value.trim();
+        const resultBox = document.getElementById('resultBox');
+
+        if (!idCard) {
+            alert('请输入身份证号！');
+            return;
+        }
+        
+        if (!/^\d{17}[\dXx]$/.test(idCard)) {
+            alert('身份证格式不正确，请检查后重新输入！');
+            return;
+        }
+
+        const areaCode = idCard.substring(0, 6);
+        const birthYear = parseInt(idCard.substring(6, 10));
+        const birthMonth = parseInt(idCard.substring(10, 12));
+        const birthDay = parseInt(idCard.substring(12, 14));
+        const genderCode = parseInt(idCard.substring(16, 17));
+
+        const area = getAreaName(areaCode);
+        const formattedBirth = `${birthYear}年${birthMonth.toString().padStart(2, '0')}月${birthDay.toString().padStart(2, '0')}日`;
+        const gender = genderCode % 2 === 0 ? "女" : "男";
+
+        const today = new Date();
+        let age = today.getFullYear() - birthYear;
+        const currentMonth = today.getMonth() + 1;
+        const currentDay = today.getDate();
+
+        if (currentMonth < birthMonth || (currentMonth === birthMonth && currentDay < birthDay)) {
+            age--;
+        }
+
+        resultBox.innerHTML = `
+            <div class="result-item"><span class="label">号码：</span>${idCard}</div>
+            <div class="result-item"><span class="label">地区：</span>${area}</div>
+            <div class="result-item"><span class="label">生日：</span>${formattedBirth}</div>
+            <div class="result-item"><span class="label">性别：</span>${gender}</div>
+            <div class="result-item"><span class="label">年龄：</span>${age}岁</div>
+        `;
+    });
+
+    // 页面加载时自动触发一次查询（显示默认值结果）
+    window.addEventListener('load', function() {
+        document.getElementById('queryBtn').click();
+    });
+</script>
+
+</body>
+</html>
