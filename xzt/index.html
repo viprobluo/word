@@ -1059,7 +1059,13 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="lib/html2canvas.min.js"></script>
+    <script>
+        // 本地库加载失败时回退到 CDN
+        if (typeof html2canvas !== 'function') {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"><\/script>');
+        }
+    </script>
     <script src="img_base64.js"></script>
     <script src="config/export-config.js"></script>
     <script src="config/prompts.js"></script>

@@ -62,7 +62,9 @@ document.addEventListener('DOMContentLoaded', function () {
     var DEFAULT_PROMPTS = [];     // 从 config/prompts.json 加载
     let author = '';
     let slogan = '';
-    const MAX_UNDO = 50;
+    const MAX_UNDO = 100;
+    let isUndoRedoing = false;    // 撤销/排版期间禁止入栈
+    let inputUndoTimer = null;    // 编辑器输入防抖入栈
 
     // ---------- 工具函数 ----------
     function generateId() {
@@ -342,6 +344,7 @@ document.addEventListener('DOMContentLoaded', function () {
             renderLists();
             highlightActive();
             editor.scrollTop = 0;
+            ensureUndoBaseline();
             editor.focus();
         }
         saveDocs();
@@ -352,11 +355,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const id = generateId();
         const newDoc = { id: id, title: '无标题', content: '', note: '' };
         docs.push(newDoc);
-        undoStacks[id] = [];
+        undoStacks[id] = [''];
         currentId = id;
         setEditorContent('');
         noteArea.value = '';
         updateReadTime();
+        ensureUndoBaseline();
         saveDocs();
         renderLists();
         highlightActive();
@@ -382,6 +386,7 @@ document.addEventListener('DOMContentLoaded', function () {
             noteArea.value = doc.note || '';
             updateReadTime();
             if (!undoStacks[currentId]) undoStacks[currentId] = [];
+            ensureUndoBaseline();
         }
         saveDocs();
         renderLists();
@@ -465,7 +470,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ---------- 撤销历史 ----------
-    function saveState() {
+    function saveState(force) {
+        if (!force && isUndoRedoing) return;
         const id = currentId;
         if (!id) return;
         if (!undoStacks[id]) undoStacks[id] = [];
@@ -476,19 +482,37 @@ document.addEventListener('DOMContentLoaded', function () {
         if (stack.length > MAX_UNDO) stack.shift();
     }
 
+    // 确保栈底有基线快照（空文档也要入栈）
+    function ensureUndoBaseline() {
+        const id = currentId;
+        if (!id) return;
+        if (!undoStacks[id] || undoStacks[id].length === 0) {
+            undoStacks[id] = [editor.innerHTML || ''];
+        }
+    }
+
     function undo() {
         const id = currentId;
         if (!id) return;
         const stack = undoStacks[id];
-        if (!stack || stack.length === 0) {
+        if (!stack || stack.length <= 1) {
             showAutoCloseAlert('没有可撤销的操作');
             return;
         }
-        const prev = stack.pop();
+        // 当前状态先出栈
+        var current = stack.pop();
+        var prev = stack[stack.length - 1];
+        // 如果恢复内容与当前一样（栈顶重复），再退一步
+        if (prev === current && stack.length > 1) {
+            stack.pop();
+            prev = stack[stack.length - 1];
+        }
+        isUndoRedoing = true;
         setEditorContent(prev);
         restoreCaret((editor.innerText || '').length);
         updateReadTime();
         saveCurrentContent();
+        isUndoRedoing = false;
         showAutoCloseAlert('已撤销');
     }
 
@@ -528,7 +552,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ---------- 数字加粗 ----------
     function numBig() {
-        saveState();
+        saveState(true);
         var doToggle = !localStorage.getItem('numBig');
         transformPreserveBold(function (text) {
             if (!text) return text;
@@ -586,6 +610,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ---------- 通用：对文本做转换但保留加粗格式 ----------
     function transformPreserveBold(transformFn) {
+        isUndoRedoing = true;
         var caretOffset = saveCaret();
         var oldHTML = editor.innerHTML;
         var oldText = editor.innerText;
@@ -694,6 +719,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (newText === oldText && result === oldHTML) {
             updateReadTime();
             saveCurrentContent();
+            isUndoRedoing = false;
             return;
         }
 
@@ -702,6 +728,9 @@ document.addEventListener('DOMContentLoaded', function () {
         restoreCaret(newCaret);
         updateReadTime();
         saveCurrentContent();
+        isUndoRedoing = false;
+        // 完成后入栈（按钮操作会先 saveState(force) 保存旧状态，这里再保存新状态）
+        saveState();
     }
 
     // 归一化文本用于搜索：统一标点、空格
@@ -748,7 +777,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ---------- 排版 ----------
     function reformatText(saveHistory = true) {
-        if (saveHistory) saveState();
+        if (saveHistory) saveState(true);
         try {
             transformPreserveBold(function (text) {
                 if (!text) return text;
@@ -882,7 +911,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ---------- 清除 Markdown ----------
     function cleanMarkdown() {
-        saveState();
+        saveState(true);
         const savedScrollTop = editor.scrollTop;
         transformPreserveBold(function (text) {
             if (!text) return text;
@@ -916,7 +945,7 @@ document.addEventListener('DOMContentLoaded', function () {
             showAutoCloseAlert('请输入查找内容');
             return;
         }
-        saveState();
+        saveState(true);
         var savedScrollTop = editor.scrollTop;
         var count = 0;
         transformPreserveBold(function (text) {
@@ -1438,7 +1467,7 @@ leftCol.style.flexShrink = '0';
     // ---------- 清空 ----------
     function clear() {
         if (confirm('确定要清空当前文档吗？')) {
-            saveState();
+            saveState(true);
             setEditorContent('');
             localStorage.removeItem('numBig');
             updateReadTime();
@@ -1449,7 +1478,7 @@ leftCol.style.flexShrink = '0';
 
     // ---------- 序号切换 ----------
     function xhText() {
-        saveState();
+        saveState(true);
         function isNormalDigit(ch) { return ch >= '0' && ch <= '9'; }
 
         function processLine(line) {
@@ -1533,6 +1562,13 @@ leftCol.style.flexShrink = '0';
     editor.addEventListener('input', function () {
         updateReadTime();
         saveCurrentContent();
+        // 每次输入防抖 800ms 写入撤销历史，连续输入合并为一次可撤销动作
+        if (isUndoRedoing) return;
+        ensureUndoBaseline();
+        if (inputUndoTimer) clearTimeout(inputUndoTimer);
+        inputUndoTimer = setTimeout(function () {
+            saveState();
+        }, 800);
     });
 
     // 备注输入：保存到当前文档的 note 字段，不触碰正文
@@ -1953,6 +1989,7 @@ leftCol.style.flexShrink = '0';
         renderLists();
         highlightActive();
         if (!undoStacks[currentId]) undoStacks[currentId] = [];
+        ensureUndoBaseline();
         editor.focus();
     } else {
         createNewDoc();
