@@ -69,6 +69,66 @@
             color: #8cf;
         }
 
+        #sidebar-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        #sidebarLockBtn {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 15px;
+            cursor: pointer;
+            padding: 0 6px;
+            line-height: 1;
+        }
+
+        #sidebarLockBtn:hover {
+            color: #feda05;
+        }
+
+        /* 侧边栏收起状态 */
+        #sidebar.collapsed {
+            width: 0;
+            overflow: hidden;
+            border-right: none;
+            transition: width 0.25s ease;
+        }
+
+        body.sidebar-collapsed #main {
+            margin-left: 0;
+        }
+
+        /* 收起状态下的悬浮展开把手 */
+        #sidebarPeekBtn {
+            position: fixed;
+            top: 14px;
+            left: 8px;
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            background-color: #2a2a2a;
+            border: 1px solid #444;
+            color: #feda05;
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #sidebarPeekBtn:hover {
+            background-color: #3a3a3a;
+        }
+
+        body.sidebar-collapsed #sidebarPeekBtn {
+            display: flex;
+        }
+
         #doc-list {
             flex: 1;
             overflow-y: auto;
@@ -133,6 +193,7 @@
             height: 100%;
             overflow: hidden;
             position: relative;
+            transition: margin-left 0.25s ease;
         }
 
         .button-container {
@@ -176,6 +237,11 @@
         .button-container button.toggle-active {
             background-color: #feda05;
             color: #333;
+        }
+
+        /* PC端隐藏复制按钮（手机端保留） */
+        #copyButton {
+            display: none;
         }
 
         #mobileDocBtn {
@@ -549,10 +615,11 @@
             }
 
             .button-container button {
-                padding: 6px 12px;
-                font-size: 12px;
+                padding: 4px 6px;
+                font-size: 11px;
                 margin: 0;
                 flex-shrink: 0;
+                border-radius: 4px;
             }
 
             .button-container button[data-mobile] {
@@ -561,7 +628,12 @@
 
             .button-container button[data-mobile]::before {
                 content: attr(data-mobile);
-                font-size: 12px;
+                font-size: 11px;
+            }
+
+            /* 手机端恢复复制按钮显示 */
+            #copyButton {
+                display: inline-block;
             }
 
             #editor-container {
@@ -927,10 +999,15 @@
     <div id="sidebar">
         <div id="sidebar-header">
             <h3>✏️ 写字台</h3>
-            <button id="newDocBtn" title="新建文档">+</button>
+            <div id="sidebar-header-actions">
+                <button id="sidebarLockBtn" title="锁定/解锁侧边栏">🔒</button>
+                <button id="newDocBtn" title="新建文档">+</button>
+            </div>
         </div>
         <div id="doc-list"></div>
     </div>
+    <!-- 侧边栏收起状态下的悬浮展开把手 -->
+    <button id="sidebarPeekBtn" title="展开文档列表">📄</button>
 
     <div id="main">
         <div class="button-container">

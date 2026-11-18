@@ -14,6 +14,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const cleanMarkdownButton = document.getElementById('cleanMarkdown');
     const numBigButton = document.getElementById('numBigButton');
     const copyButton = document.getElementById('copyButton');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarLockBtn = document.getElementById('sidebarLockBtn');
+    const sidebarPeekBtn = document.getElementById('sidebarPeekBtn');
     const clearButton = document.getElementById('clearButton');
     const xhButton = document.getElementById('xh');
     const exportImgButton = document.getElementById('exportImgButton');
@@ -930,8 +933,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ---------- 查找替换 ----------
     function openReplaceModal() {
+        // 把编辑器当前选中的文字带入"查找"输入框
+        var sel = window.getSelection();
+        if (sel && sel.toString()) {
+            var text = sel.toString();
+            // 只取编辑器内部的选区内容，避免把侧边栏/备注面板的选中文本带进来
+            if (editor.contains(sel.anchorNode) || editor.contains(sel.focusNode)) {
+                replaceFindInput.value = text;
+            }
+        }
         replaceModal.classList.add('show');
-        setTimeout(function () { replaceFindInput.focus(); }, 50);
+        setTimeout(function () {
+            if (replaceFindInput.value) {
+                // 已带入查找内容，直接 focus 替换框让用户输新内容
+                replaceReplaceInput.focus();
+            } else {
+                replaceFindInput.focus();
+            }
+        }, 50);
     }
 
     function closeReplaceModal() {
@@ -1607,7 +1626,29 @@ leftCol.style.flexShrink = '0';
                 notePanel.style.right = 'auto';
             }
             if (layout.top) notePanel.style.top = layout.top;
+            // 恢复后立即做一次边界 clamp，防止窗口缩小后面板跑丢
+            requestAnimationFrame(clampNoteToBounds);
         } catch (e) { }
+    }
+
+    // 把备注面板限制在父容器可见范围内（至少露出 80×30 像素，保证能看到标题栏）
+    function clampNoteToBounds() {
+        var parent = notePanel.parentElement;
+        if (!parent) return;
+        var pw = parent.clientWidth;
+        var ph = parent.clientHeight;
+        var w = notePanel.offsetWidth;
+        var h = notePanel.offsetHeight;
+        // 优先使用 left 定位，不用 right
+        notePanel.style.right = 'auto';
+        var left = parseFloat(notePanel.style.left) || 0;
+        var top = parseFloat(notePanel.style.top) || 0;
+        // 左边界：至少露出 80px
+        left = Math.max(-w + 80, Math.min(left, pw - 80));
+        // 上边界：露出标题栏 30px
+        top = Math.max(-30, Math.min(top, ph - 40));
+        notePanel.style.left = left + 'px';
+        notePanel.style.top = top + 'px';
     }
 
     // 拖拽（按住标题栏移动）
@@ -1689,6 +1730,21 @@ leftCol.style.flexShrink = '0';
     })();
 
     restoreNoteLayout();
+    // 无保存布局时，把 CSS 初始的 right 定位转成 left，便于后续拖拽统一用 left 计算
+    if (!localStorage.getItem('xzt_note_layout')) {
+        requestAnimationFrame(function () {
+            var parent = notePanel.parentElement;
+            var rect = notePanel.getBoundingClientRect();
+            var parentRect = parent.getBoundingClientRect();
+            notePanel.style.left = (rect.left - parentRect.left) + 'px';
+            notePanel.style.top = (rect.top - parentRect.top) + 'px';
+            notePanel.style.right = 'auto';
+        });
+    }
+    // 窗口缩放时自动把面板拉回可见范围
+    window.addEventListener('resize', function () {
+        clampNoteToBounds();
+    });
 
     editor.addEventListener('paste', function (e) {
         e.preventDefault();
@@ -1703,6 +1759,35 @@ leftCol.style.flexShrink = '0';
             window.open(target.href, '_blank');
         }
     });
+
+    // ---------- 侧边栏锁定/解锁 ----------
+    function applySidebarCollapsed(collapsed) {
+        if (collapsed) {
+            sidebar.classList.add('collapsed');
+            document.body.classList.add('sidebar-collapsed');
+            sidebarLockBtn.textContent = '🔓';
+            sidebarLockBtn.title = '展开侧边栏';
+        } else {
+            sidebar.classList.remove('collapsed');
+            document.body.classList.remove('sidebar-collapsed');
+            sidebarLockBtn.textContent = '🔒';
+            sidebarLockBtn.title = '收起侧边栏';
+        }
+        try { localStorage.setItem('xzt_sidebar_collapsed', collapsed ? '1' : '0'); } catch (e) { }
+    }
+    sidebarLockBtn.addEventListener('click', function () {
+        applySidebarCollapsed(!sidebar.classList.contains('collapsed'));
+    });
+    sidebarPeekBtn.addEventListener('click', function () {
+        applySidebarCollapsed(false);
+    });
+    // 恢复上次的锁定状态
+    (function () {
+        try {
+            var v = localStorage.getItem('xzt_sidebar_collapsed');
+            if (v === '1') applySidebarCollapsed(true);
+        } catch (e) { }
+    })();
 
     // ---------- 按钮事件 ----------
     newDocBtn.addEventListener('click', createNewDoc);
