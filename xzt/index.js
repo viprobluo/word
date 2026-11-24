@@ -45,6 +45,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 查找替换
     const replaceButton = document.getElementById('replaceButton');
+    // 手机端分组折叠按钮
+    const mobMoreBtn = document.getElementById('mobMoreBtn');
     const replaceModal = document.getElementById('replace-modal');
     const replaceModalClose = document.getElementById('replaceModalClose');
     const replaceFindInput = document.getElementById('replaceFindInput');
@@ -89,6 +91,17 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ---------- 用 JSON 配置填充下拉框 ----------
+    // 读取配置里标记为 default 的默认作者
+    function getDefaultAuthor() {
+        if (EXPORT_CONFIG && EXPORT_CONFIG.authors) {
+            for (var i = 0; i < EXPORT_CONFIG.authors.length; i++) {
+                if (EXPORT_CONFIG.authors[i].default) return EXPORT_CONFIG.authors[i].value;
+            }
+            if (EXPORT_CONFIG.authors.length) return EXPORT_CONFIG.authors[0].value;
+        }
+        return '';
+    }
+
     function fillSelectOptions() {
         if (EXPORT_CONFIG && EXPORT_CONFIG.authors && authorInput) {
             authorInput.innerHTML = '';
@@ -1198,10 +1211,10 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // 作者名：优先使用下拉框当前值，其次全局 author，最后兜底
+        // 作者名：优先使用下拉框当前值，其次全局 author，最后用配置里的默认作者
         var exportAuthor = (authorInput && authorInput.value && authorInput.value.trim())
             ? authorInput.value.trim()
-            : (author || '杜林 保险第1课作者');
+            : (author || getDefaultAuthor());
 
         // slogan：优先使用下拉框当前值，其次全局 slogan，最后兜底
         var exportSlogan = (sloganInput && sloganInput.value && sloganInput.value.trim())
@@ -1353,11 +1366,11 @@ leftCol.style.flexShrink = '0';
 
                     footerInner.appendChild(leftCol);
 
-                    // 根据作者选择对应二维码
+                    // 根据作者选择对应二维码（罗杜主任使用罗小布的二维码）
                     var qrUrl = null;
                     if (exportAuthor.indexOf('杜 林') !== -1) {
                         qrUrl = DULIN_QR_DATA_URL;
-                    } else if (exportAuthor.indexOf('罗小布') !== -1) {
+                    } else if (exportAuthor.indexOf('罗小布') !== -1 || exportAuthor.indexOf('罗杜主任') !== -1) {
                         qrUrl = LUOXIAOBU_QR_DATA_URL;
                     }
                     if (qrUrl) {
@@ -1789,6 +1802,31 @@ leftCol.style.flexShrink = '0';
         } catch (e) { }
     })();
 
+    // ---------- 手机端按钮分组折叠（更多）----------
+    var buttonContainer = document.querySelector('.button-container');
+    function setMobileMore(expand) {
+        document.body.classList.toggle('mob-expand-more', expand);
+        if (mobMoreBtn) mobMoreBtn.classList.toggle('mob-on', expand);
+        // 展开后让展开出来的按钮保持在可见区域
+        if (buttonContainer && expand) {
+            var first = xhButton || mobMoreBtn;
+            buttonContainer.scrollLeft = Math.max(0, first.offsetLeft - 8);
+        }
+    }
+    if (mobMoreBtn) {
+        mobMoreBtn.addEventListener('click', function () {
+            setMobileMore(!document.body.classList.contains('mob-expand-more'));
+        });
+    }
+    // 点击其它按钮后自动收起，保持按钮栏紧凑
+    if (buttonContainer) {
+        buttonContainer.addEventListener('click', function (e) {
+            var btn = e.target.closest('button');
+            if (!btn || btn === mobMoreBtn) return;
+            setMobileMore(false);
+        });
+    }
+
     // ---------- 按钮事件 ----------
     newDocBtn.addEventListener('click', createNewDoc);
     mobileNewDocBtn.addEventListener('click', createNewDoc);
@@ -2036,7 +2074,16 @@ leftCol.style.flexShrink = '0';
 
     // ---------- 作者下拉框（loadDocs 后再赋值，确保使用 xzt 字段内的 author，并完成旧数据迁移）----------
     if (authorInput) {
-        authorInput.value = author || '';
+        // 一次性迁移：默认作者改为配置里的 default（仅执行一次，之后尊重用户选择）
+        try {
+            if (localStorage.getItem('xzt_author_default_migrated') !== '1') {
+                var defAuthor = getDefaultAuthor();
+                if (defAuthor) author = defAuthor;
+                localStorage.setItem('xzt_author_default_migrated', '1');
+                saveDocs();
+            }
+        } catch (e) { }
+        authorInput.value = author || getDefaultAuthor();
         authorInput.addEventListener('change', function () {
             author = authorInput.value.trim();
             saveDocs();

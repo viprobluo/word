@@ -244,6 +244,11 @@
             display: none;
         }
 
+        /* 手机端的分组折叠按钮，PC端不显示 */
+        #mobMoreBtn {
+            display: none;
+        }
+
         #mobileDocBtn {
             display: none;
             background: none;
@@ -636,6 +641,26 @@
                 display: inline-block;
             }
 
+            /* 分组默认收起，点击「更多」后才展开 */
+            body:not(.mob-expand-more) #xh,
+            body:not(.mob-expand-more) #numBigButton,
+            body:not(.mob-expand-more) #replaceButton,
+            body:not(.mob-expand-more) #exportImgButton,
+            body:not(.mob-expand-more) #promptToggleButton {
+                display: none;
+            }
+
+            #mobMoreBtn {
+                display: inline-block;
+                /* 手机端排到按钮栏最后 */
+                order: 1;
+            }
+
+            #mobMoreBtn.mob-on {
+                background-color: #feda05;
+                color: #333;
+            }
+
             #editor-container {
                 width: 92%;
                 max-width: none;
@@ -1014,14 +1039,15 @@
             <button id="mobileDocBtn" title="文档列表">+</button>
             <button id="scrollTopButton" data-mobile="⬆️">置顶</button>
             <button id="cleanMarkdown" data-mobile="🎉">排版</button>
+            <button id="mobMoreBtn" data-mobile="更多" title="序号/字体/替换/生图/提示词">更多</button>
             <button id="xh" data-mobile="序">序号</button>
             <button id="numBigButton" data-mobile="A">字体</button>
-            <button id="boldButton" data-mobile="粗">加粗</button>
             <button id="replaceButton" data-mobile="替">替换</button>
-            <button id="copyButton" data-mobile="C">复制</button>
-            <button id="clearButton" data-mobile="空">清空</button>
             <button id="exportImgButton" data-mobile="图">生图</button>
             <button id="promptToggleButton" data-mobile="提">提</button>
+            <button id="boldButton" data-mobile="粗">加粗</button>
+            <button id="copyButton" data-mobile="C">复制</button>
+            <button id="clearButton" data-mobile="空">清空</button>
             <button id="archiveButton">归档</button>
         </div>
 
