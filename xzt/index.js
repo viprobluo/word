@@ -2016,31 +2016,6 @@ leftCol.style.flexShrink = '0';
         });
     }
 
-    // ---------- 手机端按钮分组折叠（更多）----------
-    var buttonContainer = document.querySelector('.button-container');
-    function setMobileMore(expand) {
-        document.body.classList.toggle('mob-expand-more', expand);
-        if (mobMoreBtn) mobMoreBtn.classList.toggle('mob-on', expand);
-        // 展开后让展开出来的按钮保持在可见区域
-        if (buttonContainer && expand) {
-            var first = xhButton || mobMoreBtn;
-            buttonContainer.scrollLeft = Math.max(0, first.offsetLeft - 8);
-        }
-    }
-    if (mobMoreBtn) {
-        mobMoreBtn.addEventListener('click', function () {
-            setMobileMore(!document.body.classList.contains('mob-expand-more'));
-        });
-    }
-    // 点击其它按钮后自动收起，保持按钮栏紧凑
-    if (buttonContainer) {
-        buttonContainer.addEventListener('click', function (e) {
-            var btn = e.target.closest('button');
-            if (!btn || btn === mobMoreBtn) return;
-            setMobileMore(false);
-        });
-    }
-
     // ---------- 按钮事件 ----------
     newDocBtn.addEventListener('click', createNewDoc);
     mobileNewDocBtn.addEventListener('click', createNewDoc);

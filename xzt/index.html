@@ -739,24 +739,9 @@
                 display: inline-block;
             }
 
-            /* 分组默认收起，点击「更多」后才展开 */
-            body:not(.mob-expand-more) #xh,
-            body:not(.mob-expand-more) #numBigButton,
-            body:not(.mob-expand-more) #replaceButton,
-            body:not(.mob-expand-more) #exportImgButton,
-            body:not(.mob-expand-more) #promptToggleButton {
-                display: none;
-            }
-
+            /* 所有按钮直接显示，不再折叠在「更多」里 */
             #mobMoreBtn {
-                display: inline-block;
-                /* 手机端排到按钮栏最后 */
-                order: 1;
-            }
-
-            #mobMoreBtn.mob-on {
-                background-color: #feda05;
-                color: #333;
+                display: none;
             }
 
             #editor-container {
@@ -1279,8 +1264,8 @@
         }
     </script>
     <script src="img_base64.js"></script>
-    <script src="config/export-config.js"></script>
-    <script src="config/prompts.js"></script>
+    <script src="config/export-config.js?v=2"></script>
+    <script src="config/prompts.js?v=2"></script>
     <script src="index.js"></script>
 
     <!-- 备份恢复用：隐藏文件选择器 -->
