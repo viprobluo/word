@@ -1,8 +1,9 @@
 // 生图配置：作者署名 + Slogan 选项
 var EXPORT_CONFIG = {
     authors: [
-        { value: '杜 林 保险第1课作者', short: '杜林' },
-        { value: '罗小布 保险第1课作者', short: '罗小布' }
+        { value: '罗杜主任', short: '罗杜主任', default: true, qr: '罗小布' },
+        { value: '杜 林 保险第1课作者', short: '杜林', qr: '杜林' },
+        { value: '罗小布 保险第1课作者', short: '罗小布', qr: '罗小布' }
     ],
     slogans: [
         { value: '保障规划 协助理赔 个养税优', short: '家庭保障' },
