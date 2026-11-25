@@ -701,7 +701,7 @@
                 box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
                 z-index: 10;
                 flex-shrink: 0;
-                height: 48px;
+                height: 40px;
                 overflow-x: auto;
                 overflow-y: hidden;
                 order: 2;
@@ -712,11 +712,17 @@
             }
 
             .button-container button {
-                padding: 4px 6px;
-                font-size: 11px;
+                padding: 2px 4px;
+                font-size: 10px;
                 margin: 0;
                 flex-shrink: 0;
-                border-radius: 4px;
+                border-radius: 3px;
+                line-height: 1;
+            }
+
+            .button-container button .btn-svg {
+                height: 16px;
+                max-width: 26px;
             }
 
             .button-container button[data-mobile] {
@@ -812,10 +818,19 @@
         }
 
         @media (max-width: 480px) {
+            .button-container {
+                height: 38px;
+            }
+
             .button-container button {
-                padding: 5px 10px;
-                font-size: 11px;
-                margin: 2px 2px;
+                padding: 1px 3px;
+                font-size: 9px;
+                margin: 0;
+            }
+
+            .button-container button .btn-svg {
+                height: 14px;
+                max-width: 22px;
             }
 
             #editor {
