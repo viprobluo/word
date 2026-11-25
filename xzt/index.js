@@ -17,6 +17,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const sidebar = document.getElementById('sidebar');
     const sidebarLockBtn = document.getElementById('sidebarLockBtn');
     const sidebarPeekBtn = document.getElementById('sidebarPeekBtn');
+    const sidebarBackupBtn = document.getElementById('sidebarBackupBtn');
+    const sidebarRestoreBtn = document.getElementById('sidebarRestoreBtn');
+    const restoreFileInput = document.getElementById('restoreFileInput');
     const clearButton = document.getElementById('clearButton');
     const xhButton = document.getElementById('xh');
     const exportImgButton = document.getElementById('exportImgButton');
@@ -233,7 +236,54 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // ---------- 加载 / 保存数据 ----------
+    // ---------- 加载 / 保存数据（统一用 xzt 一个 key） ----------
+    function getAppState() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+        catch (e) { return {}; }
+    }
+    function setAppState(patch) {
+        var cur = getAppState();
+        Object.assign(cur, patch || {});
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cur)); } catch (e) { }
+    }
+    // 一次性清理所有历史遗留 key，统一收敛到 xzt
+    (function migrateLegacyKeys() {
+        try {
+            var cur = getAppState();
+            var changed = false;
+            // 旧作者名
+            if (cur.author === undefined || cur.author === '') {
+                var legacyAuthor = localStorage.getItem('xzt_author');
+                if (legacyAuthor) { cur.author = legacyAuthor.trim(); changed = true; }
+            }
+            // 备注布局
+            if (!cur.noteLayout) {
+                var nl = localStorage.getItem('xzt_note_layout');
+                if (nl) { cur.noteLayout = JSON.parse(nl); changed = true; }
+            }
+            // 侧边栏状态
+            if (cur.sidebarCollapsed === undefined) {
+                var sb = localStorage.getItem('xzt_sidebar_collapsed');
+                if (sb !== null && sb !== undefined) { cur.sidebarCollapsed = sb === '1'; changed = true; }
+            }
+            // 数字加粗状态
+            if (cur.numBig === undefined) {
+                var nb = localStorage.getItem('numBig');
+                if (nb !== null && nb !== undefined) { cur.numBig = true; changed = true; }
+            }
+            // 作者默认值迁移标记
+            if (cur.authorDefaultMigrated === undefined) {
+                var dm = localStorage.getItem('xzt_author_default_migrated');
+                if (dm === '1') { cur.authorDefaultMigrated = true; changed = true; }
+            }
+            if (changed) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(cur));
+            }
+            // 删除所有旧 key
+            ['xzt_author', 'xzt_note_layout', 'xzt_sidebar_collapsed', 'numBig', 'xzt_author_default_migrated']
+                .forEach(function (k) { try { localStorage.removeItem(k); } catch (_) { } });
+        } catch (_) { }
+    })();
     function loadDocs() {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
@@ -242,61 +292,42 @@ document.addEventListener('DOMContentLoaded', function () {
                 // 检查是否为新格式（包含 docs 和 currentId）
                 if (parsed && parsed.docs && Array.isArray(parsed.docs)) {
                     docs = parsed.docs;
-                    // 如果 currentId 存在且有效，则使用；否则取第一个文档的 id
                     if (parsed.currentId && docs.some(d => d.id === parsed.currentId)) {
                         currentId = parsed.currentId;
                     } else if (docs.length > 0) {
                         currentId = docs[0].id;
                     } else {
-                        // 如果 docs 为空，创建默认文档
                         const id = generateId();
                         docs = [{ id: id, title: '无标题', content: '' }];
                         currentId = id;
                     }
-                    // 读取作者名（新字段）；若无，则尝试从旧 xzt_author 字段迁移
-                    author = typeof parsed.author === 'string' ? parsed.author : '';
-                    if (!author) {
-                        var legacy = localStorage.getItem('xzt_author');
-                        if (legacy) {
-                            author = legacy.trim();
-                        }
-                    }
-                    // 读取 slogan
+                    author = (typeof parsed.author === 'string' && parsed.author) ? parsed.author : getDefaultAuthor();
                     slogan = typeof parsed.slogan === 'string' ? parsed.slogan : '';
-                    // 初始化撤销栈
                     docs.forEach(doc => {
                         if (!undoStacks[doc.id]) undoStacks[doc.id] = [];
                     });
-                    saveDocs(); // 确保 author 字段写入 xzt，并清除旧的 xzt_author
+                    saveDocs();
                     return;
                 }
-            } catch (e) {
-                // JSON 解析失败，作为旧格式（纯文本）处理
-            }
-            // 如果数据不是 JSON 或解析失败，作为旧格式（纯文本）处理
+            } catch (e) { /* JSON 解析失败，作为旧格式（纯文本）处理 */ }
             const id = generateId();
             const title = getFirstNonEmptyLine(raw);
             docs = [{ id: id, title: title, content: raw }];
             currentId = id;
-            // 尝试从旧 xzt_author 迁移
-            var legacy2 = localStorage.getItem('xzt_author');
-            author = legacy2 ? legacy2.trim() : '';
-            saveDocs(); // 转换为新格式保存
+            author = getDefaultAuthor();
+            saveDocs();
             docs.forEach(doc => {
                 if (!undoStacks[doc.id]) undoStacks[doc.id] = [];
             });
             return;
         }
 
-        // 没有任何数据，尝试从旧 xzt_author 迁移作者名
-        var legacy3 = localStorage.getItem('xzt_author');
-        if (legacy3) author = legacy3.trim();
-
         // 没有任何数据，创建默认文档
         if (docs.length === 0) {
             const id = generateId();
             docs = [{ id: id, title: '无标题', content: '' }];
             currentId = id;
+            author = getDefaultAuthor();
             saveDocs();
             docs.forEach(doc => {
                 if (!undoStacks[doc.id]) undoStacks[doc.id] = [];
@@ -305,22 +336,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function saveDocs() {
-        const existing = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-        const payload = {
+        const existing = getAppState();
+        const payload = Object.assign({}, existing, {
             docs: docs,
             currentId: currentId,
             author: author,
-            slogan: slogan,
-            qrEnabled: existing.qrEnabled !== undefined ? existing.qrEnabled : true,
-            prompts: existing.prompts || [],
-            currentPromptId: existing.currentPromptId !== undefined ? existing.currentPromptId : null
-        };
-        const data = JSON.stringify(payload);
-        localStorage.setItem(STORAGE_KEY, data);
-        // 新字段已写入 xzt，清除旧的 xzt_author 避免双写
-        if (localStorage.getItem('xzt_author') !== null) {
-            try { localStorage.removeItem('xzt_author'); } catch (_) { }
-        }
+            slogan: slogan
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     }
 
     function getCurrentDoc() {
@@ -419,19 +442,40 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderList(container, itemClass, deleteClass) {
         if (!container) return;
         container.innerHTML = '';
-        docs.forEach(doc => {
+        // 置顶的排最前，其余保持原顺序
+        var sorted = docs.slice().sort(function (a, b) {
+            if (a.pinned && !b.pinned) return -1;
+            if (!a.pinned && b.pinned) return 1;
+            return 0;
+        });
+        sorted.forEach(doc => {
             const div = document.createElement('div');
             div.className = itemClass;
             if (doc.id === currentId) div.classList.add('active');
+            if (doc.pinned) div.classList.add('doc-pinned');
+            div.setAttribute('draggable', 'true');
+            div.dataset.docId = doc.id;
 
             const titleSpan = document.createElement('span');
             titleSpan.className = 'doc-title';
             titleSpan.textContent = doc.title;
             div.appendChild(titleSpan);
 
+            // 置顶按钮 📌
+            var PIN_SVG = '<svg class="pin-svg" viewBox="0 0 1024 1024" aria-hidden="true"><path d="M812.608 213.312h-597.12a42.624 42.624 0 1 1 0-85.312h597.12a42.624 42.624 0 0 1 0 85.312z m-42.624 682.432a42.752 42.752 0 0 1-30.336-12.352l-225.6-225.664-225.664 225.664a42.752 42.752 0 0 1-72.96-30.272V341.248a42.624 42.624 0 0 1 42.688-42.624h511.808a42.688 42.688 0 0 1 42.688 42.624v511.872a42.624 42.624 0 0 1-42.624 42.624z"/></svg>';
+            const pinBtn = document.createElement('button');
+            pinBtn.className = 'doc-pin' + (doc.pinned ? ' pinned' : '');
+            pinBtn.innerHTML = PIN_SVG;
+            pinBtn.title = doc.pinned ? '取消置顶' : '置顶';
+            pinBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                togglePinDoc(doc.id);
+            });
+            div.appendChild(pinBtn);
+
             const delBtn = document.createElement('button');
             delBtn.className = deleteClass;
-            delBtn.textContent = '×';
+            delBtn.innerHTML = '<svg class="del-svg" viewBox="0 0 1024 1024" aria-hidden="true"><path d="M254.398526 804.702412l-0.030699-4.787026C254.367827 801.546535 254.380106 803.13573 254.398526 804.702412zM614.190939 259.036661c-22.116717 0-40.047088 17.910928-40.047088 40.047088l0.37146 502.160911c0 22.097274 17.930371 40.048111 40.047088 40.048111s40.048111-17.950837 40.048111-40.048111l-0.350994-502.160911C654.259516 276.948613 636.328122 259.036661 614.190939 259.036661zM893.234259 140.105968l-318.891887 0.148379-0.178055-41.407062c0-22.13616-17.933441-40.048111-40.067554-40.048111-7.294127 0-14.126742 1.958608-20.017916 5.364171-5.894244-3.405563-12.729929-5.364171-20.031219-5.364171-22.115694 0-40.047088 17.911952-40.047088 40.048111l0.188288 41.463344-230.115981 0.106424c-3.228531-0.839111-6.613628-1.287319-10.104125-1.287319-3.502777 0-6.89913 0.452301-10.136871 1.296529l-73.067132 0.033769c-22.115694 0-40.048111 17.950837-40.048111 40.047088 0 22.13616 17.931395 40.048111 40.048111 40.048111l43.176358-0.020466 0.292666 617.902982 0.059352 0 0 42.551118c0 44.233434 35.862789 80.095199 80.095199 80.095199l40.048111 0 0 0.302899 440.523085-0.25685 0-0.046049 40.048111 0c43.663452 0 79.146595-34.95 80.054267-78.395488l-0.329505-583.369468c0-22.135136-17.930371-40.047088-40.048111-40.047088-22.115694 0-40.047088 17.911952-40.047088 40.047088l0.287549 509.324054c-1.407046 60.314691-18.594497 71.367421-79.993892 71.367421l41.575908 1.022283-454.442096 0.26606 52.398394-1.288343c-62.715367 0-79.305207-11.522428-80.0645-75.308173l0.493234 76.611865-0.543376 0-0.313132-660.818397 236.82273-0.109494c1.173732 0.103354 2.360767 0.166799 3.561106 0.166799 1.215688 0 2.416026-0.063445 3.604084-0.169869l32.639375-0.01535c1.25355 0.118704 2.521426 0.185218 3.805676 0.185218 1.299599 0 2.582825-0.067538 3.851725-0.188288l354.913289-0.163729c22.115694 0 40.050158-17.911952 40.050158-40.047088C933.283394 158.01792 915.349953 140.105968 893.234259 140.105968zM774.928806 815.294654l0.036839 65.715701-0.459464 0L774.928806 815.294654zM413.953452 259.036661c-22.116717 0-40.048111 17.910928-40.048111 40.047088l0.37146 502.160911c0 22.097274 17.931395 40.048111 40.049135 40.048111 22.115694 0 40.047088-17.950837 40.047088-40.048111l-0.37146-502.160911C454.00054 276.948613 436.069145 259.036661 413.953452 259.036661z"/></svg>';
             delBtn.title = '删除';
             delBtn.addEventListener('click', function (e) {
                 e.stopPropagation();
@@ -444,8 +488,57 @@ document.addEventListener('DOMContentLoaded', function () {
                 closeMobileDrawer();
             });
 
+            // 拖拽事件
+            div.addEventListener('dragstart', function (e) {
+                e.dataTransfer.setData('text/plain', doc.id);
+                e.dataTransfer.effectAllowed = 'move';
+                div.classList.add('doc-dragging');
+            });
+            div.addEventListener('dragend', function () {
+                div.classList.remove('doc-dragging');
+                container.querySelectorAll('.doc-drop-over').forEach(function (el) {
+                    el.classList.remove('doc-drop-over');
+                });
+            });
+            div.addEventListener('dragover', function (e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                div.classList.add('doc-drop-over');
+            });
+            div.addEventListener('dragleave', function () {
+                div.classList.remove('doc-drop-over');
+            });
+            div.addEventListener('drop', function (e) {
+                e.preventDefault();
+                div.classList.remove('doc-drop-over');
+                var draggedId = e.dataTransfer.getData('text/plain');
+                if (draggedId && draggedId !== doc.id) {
+                    reorderDocs(draggedId, doc.id);
+                }
+            });
+
             container.appendChild(div);
         });
+    }
+
+    // 置顶 / 取消置顶
+    function togglePinDoc(id) {
+        var doc = docs.find(function (d) { return d.id === id; });
+        if (!doc) return;
+        doc.pinned = !doc.pinned;
+        saveDocs();
+        renderLists();
+    }
+
+    // 把 draggedId 对应的文档移到 targetId 之前
+    function reorderDocs(draggedId, targetId) {
+        var from = docs.findIndex(function (d) { return d.id === draggedId; });
+        var to = docs.findIndex(function (d) { return d.id === targetId; });
+        if (from < 0 || to < 0 || from === to) return;
+        var item = docs.splice(from, 1)[0];
+        docs.splice(to, 0, item);
+        saveDocs();
+        renderLists();
     }
 
     function highlightActive() {
@@ -569,7 +662,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ---------- 数字加粗 ----------
     function numBig() {
         saveState(true);
-        var doToggle = !localStorage.getItem('numBig');
+        var doToggle = !getAppState().numBig;
         transformPreserveBold(function (text) {
             if (!text) return text;
             const urlRegex = /https?:\/\/[^\s]+/g;
@@ -620,8 +713,8 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             return text;
         });
-        if (doToggle) localStorage.setItem('numBig', 1);
-        else localStorage.removeItem('numBig');
+        if (doToggle) setAppState({ numBig: true });
+        else setAppState({ numBig: false });
     }
 
     // ---------- 通用：对文本做转换但保留加粗格式 ----------
@@ -1501,7 +1594,7 @@ leftCol.style.flexShrink = '0';
         if (confirm('确定要清空当前文档吗？')) {
             saveState(true);
             setEditorContent('');
-            localStorage.removeItem('numBig');
+            setAppState({ numBig: false });
             updateReadTime();
             saveCurrentContent();
             showAutoCloseAlert('已清空');
@@ -1623,15 +1716,22 @@ leftCol.style.flexShrink = '0';
                 width: notePanel.style.width,
                 height: notePanel.style.height
             };
-            localStorage.setItem('xzt_note_layout', JSON.stringify(layout));
+            setAppState({
+                noteLayout: {
+                    left: notePanel.style.left,
+                    top: notePanel.style.top,
+                    right: notePanel.style.right,
+                    width: notePanel.style.width,
+                    height: notePanel.style.height
+                }
+            });
         } catch (e) { }
     }
 
     function restoreNoteLayout() {
         try {
-            var raw = localStorage.getItem('xzt_note_layout');
-            if (!raw) return;
-            var layout = JSON.parse(raw);
+            var layout = getAppState().noteLayout;
+            if (!layout) return;
             if (layout.width) notePanel.style.width = layout.width;
             if (layout.height) notePanel.style.height = layout.height;
             if (layout.left) {
@@ -1639,12 +1739,12 @@ leftCol.style.flexShrink = '0';
                 notePanel.style.right = 'auto';
             }
             if (layout.top) notePanel.style.top = layout.top;
-            // 恢复后立即做一次边界 clamp，防止窗口缩小后面板跑丢
             requestAnimationFrame(clampNoteToBounds);
         } catch (e) { }
     }
 
-    // 把备注面板限制在父容器可见范围内（至少露出 80×30 像素，保证能看到标题栏）
+    // 把备注面板严格限制在父容器（content-row）可见范围内
+    // 父容器本身就在 main 区域内（被侧边栏挤开），所以天然避开侧边栏
     function clampNoteToBounds() {
         var parent = notePanel.parentElement;
         if (!parent) return;
@@ -1656,10 +1756,9 @@ leftCol.style.flexShrink = '0';
         notePanel.style.right = 'auto';
         var left = parseFloat(notePanel.style.left) || 0;
         var top = parseFloat(notePanel.style.top) || 0;
-        // 左边界：至少露出 80px
+        // 严格不超出四边界（至少露出 80×30 像素，防止面板完全被拖走找不到）
         left = Math.max(-w + 80, Math.min(left, pw - 80));
-        // 上边界：露出标题栏 30px
-        top = Math.max(-30, Math.min(top, ph - 40));
+        top = Math.max(-h + 30, Math.min(top, ph - 30));
         notePanel.style.left = left + 'px';
         notePanel.style.top = top + 'px';
     }
@@ -1671,7 +1770,6 @@ leftCol.style.flexShrink = '0';
         var startLeft = 0, startTop = 0;
 
         noteHeader.addEventListener('mousedown', function (e) {
-            // 点击 textarea 内不触发拖拽
             if (e.target === noteArea) return;
             dragging = true;
             var rect = notePanel.getBoundingClientRect();
@@ -1688,12 +1786,16 @@ leftCol.style.flexShrink = '0';
 
         document.addEventListener('mousemove', function (e) {
             if (!dragging) return;
-            var parentRect = notePanel.parentElement.getBoundingClientRect();
+            var parent = notePanel.parentElement;
+            var pw = parent.clientWidth;
+            var ph = parent.clientHeight;
+            var w = notePanel.offsetWidth;
+            var h = notePanel.offsetHeight;
             var newLeft = startLeft + (e.clientX - startX);
             var newTop = startTop + (e.clientY - startY);
-            // 限制不超出父容器范围（留点边距可见）
-            newLeft = Math.max(-notePanel.offsetWidth + 60, Math.min(newLeft, parentRect.width - 60));
-            newTop = Math.max(0, Math.min(newTop, parentRect.height - 40));
+            // 严格不超出四边界
+            newLeft = Math.max(-w + 80, Math.min(newLeft, pw - 80));
+            newTop = Math.max(-h + 30, Math.min(newTop, ph - 30));
             notePanel.style.left = newLeft + 'px';
             notePanel.style.top = newTop + 'px';
         });
@@ -1701,6 +1803,7 @@ leftCol.style.flexShrink = '0';
         document.addEventListener('mouseup', function () {
             if (dragging) {
                 dragging = false;
+                clampNoteToBounds();
                 saveNoteLayout();
             }
         });
@@ -1726,8 +1829,8 @@ leftCol.style.flexShrink = '0';
             if (!resizing) return;
             var newW = startW + (e.clientX - startX);
             var newH = startH + (e.clientY - startY);
-            var minW = 200, maxW = 600;
-            var minH = 160, maxH = notePanel.parentElement.offsetHeight;
+            var minW = 100, maxW = 600;
+            var minH = 90, maxH = notePanel.parentElement.offsetHeight;
             newW = Math.max(minW, Math.min(newW, maxW));
             newH = Math.max(minH, Math.min(newH, maxH));
             notePanel.style.width = newW + 'px';
@@ -1737,6 +1840,7 @@ leftCol.style.flexShrink = '0';
         document.addEventListener('mouseup', function () {
             if (resizing) {
                 resizing = false;
+                clampNoteToBounds();
                 saveNoteLayout();
             }
         });
@@ -1744,7 +1848,7 @@ leftCol.style.flexShrink = '0';
 
     restoreNoteLayout();
     // 无保存布局时，把 CSS 初始的 right 定位转成 left，便于后续拖拽统一用 left 计算
-    if (!localStorage.getItem('xzt_note_layout')) {
+    if (!getAppState().noteLayout) {
         requestAnimationFrame(function () {
             var parent = notePanel.parentElement;
             var rect = notePanel.getBoundingClientRect();
@@ -1773,21 +1877,47 @@ leftCol.style.flexShrink = '0';
         }
     });
 
-    // ---------- 侧边栏锁定/解锁 ----------
+    // ---------- 按钮图标替换（用用户给的 SVG 替换文字，省空间）----------
+    var BTN_SVGS = {
+        scrollTopButton: '<svg class="btn-svg" viewBox="0 0 1024 1024" aria-hidden="true"><path d="M875.444261 75.197634H148.482597a38.034014 38.034014 0 0 1-38.619153-37.59516A38.034014 38.034014 0 0 1 148.555739 0.007314h726.888522a38.034014 38.034014 0 0 1 38.619153 37.59516 38.034014 38.034014 0 0 1-38.619153 37.59516z m29.988357 459.041293L539.501518 119.375604a36.936879 36.936879 0 0 0-54.856751 0L118.494239 534.238927c-20.114142 22.893551-3.43769 58.148156 27.574661 58.148156h172.762194v356.422597c0 41.471704 34.669467 75.19032 77.238306 75.19032h231.8612c42.568839 0 77.238305-33.718616 77.238306-75.19032V592.460225h172.908479c30.866065 0 47.542518-35.327748 27.355233-58.221298z"/></svg>',
+        cleanMarkdown: '<svg class="btn-svg" viewBox="0 0 1024 1024" aria-hidden="true"><path d="M960 64v101.76H606.656V64H960z m0 763.136v101.76H64v-101.76h896z m0-254.4v101.76h-285.504v-101.76H960z m0-254.336v101.76h-285.504v-101.76H960zM168.704 674.496H64v-11.776l216.32-596.608L279.552 64h110.464l-0.768 2.112L606.72 665.6v8.832H500.864l-39.04-107.776h-254.08l-39.04 107.776z m78.08-215.488h176L334.72 216.448l-87.936 242.56z"/></svg>',
+        xh: '<svg class="btn-svg" viewBox="0 0 1024 1024" aria-hidden="true"><path d="M448 192h512a64 64 0 0 0 0-128H448a64 64 0 0 0 0 128z m512 256H448a64 64 0 0 0 0 128h512a64 64 0 0 0 0-128z m0 384H448a64 64 0 0 0 0 128h512a64 64 0 0 0 0-128zM128 0H64v256h64zM0 384h128v64H0v192h192V576H64V512h128V320H0z m0 384h128v64H0v64h128v64H0v64h192v-320H0z"/></svg>',
+        numBigButton: '<svg class="btn-svg" viewBox="0 0 2133 1024" aria-hidden="true"><path d="M972.133333 687.333333l72.133334 193.6H1190.666667L905.2 131.2h-126.933333L492.666667 880.933333h146.8l68-193.6h264.666666z m-132.666666-366.8l88.8 244.4H751.333333l88.133334-244.4zM1192 724.533333c0 51.066667 16.933333 92.4 50.266667 122.933334 32.8 30.133333 76.933333 45.333333 131.2 45.333333 54.666667 0 100.133333-17.466667 135.733333-52.133333v40.266666h131.066667V534.533333c0-139.333333-70.533333-212.933333-203.866667-212.933333-69.466667 0-131.733333 16.933333-185.2 50.266667l-10 6.266666v142.933334l34.666667-28.4c46.4-37.866667 96.266667-56.4 152.266666-56.4 35.066667 0 74.8 10 80.4 84.133333l-130.8 18.4C1224.266667 560 1192 651.466667 1192 724.533333z m317.333333-94V654.666667c0 36.133333-10.533333 65.2-32.266666 88.8-21.2 23.066667-47.6 34.266667-80.666667 34.266666-22.8 0-40.266667-5.733333-53.466667-17.466666-12.533333-11.2-18.533333-24.933333-18.533333-43.066667 0-21.6 5.6-37.466667 17.066667-48.666667 8.4-8.133333 28-19.2 73.6-25.2l94.266666-12.8z"/></svg>',
+        replaceButton: '<svg class="btn-svg" viewBox="0 0 1024 1024" aria-hidden="true"><path d="M362.688 780.8a38.4 38.4 0 0 1 6.208 76.288l-6.208 0.512H128a38.4 38.4 0 0 1-6.208-76.288L128 780.8h234.688z m0-307.2a38.4 38.4 0 0 1 6.208 76.288l-6.208 0.512H128a38.4 38.4 0 0 1-6.208-76.288L128 473.6h234.688zM896 128a38.4 38.4 0 0 1 6.208 76.288L896 204.8H128a38.4 38.4 0 0 1-6.208-76.288L128 128h768zM650.688 313.6a219.712 219.712 0 0 1 170.88 357.824l123.008 123.904a38.4 38.4 0 0 1-49.216 58.624l-5.248-4.48-126.72-127.552a219.712 219.712 0 1 1-112.768-408.32z m0 76.8a142.912 142.912 0 1 0 0 285.888 142.912 142.912 0 0 0 0-285.888z"/></svg>',
+        exportImgButton: '<svg class="btn-svg" viewBox="0 0 1024 1024" aria-hidden="true"><path d="M989.696 171.52H34.304c-18.944 0-34.304 15.36-34.304 34.304v693.76c0 18.944 15.36 34.304 34.304 34.304h954.88c18.944 0 34.304-15.36 34.304-34.304V205.824c0.512-18.944-14.848-34.304-33.792-34.304zM727.552 353.28c32.768 0 59.904 26.624 59.904 59.904 0 32.768-26.624 59.904-59.904 59.904-32.768 0-59.904-26.624-59.904-59.904 0-33.28 26.624-59.904 59.904-59.904z m144.384 477.184H122.88c-23.552 0-38.912-25.088-27.648-46.08l188.416-359.936c10.24-19.456 36.864-22.528 51.2-6.144l244.224 273.92c11.776 13.312 32.256 14.336 45.056 2.048l73.728-70.656c12.288-11.776 31.744-11.776 44.032 0.512l153.088 153.088c18.944 19.456 5.12 53.248-23.04 53.248z"/></svg>',
+        promptToggleButton: '<svg class="btn-svg" viewBox="0 0 1024 1024" aria-hidden="true"><path d="M571.428571 134.692571c0 18.212571-7.68 34.596571-19.821714 45.860572V257.828571H749.714286c31.524571 0 61.769143 12.946286 84.041143 36.059429 22.308571 23.04 34.816 54.381714 34.816 87.04v410.331429c0 32.621714-12.507429 63.926857-34.816 87.04A116.809143 116.809143 0 0 1 749.714286 914.285714h-475.428572a116.809143 116.809143 0 0 1-84.041143-36.059428 125.366857 125.366857 0 0 1-34.816-87.04v-410.331429c0-32.621714 12.507429-63.926857 34.816-87.04A116.809143 116.809143 0 0 1 274.285714 257.828571h198.107429V180.553143a61.696 61.696 0 0 1-16.347429-25.161143 63.597714 63.597714 0 0 1 8.740572-58.075429c5.997714-8.155429 13.897143-14.628571 22.966857-18.797714a57.636571 57.636571 0 0 1 56.576 4.534857c8.301714 5.558857 15.140571 13.238857 19.894857 22.235429 4.754286 9.033143 7.204571 19.126857 7.204571 29.403428zM36.571429 462.957714h79.250285v246.162286H36.571429V462.994286z m950.857142 0h-79.250285v246.162286H987.428571V462.994286z m-594.285714 184.612572c15.762286 0 30.866286-6.473143 42.020572-18.029715 11.154286-11.52 17.408-27.172571 17.408-43.52 0-16.310857-6.253714-31.963429-17.408-43.52a58.404571 58.404571 0 0 0-42.020572-17.993142c-15.762286 0-30.866286 6.473143-42.057143 17.993142a62.683429 62.683429 0 0 0-17.371428 43.52c0 16.347429 6.253714 32 17.408 43.52 11.154286 11.556571 26.258286 18.029714 42.020571 18.029715z m297.142857-61.549715c0-16.310857-6.253714-31.963429-17.408-43.52a58.404571 58.404571 0 0 0-42.020571-17.993142c-15.762286 0-30.866286 6.473143-42.020572 17.993142a62.683429 62.683429 0 0 0-17.408 43.52c0 16.347429 6.253714 32 17.408 43.52 11.154286 11.556571 26.258286 18.029714 42.020572 18.029715 15.762286 0 30.866286-6.473143 42.020571-18.029715 11.154286-11.52 17.408-27.172571 17.408-43.52z"/></svg>',
+        clearButton: '<svg class="btn-svg" viewBox="0 0 1024 1024" aria-hidden="true"><path d="M229.12 475.52l687.296 183.872-1.408 1.472-1.024 12.864c-2.56 34.048-6.4 62.976-17.92 139.52l-6.528 43.648c-3.84 26.048-6.528 46.976-8.768 66.304-4.224 36.544-23.488 65.28-54.656 81.6-15.424 8.128-32 12.672-45.824 13.44l-4.032 0.192-90.432-24.32a18.88 18.88 0 0 1-12.16-26.688l35.392-71.552-20.352 26.24a515.328 515.328 0 0 1-47.36 50.56 19.008 19.008 0 0 1-18.112 4.672l-75.456-20.16a18.88 18.88 0 0 1-12.16-26.624l35.456-71.552-20.352 26.24a510.336 510.336 0 0 1-47.36 50.56 18.944 18.944 0 0 1-18.112 4.672l-88.448-23.68a18.944 18.944 0 0 1-12.096-26.56l35.392-71.552-20.352 26.24a515.84 515.84 0 0 1-47.36 50.56 18.944 18.944 0 0 1-18.112 4.672l-62.528-16.704a18.944 18.944 0 0 1-12.096-26.688l35.392-71.488-20.352 26.24c-8.32 10.688-20.48 24-36.48 39.936a44.736 44.736 0 0 1-43.136 11.52l-78.08-20.864-23.104-8.704c-29.632-25.536-44.608-61.44-39.36-95.552 5.76-37.12 32.32-67.648 82.112-88.704 34.368-14.656 67.584-74.176 89.664-157.44l3.84-14.464-1.024-1.792z m-42.88-76.16a60.224 60.224 0 0 1 5.056-6.4l123.776-135.424c9.92-10.752 24.832-19.392 41.856-23.936 16.64-4.416 33.984-4.672 48.64-0.768l123.584 33.024 4.096-2.368 55.36-205.824c8.704-32.448 43.968-51.456 78.72-42.24l83.2 22.272c34.752 9.28 55.808 43.392 47.104 75.84l-55.36 205.824 2.368 4.096 118.528 31.68c14.592 3.84 29.568 12.8 41.728 24.96 12.416 12.352 21.12 27.2 24.192 41.472l39.36 179.072a58.688 58.688 0 0 1 1.28 9.856c-0.704 6.592-5.312 10.304-13.696 11.2L194.944 418.048c-10.432-2.944-13.376-9.216-8.768-18.752z"/></svg>',
+        archiveButton: '<svg class="btn-svg" viewBox="0 0 1024 1024" aria-hidden="true"><path d="M878.72 243.84A81.92 81.92 0 0 1 960 326.4v495.146667a82.133333 82.133333 0 0 1-81.28 82.56H145.493333A82.346667 82.346667 0 0 1 64 821.546667v-618.666667a82.133333 82.133333 0 0 1 81.28-82.986667h285.226667c45.013333 0 52.48 28.16 81.493333 82.56l28.16 41.386667z m-341.333333 433.92l122.24-133.12a30.08 30.08 0 0 0 0-42.666667 26.24 26.24 0 0 0-20.053334-9.173333 26.88 26.88 0 0 0-20.053333 9.173333l-78.293333 86.613334V357.546667A30.293333 30.293333 0 0 0 512 327.253333a29.013333 29.013333 0 0 0-28.586667 30.293334v231.466666l-82.133333-86.613333a26.666667 26.666667 0 0 0-40.32 0 30.08 30.08 0 0 0 0 42.666667l126.08 133.12a34.56 34.56 0 0 0 49.92 0zM292.266667 778.666667a30.08 30.08 0 0 0 27.733333 30.293333h384a30.293333 30.293333 0 0 0 0-60.586667H320a29.866667 29.866667 0 0 0-27.733333 30.293334z"/></svg>'
+    };
+    // 应用 SVG 到按钮（PC 端和手机端都适用，手机端已有 data-mobile 简写）
+    for (var id in BTN_SVGS) {
+        var el = document.getElementById(id);
+        if (el) el.innerHTML = BTN_SVGS[id];
+    }
+    // 用户提供的两个完整 SVG
+    // SVG #1：侧边栏折叠时显示（三道横线 + 播放箭头）→ 点击展开
+    // SVG #2：侧边栏展开时显示（三道横线 + 左箭头）→ 点击收起
+    var SVG_SIDEBAR_COLLAPSED = '<svg class="sidebar-svg" viewBox="0 0 1024 1024" aria-hidden="true"><path d="M128 224c0-23.552 19.072-42.688 42.688-42.688h682.624a42.688 42.688 0 1 1 0 85.376H170.688A42.688 42.688 0 0 1 128 224zM469.312 416c0-23.552 19.136-42.688 42.688-42.688h341.312a42.688 42.688 0 1 1 0 85.376H512a42.688 42.688 0 0 1-42.688-42.688zM512 565.312a42.688 42.688 0 1 0 0 85.376h341.312a42.688 42.688 0 0 0 0-85.376H512zM128 800c0-23.552 19.072-42.688 42.688-42.688h682.624a42.688 42.688 0 0 1 0 85.376H170.688A42.688 42.688 0 0 1 128 800z"/><path d="M193.28 369.152A42.688 42.688 0 0 0 128 405.312v213.376a42.688 42.688 0 0 0 65.28 36.16l170.688-106.688a42.688 42.688 0 0 0 0-72.32L193.28 369.152zM260.8 512l-47.488 29.696v-59.392L260.8 512z"/></svg>';
+    var SVG_SIDEBAR_EXPANDED = '<svg class="sidebar-svg" viewBox="0 0 1024 1024" aria-hidden="true"><path d="M130.901333 529.493333l149.205334 130.517334a8.533333 8.533333 0 0 0 14.122666-6.4V392.533333a8.533333 8.533333 0 0 0-14.122666-6.4L130.901333 516.608a8.533333 8.533333 0 0 0 0 12.8z"/><path d="M128 213.333333m42.666667 0l682.666666 0q42.666667 0 42.666667 42.666667l0 0q0 42.666667-42.666667 42.666667l-682.666666 0q-42.666667 0-42.666667-42.666667l0 0q0-42.666667 42.666667-42.666667Z"/><path d="M128 725.333333m42.666667 0l682.666666 0q42.666667 0 42.666667 42.666667l0 0q0 42.666667-42.666667 42.666667l-682.666666 0q-42.666667 0-42.666667-42.666667l0 0q0-42.666667 42.666667-42.666667Z"/><path d="M384 469.333333m42.666667 0l426.666666 0q42.666667 0 42.666667 42.666667l0 0q0 42.666667-42.666667 42.666667l-426.666666 0q-42.666667 0-42.666667-42.666667l0 0q0-42.666667 42.666667-42.666667Z"/></svg>';
+
     function applySidebarCollapsed(collapsed) {
         if (collapsed) {
             sidebar.classList.add('collapsed');
             document.body.classList.add('sidebar-collapsed');
-            sidebarLockBtn.textContent = '🔓';
+            sidebarLockBtn.innerHTML = SVG_SIDEBAR_COLLAPSED;
             sidebarLockBtn.title = '展开侧边栏';
         } else {
             sidebar.classList.remove('collapsed');
             document.body.classList.remove('sidebar-collapsed');
-            sidebarLockBtn.textContent = '🔒';
+            sidebarLockBtn.innerHTML = SVG_SIDEBAR_EXPANDED;
             sidebarLockBtn.title = '收起侧边栏';
         }
-        try { localStorage.setItem('xzt_sidebar_collapsed', collapsed ? '1' : '0'); } catch (e) { }
+        setAppState({ sidebarCollapsed: collapsed });
+        setTimeout(function () { clampNoteToBounds(); }, 300);
     }
+    // 初始化图标：JS 完全接管两个按钮的 innerHTML
+    if (sidebarLockBtn) sidebarLockBtn.innerHTML = SVG_SIDEBAR_EXPANDED;
+    if (sidebarPeekBtn) sidebarPeekBtn.innerHTML = SVG_SIDEBAR_COLLAPSED;
     sidebarLockBtn.addEventListener('click', function () {
         applySidebarCollapsed(!sidebar.classList.contains('collapsed'));
     });
@@ -1797,10 +1927,89 @@ leftCol.style.flexShrink = '0';
     // 恢复上次的锁定状态
     (function () {
         try {
-            var v = localStorage.getItem('xzt_sidebar_collapsed');
-            if (v === '1') applySidebarCollapsed(true);
+            if (getAppState().sidebarCollapsed) applySidebarCollapsed(true);
         } catch (e) { }
     })();
+
+    // ---------- 数据备份 / 恢复（PC 端侧边栏）----------
+    var BACKUP_PATH = 'D:\\BaiduSyncdisk\\WWW\\gitpage\\xzt项目\\数据备份';
+
+    function doExportBackup() {
+        var raw = localStorage.getItem(STORAGE_KEY) || '{"docs":[]}';
+        var data = null;
+        try { data = JSON.parse(raw); } catch (e) { data = { docs: [] }; }
+        var pkg = {
+            app: '写字台',
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            data: data
+        };
+        var d = new Date();
+        var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+        var fileName = '写字台备份_' + d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+            '_' + pad(d.getHours()) + pad(d.getMinutes()) + '.json';
+        var jsonText = JSON.stringify(pkg, null, 2);
+
+        // 先把备份目录路径复制到剪切板，方便用户在弹框地址栏粘贴
+        copyToClipboardSafe(BACKUP_PATH);
+
+        if (window.showSaveFilePicker) {
+            window.showSaveFilePicker({
+                suggestedName: fileName,
+                types: [{ description: '备份 JSON', accept: { 'application/json': ['.json'] } }]
+            }).then(function (handle) {
+                return handle.createWritable().then(function (writable) {
+                    return writable.write(jsonText).then(function () { return writable.close(); });
+                });
+            }).then(function () {
+                showAutoCloseAlert('备份完成 ✅');
+            }).catch(function (e) {
+                if (e && e.name === 'AbortError') return;
+                triggerDownload(jsonText, fileName);
+                showAutoCloseAlert('已下载，路径已复制到剪贴板');
+            });
+            return;
+        }
+        triggerDownload(jsonText, fileName);
+        showAutoCloseAlert('已下载，路径已复制到剪贴板');
+    }
+
+    function doImportBackup(file) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            try {
+                var pkg = JSON.parse(e.target.result);
+                if (!pkg || !pkg.data || !Array.isArray(pkg.data.docs)) {
+                    alert('备份文件格式不正确（缺少 docs 字段）');
+                    return;
+                }
+                var docCount = pkg.data.docs.length;
+                var msg = '将覆盖当前所有本地数据，确定恢复此备份？\n\n' +
+                    '备份时间：' + (pkg.exportedAt || '未知') + '\n' +
+                    '文档数量：' + docCount;
+                if (!confirm(msg)) return;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(pkg.data));
+                alert('恢复成功，页面即将刷新');
+                location.reload();
+            } catch (err) {
+                alert('备份文件解析失败：' + err.message);
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    if (sidebarBackupBtn) sidebarBackupBtn.addEventListener('click', doExportBackup);
+    if (sidebarRestoreBtn && restoreFileInput) {
+        sidebarRestoreBtn.addEventListener('click', function () {
+            copyToClipboardSafe(BACKUP_PATH);
+            restoreFileInput.click();
+        });
+        restoreFileInput.addEventListener('change', function (e) {
+            var file = e.target.files && e.target.files[0];
+            if (file) doImportBackup(file);
+            restoreFileInput.value = '';
+        });
+    }
 
     // ---------- 手机端按钮分组折叠（更多）----------
     var buttonContainer = document.querySelector('.button-container');
@@ -1847,12 +2056,7 @@ leftCol.style.flexShrink = '0';
         qrToggleButton.addEventListener('click', function () {
             qrEnabled = !qrEnabled;
             applyQrToggleUI();
-            // 持久化
-            try {
-                var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-                raw.qrEnabled = qrEnabled;
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(raw));
-            } catch (_) { }
+            setAppState({ qrEnabled: qrEnabled });
         });
     }
 
@@ -1902,13 +2106,8 @@ leftCol.style.flexShrink = '0';
     function loadPrompts() {
         // 提示词数据只从 JSON 配置文件加载，不在 localStorage 持久化
         prompts = DEFAULT_PROMPTS || [];
-        try {
-            var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-            if (raw.currentPromptId !== undefined) {
-                currentPromptId = raw.currentPromptId;
-            }
-        } catch (_) { }
-        // 默认选中第一个可用提示词：点击提示词进来就是需要用的
+        var state = getAppState();
+        if (state.currentPromptId !== undefined) currentPromptId = state.currentPromptId;
         var exists = prompts.some(function (p) { return p.id === currentPromptId; });
         if (!exists && prompts.length > 0) {
             currentPromptId = prompts[0].id;
@@ -1916,12 +2115,7 @@ leftCol.style.flexShrink = '0';
         }
     }
     function savePrompts() {
-        // 只持久化 currentPromptId，prompts 数据由 JSON 文件维护
-        try {
-            var existing = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-            existing.currentPromptId = currentPromptId;
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
-        } catch (_) { }
+        setAppState({ currentPromptId: currentPromptId });
     }
     function getCurrentPrompt() {
         return prompts.find(function (p) { return p.id === currentPromptId; }) || null;
@@ -2072,17 +2266,8 @@ leftCol.style.flexShrink = '0';
     fillSelectOptions();
     loadDocs();
 
-    // ---------- 作者下拉框（loadDocs 后再赋值，确保使用 xzt 字段内的 author，并完成旧数据迁移）----------
+    // ---------- 作者下拉框（loadDocs 后再赋值，确保使用 xzt 字段内的 author）----------
     if (authorInput) {
-        // 一次性迁移：默认作者改为配置里的 default（仅执行一次，之后尊重用户选择）
-        try {
-            if (localStorage.getItem('xzt_author_default_migrated') !== '1') {
-                var defAuthor = getDefaultAuthor();
-                if (defAuthor) author = defAuthor;
-                localStorage.setItem('xzt_author_default_migrated', '1');
-                saveDocs();
-            }
-        } catch (e) { }
         authorInput.value = author || getDefaultAuthor();
         authorInput.addEventListener('change', function () {
             author = authorInput.value.trim();
@@ -2100,11 +2285,7 @@ leftCol.style.flexShrink = '0';
     }
 
     // ---------- 二维码开关 ----------
-    var qrEnabled = true;
-    try {
-        var storedQr = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-        qrEnabled = storedQr.qrEnabled !== false;
-    } catch (_) { }
+    var qrEnabled = getAppState().qrEnabled !== false;
     function applyQrToggleUI() {
         if (qrToggleButton) {
             qrToggleButton.classList.toggle('toggle-active', qrEnabled);

@@ -78,14 +78,40 @@
         #sidebarLockBtn {
             background: none;
             border: none;
-            color: #aaa;
-            font-size: 15px;
             cursor: pointer;
             padding: 0 6px;
             line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        #sidebarLockBtn:hover {
+        #sidebarLockBtn .sidebar-svg {
+            width: 16px;
+            height: 16px;
+            fill: #aaa;
+            transition: fill 0.15s;
+            display: block;
+        }
+
+        #sidebarLockBtn:hover .sidebar-svg {
+            fill: #feda05;
+        }
+
+        #sidebarBackupBtn,
+        #sidebarRestoreBtn {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 0 6px;
+            line-height: 1;
+            font-family: inherit;
+        }
+
+        #sidebarBackupBtn:hover,
+        #sidebarRestoreBtn:hover {
             color: #feda05;
         }
 
@@ -111,14 +137,19 @@
             border-radius: 6px;
             background-color: #2a2a2a;
             border: 1px solid #444;
-            color: #feda05;
-            font-size: 16px;
             cursor: pointer;
             z-index: 10;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
             display: none;
             align-items: center;
             justify-content: center;
+        }
+
+        #sidebarPeekBtn .sidebar-svg {
+            width: 18px;
+            height: 18px;
+            fill: #feda05;
+            display: block;
         }
 
         #sidebarPeekBtn:hover {
@@ -132,7 +163,7 @@
         #doc-list {
             flex: 1;
             overflow-y: auto;
-            padding: 8px 0;
+            padding: 24px 0;
         }
 
         .doc-item {
@@ -143,6 +174,7 @@
             cursor: pointer;
             border-bottom: 1px solid #3a3a3a;
             transition: background 0.15s;
+            margin-bottom: 8px;
         }
 
         .doc-item:hover {
@@ -152,6 +184,49 @@
         .doc-item.active {
             background-color: #4a4a4a;
             border-left: 3px solid #8cf;
+        }
+
+        .doc-item.doc-pinned {
+            background-color: rgba(254, 218, 5, 0.08);
+        }
+
+        .doc-item.doc-dragging {
+            opacity: 0.4;
+        }
+
+        .doc-item.doc-drop-over {
+            border-top: 2px solid #feda05;
+        }
+
+        .doc-pin {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            padding: 0 4px;
+            line-height: 1;
+            flex-shrink: 0;
+            margin-right: 4px;
+        }
+
+        .doc-pin:hover {
+            color: #feda05;
+        }
+
+        .doc-pin.pinned {
+            color: #d81e06;
+        }
+
+        .doc-pin.pinned:hover {
+            color: #feda05;
+        }
+
+        .doc-pin .pin-svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+            display: block;
+            transition: fill 0.15s;
         }
 
         .doc-title {
@@ -181,6 +256,14 @@
 
         .doc-delete:hover {
             color: #f66;
+        }
+
+        .doc-delete .del-svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+            display: block;
+            transition: fill 0.15s;
         }
 
         #main {
@@ -232,6 +315,15 @@
 
         .button-container button:hover {
             background-color: #555;
+        }
+
+        .button-container button .btn-svg {
+            width: auto;
+            height: 20px;
+            max-width: 32px;
+            fill: currentColor;
+            display: block;
+            transition: fill 0.15s;
         }
 
         .button-container button.toggle-active {
@@ -293,10 +385,10 @@
         }
 
         #note-panel {
-            width: 300px;
-            height: 380px;
-            min-width: 200px;
-            min-height: 160px;
+            width: 150px;
+            height: 190px;
+            min-width: 100px;
+            min-height: 90px;
             max-width: 600px;
             max-height: 80vh;
             display: flex;
@@ -1025,14 +1117,16 @@
         <div id="sidebar-header">
             <h3>✏️ 写字台</h3>
             <div id="sidebar-header-actions">
-                <button id="sidebarLockBtn" title="锁定/解锁侧边栏">🔒</button>
+                <button id="sidebarBackupBtn" title="备份到本地 JSON">备份</button>
+                <button id="sidebarRestoreBtn" title="从 JSON 文件恢复">恢复</button>
+                <button id="sidebarLockBtn" title="折叠/展开侧边栏"></button>
                 <button id="newDocBtn" title="新建文档">+</button>
             </div>
         </div>
         <div id="doc-list"></div>
     </div>
     <!-- 侧边栏收起状态下的悬浮展开把手 -->
-    <button id="sidebarPeekBtn" title="展开文档列表">📄</button>
+    <button id="sidebarPeekBtn" title="展开文档列表"></button>
 
     <div id="main">
         <div class="button-container">
@@ -1173,6 +1267,9 @@
     <script src="config/export-config.js"></script>
     <script src="config/prompts.js"></script>
     <script src="index.js"></script>
+
+    <!-- 备份恢复用：隐藏文件选择器 -->
+    <input type="file" id="restoreFileInput" accept=".json,application/json" style="display:none">
 </body>
 
 </html>
