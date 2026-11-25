@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const authorInput = document.getElementById('authorInput');
     const sloganInput = document.getElementById('sloganInput');
     const qrToggleButton = document.getElementById('qrToggleButton');
+    const qrTargetWrap = document.getElementById('qrTargetWrap');
     const exportModal = document.getElementById('export-modal');
     const exportModalClose = document.getElementById('exportModalClose');
     const exportConfirmBtn = document.getElementById('exportConfirmBtn');
@@ -66,8 +67,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let docs = [];
     let currentId = null;
     let undoStacks = {};
-    var EXPORT_CONFIG = null;     // 从 config/export-config.json 加载
-    var DEFAULT_PROMPTS = [];     // 从 config/prompts.json 加载
+    var EXPORT_CONFIG = null;     // 从 config/export-config.js 加载
+    var DEFAULT_PROMPTS = [];     // 从 config/prompts.js 加载
     let author = '';
     let slogan = '';
     const MAX_UNDO = 100;
@@ -1459,12 +1460,20 @@ leftCol.style.flexShrink = '0';
 
                     footerInner.appendChild(leftCol);
 
-                    // 根据作者选择对应二维码（罗杜主任使用罗小布的二维码）
+                    // 选择对应二维码：罗杜主任优先用 qrTarget，其他人按作者自动匹配
                     var qrUrl = null;
-                    if (exportAuthor.indexOf('杜 林') !== -1) {
-                        qrUrl = DULIN_QR_DATA_URL;
-                    } else if (exportAuthor.indexOf('罗小布') !== -1 || exportAuthor.indexOf('罗杜主任') !== -1) {
-                        qrUrl = LUOXIAOBU_QR_DATA_URL;
+                    if (isLuoduAuthor()) {
+                        // 罗杜主任模式：用户选了谁就用谁，选「不显示」则不渲染
+                        if (qrTarget === 'dulin') qrUrl = DULIN_QR_DATA_URL;
+                        else if (qrTarget === 'luoxiaobu') qrUrl = LUOXIAOBU_QR_DATA_URL;
+                        // qrTarget=null → 不显示二维码
+                    } else {
+                        // 其他作者：按作者名自动匹配（杜林→杜林QR，罗小布→罗小布QR）
+                        if (exportAuthor.indexOf('杜 林') !== -1) {
+                            qrUrl = DULIN_QR_DATA_URL;
+                        } else if (exportAuthor.indexOf('罗小布') !== -1) {
+                            qrUrl = LUOXIAOBU_QR_DATA_URL;
+                        }
                     }
                     if (qrUrl) {
                         qrImg = document.createElement('img');
@@ -2035,7 +2044,7 @@ leftCol.style.flexShrink = '0';
     if (qrToggleButton) {
         qrToggleButton.addEventListener('click', function () {
             qrEnabled = !qrEnabled;
-            applyQrToggleUI();
+            applyQrControlUI();
             setAppState({ qrEnabled: qrEnabled });
         });
     }
@@ -2046,8 +2055,8 @@ leftCol.style.flexShrink = '0';
             showAutoCloseAlert('文档为空，无法导出');
             return;
         }
-        // 刷新二维码开关UI
-        applyQrToggleUI();
+        // 刷新二维码区域 UI（根据当前作者显示 toggle 或 3 按钮）
+        applyQrControlUI();
         if (exportModal) exportModal.classList.add('show');
     }
     function closeExportPanel() {
@@ -2252,6 +2261,7 @@ leftCol.style.flexShrink = '0';
         authorInput.addEventListener('change', function () {
             author = authorInput.value.trim();
             saveDocs();
+            applyQrControlUI();
         });
     }
 
@@ -2264,15 +2274,54 @@ leftCol.style.flexShrink = '0';
         });
     }
 
-    // ---------- 二维码开关 ----------
+    // ---------- 二维码开关 + 目标选择 ----------
     var qrEnabled = getAppState().qrEnabled !== false;
-    function applyQrToggleUI() {
+    // qrTarget: 'dulin' | 'luoxiaobu' | null（null=不显示）
+    var qrTarget = getAppState().qrTarget || null;
+
+    // 当前作者是否为「罗杜主任」
+    function isLuoduAuthor() {
+        var curAuthor = (authorInput && authorInput.value) ? authorInput.value.trim() : (author || '');
+        return curAuthor.indexOf('罗杜主任') !== -1;
+    }
+
+    // 更新二维码区域 UI（罗杜主任 → 3 个目标按钮；其他人 → 开/关 toggle）
+    function applyQrControlUI() {
+        var luoduMode = isLuoduAuthor();
+        // 用 class 控制显隐，不再用 inline style 覆盖 CSS
+        if (qrTargetWrap) {
+            qrTargetWrap.classList.toggle('qr-target-on', luoduMode);
+        }
         if (qrToggleButton) {
+            qrToggleButton.style.display = luoduMode ? 'none' : '';
             qrToggleButton.classList.toggle('toggle-active', qrEnabled);
             qrToggleButton.textContent = qrEnabled ? '开' : '关';
         }
+        // 罗杜主任模式：高亮当前选中的目标按钮
+        if (luoduMode && qrTargetWrap) {
+            var btns = qrTargetWrap.querySelectorAll('.qr-target-btn');
+            for (var i = 0; i < btns.length; i++) {
+                var b = btns[i];
+                var val = b.getAttribute('data-qr');
+                var isActive = (val === qrTarget) || (val === 'none' && !qrTarget);
+                b.classList.toggle('toggle-active', isActive);
+            }
+        }
     }
-    applyQrToggleUI();
+    applyQrControlUI();
+
+    // 罗杜主任模式：3 个目标按钮点击
+    if (qrTargetWrap) {
+        qrTargetWrap.addEventListener('click', function (e) {
+            var btn = e.target.closest('.qr-target-btn');
+            if (!btn) return;
+            var val = btn.getAttribute('data-qr');
+            qrTarget = (val === 'none') ? null : val;
+            qrEnabled = !!qrTarget;  // 选中二维码 → 自动开启
+            applyQrControlUI();
+            setAppState({ qrEnabled: qrEnabled, qrTarget: qrTarget });
+        });
+    }
 
     const doc = getCurrentDoc();
     if (doc) {

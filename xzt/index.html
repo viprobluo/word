@@ -4,6 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <link rel="icon" href="data:,">
     <title>写字台</title>
     <style>
@@ -1095,6 +1098,35 @@
             color: #fff;
         }
 
+        /* 二维码区域：容器和 3 按钮 */
+        #qrControlWrap {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        #qrTargetWrap {
+            display: none;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        #qrTargetWrap.qr-target-on {
+            display: flex;
+        }
+
+        .qr-target-btn {
+            padding: 6px 12px;
+            font-size: 13px;
+            min-width: 60px;
+        }
+
+        .qr-target-btn.toggle-active {
+            background-color: #feda05;
+            color: #333;
+        }
+
         @media (max-width: 768px) {
             #export-modal {
                 align-items: flex-end;
@@ -1224,7 +1256,14 @@
                 </div>
                 <div class="prompt-row prompt-row-inline">
                     <label>显示二维码：</label>
-                    <button id="qrToggleButton" class="prompt-btn prompt-toggle-btn">开</button>
+                    <div id="qrControlWrap">
+                        <button id="qrToggleButton" class="prompt-btn prompt-toggle-btn">开</button>
+                        <div id="qrTargetWrap">
+                            <button class="prompt-btn qr-target-btn" data-qr="dulin">杜林</button>
+                            <button class="prompt-btn qr-target-btn" data-qr="luoxiaobu">罗小布</button>
+                            <button class="prompt-btn qr-target-btn" data-qr="none">不显示</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="prompt-modal-footer">
@@ -1264,8 +1303,8 @@
         }
     </script>
     <script src="img_base64.js"></script>
-    <script src="config/export-config.js?v=2"></script>
-    <script src="config/prompts.js?v=2"></script>
+    <script src="config/export-config.js?v=3"></script>
+    <script src="config/prompts.js?v=3"></script>
     <script src="index.js"></script>
 
     <!-- 备份恢复用：隐藏文件选择器 -->
